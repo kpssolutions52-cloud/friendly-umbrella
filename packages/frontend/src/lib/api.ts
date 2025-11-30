@@ -1,0 +1,63 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+
+export { API_URL, WS_URL };
+
+export interface ApiError {
+  error: {
+    message: string;
+    statusCode: number;
+  };
+}
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error: ApiError = await response.json().catch(() => ({
+      error: {
+        message: response.statusText || 'An error occurred',
+        statusCode: response.status,
+      },
+    }));
+    throw error;
+  }
+
+  return response.json();
+}
+
+export async function apiGet<T>(endpoint: string): Promise<T> {
+  return apiRequest<T>(endpoint, { method: 'GET' });
+}
+
+export async function apiPost<T>(endpoint: string, data?: any): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiPut<T>(endpoint: string, data?: any): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function apiDelete<T>(endpoint: string): Promise<T> {
+  return apiRequest<T>(endpoint, { method: 'DELETE' });
+}
+
+

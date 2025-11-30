@@ -1,0 +1,915 @@
+{
+	"info": {
+		"_postman_id": "construction-pricing-api",
+		"name": "Construction Pricing Platform API",
+		"description": "Complete API collection for Construction Supplier Pricing Platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register - Supplier",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantName\": \"Test Supplier Inc\",\n  \"tenantType\": \"supplier\",\n  \"email\": \"testsupplier@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Supplier\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Register - Company",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenantName\": \"Test Construction Co\",\n  \"tenantType\": \"company\",\n  \"email\": \"testcompany@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Company\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login - Supplier",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"supplier@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Login - Company",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    pm.environment.set('userId', jsonData.user.id);",
+									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"company@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('accessToken', jsonData.accessToken);",
+									"    pm.environment.set('refreshToken', jsonData.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "auth", "me"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Products (Supplier)",
+			"item": [
+				{
+					"name": "List Products",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products?includeInactive=false",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"],
+							"query": [
+								{
+									"key": "includeInactive",
+									"value": "false"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Stats",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}",
+									"description": "Product UUID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('productId', jsonData.product.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sku\": \"STEEL-BAR-001\",\n  \"name\": \"Steel Reinforcement Bar #3\",\n  \"description\": \"Standard steel rebar for construction\",\n  \"category\": \"Steel\",\n  \"unit\": \"piece\",\n  \"defaultPrice\": 35.50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"]
+						}
+					}
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Steel Reinforcement Bar #3 (Updated)\",\n  \"description\": \"Updated description\",\n  \"category\": \"Steel Products\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Prices (Supplier)",
+			"item": [
+				{
+					"name": "Update Default Price",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 27.99,\n  \"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id/default-price",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id", "default-price"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Private Price",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('privatePriceId', jsonData.privatePrice.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyId\": \"{{companyTenantId}}\",\n  \"price\": 20.00,\n  \"currency\": \"USD\",\n  \"notes\": \"Special discount for volume purchase\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id/private-prices",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id", "private-prices"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "List Private Prices for Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id/private-prices",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id", "private-prices"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Private Price",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"price\": 19.50,\n  \"notes\": \"Updated discount rate\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/private-prices/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "private-prices", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{privatePriceId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Private Price",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/private-prices/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "private-prices", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{privatePriceId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Price History",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id/price-history",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id", "price-history"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Browsing (Company)",
+			"item": [
+				{
+					"name": "List All Suppliers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.suppliers && jsonData.suppliers.length > 0 && !pm.environment.get('supplierId')) {",
+									"        pm.environment.set('supplierId', jsonData.suppliers[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/suppliers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "suppliers"]
+						}
+					}
+				},
+				{
+					"name": "Get Supplier Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.supplier && !pm.environment.get('supplierId')) {",
+									"        pm.environment.set('supplierId', jsonData.supplier.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/suppliers/:id",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "suppliers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{supplierId}}",
+									"description": "Supplier tenant UUID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Browse Supplier Products",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/suppliers/:id/products?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "suppliers", ":id", "products"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "category",
+									"value": "Cement",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "cement",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{supplierId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Price",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/:id/price",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", ":id", "price"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{productId}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Search Products",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/search?q=cement&page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": "cement"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "category",
+									"value": "Cement",
+									"disabled": true
+								},
+								{
+									"key": "supplierId",
+									"value": "{{supplierId}}",
+									"disabled": true
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Product Categories",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/categories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["health"]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "supplierId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "companyTenantId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "privatePriceId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+
