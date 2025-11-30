@@ -1,0 +1,9 @@
+﻿{
+  "sku": "PROD-001",
+  "name": "Steel Beam 10x10",
+  "description": "High-quality steel beam for construction",
+  "category": "Steel",
+  "unit": "piece",
+  "defaultPrice": 150.00,
+  "currency": "USD"
+}

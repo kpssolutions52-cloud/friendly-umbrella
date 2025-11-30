@@ -1,0 +1,9 @@
+{
+  "tenantName": "Test Supplier Inc",
+  "tenantType": "supplier",
+  "email": "testsupplier@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Supplier"
+}
+
