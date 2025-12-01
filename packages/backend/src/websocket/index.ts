@@ -16,6 +16,11 @@ export function setupWebSocket(io: SocketIOServer) {
     // Join tenant-specific room for targeted notifications
     socket.join(`tenant:${tenantId}`);
 
+    // Join company room if user is a company (for default price broadcasts)
+    if (tenantType === 'company') {
+      socket.join('companies');
+    }
+
     // Handle price update events
     handlePriceUpdates(socket, io);
 

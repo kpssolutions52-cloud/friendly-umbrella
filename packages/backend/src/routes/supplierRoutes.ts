@@ -437,3 +437,7 @@ router.get('/products/categories', async (req: AuthRequest, res, next) => {
 export { router as supplierRoutes };
 
 
+
+
+
+

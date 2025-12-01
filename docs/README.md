@@ -18,6 +18,7 @@ Welcome to the Construction Pricing Platform documentation.
 ### For Developers
 - [Architecture Overview](./technical/architecture.md)
 - [API Reference](./technical/api-reference.md)
+- [Price Management Flow](./technical/price-management-flow.md)
 - [Setup & Installation](./technical/setup.md)
 - [Deployment Guide](./technical/deployment.md)
 

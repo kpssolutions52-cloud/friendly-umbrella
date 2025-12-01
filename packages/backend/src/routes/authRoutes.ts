@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { authService } from '../services/authService';
 import { authenticate } from '../middleware/auth';
 import { body, validationResult } from 'express-validator';
@@ -34,7 +34,7 @@ router.post(
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 characters'),
   ],
-  async (req, res, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -61,7 +61,7 @@ router.post(
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
-  async (req, res, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -108,4 +108,5 @@ router.get('/auth/me', authenticate, async (req: any, res, next) => {
 });
 
 export { router as authRoutes };
+
 

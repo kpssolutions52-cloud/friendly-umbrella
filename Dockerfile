@@ -40,3 +40,8 @@ EXPOSE 8000
 
 CMD ["node", "dist/index.js"]
 
+
+
+
+
+

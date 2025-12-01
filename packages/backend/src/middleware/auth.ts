@@ -50,7 +50,19 @@ export async function authenticate(
     req.userId = decoded.userId;
     req.tenantId = decoded.tenantId;
     req.userRole = decoded.role;
-    req.tenantType = decoded.tenantType;
+    // Use tenant type from database to ensure it's current
+    req.tenantType = user.tenant.type;
+
+    // Debug logging (remove in production)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Auth Debug:', {
+        userId: req.userId,
+        tenantId: req.tenantId,
+        tenantType: req.tenantType,
+        userRole: req.userRole,
+        path: req.path,
+      });
+    }
 
     next();
   } catch (error) {
@@ -83,10 +95,11 @@ export function requireTenantType(...allowedTypes: string[]) {
     }
 
     if (!allowedTypes.includes(req.tenantType)) {
-      return next(createError(403, 'Invalid tenant type'));
+      return next(createError(403, `Invalid tenant type. Expected one of: ${allowedTypes.join(', ')}, but got: ${req.tenantType}`));
     }
 
     next();
   };
 }
+
 

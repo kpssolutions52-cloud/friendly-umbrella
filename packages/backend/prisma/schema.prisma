@@ -198,3 +198,8 @@ model PriceView {
   @@index([viewedAt])
 }
 
+
+
+
+
+

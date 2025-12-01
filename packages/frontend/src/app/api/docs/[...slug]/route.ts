@@ -9,6 +9,7 @@ const docPaths: Record<string, string> = {
   'user-guide/api-testing': 'docs/user-guide/api-testing.md',
   'technical/architecture': 'docs/technical/architecture.md',
   'technical/api-reference': 'docs/technical/api-reference.md',
+  'technical/price-management-flow': 'docs/technical/price-management-flow.md',
   'technical/setup': 'docs/technical/setup.md',
   'technical/deployment': 'docs/technical/deployment.md',
   '': 'docs/README.md',

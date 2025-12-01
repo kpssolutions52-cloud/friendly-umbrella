@@ -66,6 +66,3 @@ export function broadcastPriceUpdate(
   });
 }
 
-// Fix import
-import { Server } from 'socket.io';
-

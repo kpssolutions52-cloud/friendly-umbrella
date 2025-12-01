@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import { setupRoutes } from './routes';
 import { setupWebSocket } from './websocket';
+import { setSocketIO } from './utils/socket';
 
 const app = express();
 const httpServer = createServer(app);
@@ -34,6 +35,7 @@ setupRoutes(app);
 const io = new SocketIOServer(httpServer, {
   cors: corsOptions,
 });
+setSocketIO(io);
 setupWebSocket(io);
 
 // Error handling middleware (must be last)
