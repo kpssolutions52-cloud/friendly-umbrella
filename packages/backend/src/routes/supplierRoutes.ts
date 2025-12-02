@@ -9,10 +9,12 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
-router.use(requireTenantType('company'));
+
+// Apply tenant type check per route to avoid conflicts with productRoutes
+const requireCompany = requireTenantType('company');
 
 // GET /api/v1/suppliers - List all active suppliers
-router.get('/suppliers', async (req: AuthRequest, res, next) => {
+router.get('/suppliers', requireCompany, async (req: AuthRequest, res, next) => {
   try {
     const suppliers = await prisma.tenant.findMany({
       where: {
@@ -47,6 +49,7 @@ router.get('/suppliers', async (req: AuthRequest, res, next) => {
 // GET /api/v1/suppliers/:id - Get supplier details
 router.get(
   '/suppliers/:id',
+  requireCompany,
   [param('id').isUUID().withMessage('Invalid supplier ID')],
   async (req: AuthRequest, res, next) => {
     try {
@@ -91,6 +94,7 @@ router.get(
 // GET /api/v1/suppliers/:id/products - Browse supplier catalog
 router.get(
   '/suppliers/:id/products',
+  requireCompany,
   [
     param('id').isUUID().withMessage('Invalid supplier ID'),
     query('category').optional().isString(),
@@ -241,6 +245,7 @@ router.get(
 // GET /api/v1/products/:id/price - Get price for specific product (company view)
 router.get(
   '/products/:id/price',
+  requireCompany,
   [param('id').isUUID().withMessage('Invalid product ID')],
   async (req: AuthRequest, res, next) => {
     try {
@@ -264,6 +269,7 @@ router.get(
 // GET /api/v1/products/search - Search products across all suppliers
 router.get(
   '/products/search',
+  requireCompany,
   [
     query('q').optional().isString().withMessage('Query must be a string'),
     query('category').optional().isString(),
@@ -408,7 +414,7 @@ router.get(
 );
 
 // GET /api/v1/products/categories - Get all product categories
-router.get('/products/categories', async (req: AuthRequest, res, next) => {
+router.get('/products/categories', requireCompany, async (req: AuthRequest, res, next) => {
   try {
     const categories = await prisma.product.findMany({
       where: {
