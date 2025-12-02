@@ -207,11 +207,29 @@ export class TenantAdminService {
       throw createError(403, 'Cannot modify own admin permissions');
     }
 
-    // Update permissions
+    // Update permissions and role if needed
+    // If permissions include admin: true, ensure user has admin role
+    const isAdmin = permissions.admin === true;
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      throw createError(404, 'Tenant not found');
+    }
+
+    let newRole = user.role;
+    if (isAdmin) {
+      // Promote to admin role
+      newRole = tenant.type === 'supplier' ? 'supplier_admin' : 'company_admin';
+    } else if (user.role === 'supplier_admin' || user.role === 'company_admin') {
+      // Demote from admin to staff if not admin anymore
+      newRole = tenant.type === 'supplier' ? 'supplier_staff' : 'company_staff';
+    }
+
+    // Update permissions and role
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         permissions,
+        role: newRole,
       },
       select: {
         id: true,
@@ -220,6 +238,72 @@ export class TenantAdminService {
         lastName: true,
         role: true,
         permissions: true,
+      },
+    });
+
+    return updatedUser;
+  }
+
+  /**
+   * Assign role-based permissions (view/create/admin)
+   */
+  async assignRolePermissions(
+    userId: string,
+    tenantId: string,
+    roleType: 'view' | 'create' | 'admin',
+    adminId: string
+  ) {
+    // Verify user belongs to tenant
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { tenant: true },
+    });
+
+    if (!user || !user.tenant) {
+      throw createError(404, 'User not found');
+    }
+
+    if (user.tenantId !== tenantId) {
+      throw createError(403, 'User does not belong to this tenant');
+    }
+
+    // Cannot modify own permissions
+    if (user.id === adminId) {
+      throw createError(403, 'Cannot modify own permissions');
+    }
+
+    // Map role type to permissions and role
+    let permissions: Record<string, any>;
+    let newRole: string;
+
+    if (roleType === 'admin') {
+      permissions = { view: true, create: true, admin: true };
+      newRole = user.tenant.type === 'supplier' ? 'supplier_admin' : 'company_admin';
+    } else if (roleType === 'create') {
+      permissions = { view: true, create: true, admin: false };
+      newRole = user.tenant.type === 'supplier' ? 'supplier_staff' : 'company_staff';
+    } else {
+      // view
+      permissions = { view: true, create: false, admin: false };
+      newRole = user.tenant.type === 'supplier' ? 'supplier_staff' : 'company_staff';
+    }
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        permissions,
+        role: newRole as any,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        permissions: true,
+        status: true,
+        isActive: true,
       },
     });
 

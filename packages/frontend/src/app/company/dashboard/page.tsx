@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api';
+import Link from 'next/link';
 
 interface SearchProduct {
   id: string;
@@ -236,9 +237,16 @@ function DashboardContent() {
                 {user?.tenant?.name}
               </p>
             </div>
-            <Button onClick={logout} variant="outline">
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              {user?.role === 'company_admin' && (
+                <Link href="/company/users">
+                  <Button variant="outline">User Management</Button>
+                </Link>
+              )}
+              <Button onClick={logout} variant="outline">
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>

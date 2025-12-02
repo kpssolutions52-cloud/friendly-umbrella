@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiPost, apiGet } from '@/lib/api';
+import Link from 'next/link';
 
 export default function SupplierDashboardPage() {
   return (
@@ -216,9 +217,16 @@ function DashboardContent() {
                 {user?.tenant?.name}
               </p>
             </div>
-            <Button onClick={logout} variant="outline">
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              {user?.role === 'supplier_admin' && (
+                <Link href="/supplier/users">
+                  <Button variant="outline">User Management</Button>
+                </Link>
+              )}
+              <Button onClick={logout} variant="outline">
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>

@@ -37,35 +37,66 @@ The platform supports two types of accounts:
 
 ## Registration
 
+The platform offers four registration options depending on your needs:
+
+### Registration Types
+
+1. **New Company Registration** - Register a new company organization (becomes admin)
+2. **New Supplier Registration** - Register a new supplier organization (becomes admin)
+3. **New User for a Company** - Join an existing company (requires admin approval)
+4. **New User for a Supplier** - Join an existing supplier (requires admin approval)
+
 ### Step 1: Access the Registration Page
 
 1. Open your web browser
 2. Navigate to `http://localhost:3000/auth/register`
-3. You'll see the registration form
+3. You'll see the registration form with a "Registration Type" dropdown
 
-### Step 2: Fill in Registration Details
+### Step 2: Select Registration Type
 
-**For Suppliers:**
-- **Tenant Name**: Your company name (e.g., "ABC Suppliers")
-- **Tenant Type**: Select "Supplier"
-- **Email**: Your business email address
+Choose the appropriate registration type from the dropdown:
+- If creating a new organization, select "New Company Registration" or "New Supplier Registration"
+- If joining an existing organization, select "New User for a Company" or "New User for a Supplier"
+
+### Step 3: Fill in Registration Details
+
+**For New Company/Supplier Registration:**
+- **Registration Type**: Select "New Company Registration" or "New Supplier Registration"
+- **Company/Supplier Name**: Your organization name (e.g., "ABC Suppliers" or "XYZ Construction")
+- **Email**: Your business email address (you'll become the admin)
 - **Password**: Create a strong password (minimum 8 characters)
-- **First Name**: Your first name
-- **Last Name**: Your last name
+- **First Name** (Optional): Your first name
+- **Last Name** (Optional): Your last name
 
-**For Companies:**
-- **Tenant Name**: Your company name (e.g., "XYZ Construction")
-- **Tenant Type**: Select "Company"
-- **Email**: Your business email address
+**For New User Registration:**
+- **Registration Type**: Select "New User for a Company" or "New User for a Supplier"
+- **Select Organization**: Choose from the dropdown list of active companies/suppliers
+- **Email**: Your email address
 - **Password**: Create a strong password (minimum 8 characters)
-- **First Name**: Your first name
-- **Last Name**: Your last name
+- **First Name** (Optional): Your first name
+- **Last Name** (Optional): Your last name
 
-### Step 3: Submit Registration
+### Step 4: Submit Registration
 
 1. Review all information
-2. Click the "Register" button
-3. You'll be automatically logged in and redirected to your dashboard
+2. Click the "Create account" button
+3. You'll see a success message
+
+### Step 5: Approval Process
+
+**For New Company/Supplier:**
+- Your registration is pending Super Admin approval
+- You'll be redirected to the login page with a pending approval notice
+- Once approved, you can log in and access your admin dashboard
+
+**For New User:**
+- Your registration is pending approval by your organization's admin
+- You'll be redirected to the login page with a pending approval notice
+- Once approved by your admin, you can log in
+
+> **Note**: You cannot log in until your account is approved. Contact your organization's admin or the Super Admin if you have questions.
+
+For detailed information about the registration and approval process, see the [User Registration and Role Management Guide](./user-registration-and-roles.md).
 
 ## Login
 
@@ -82,7 +113,10 @@ The platform supports two types of accounts:
 ### Step 3: Sign In
 
 1. Click the "Login" button
-2. You'll be redirected to your dashboard based on your account type
+2. If your account is pending approval, you'll see a notice on the login page
+3. Once approved, you'll be redirected to your dashboard based on your account type
+
+> **Note**: If you see a "Pending approval" message, your account is still awaiting approval. Contact your organization's admin or the Super Admin for assistance.
 
 ## First Steps
 
@@ -122,9 +156,13 @@ After logging in, you'll see the Company Dashboard. Here's what to do next:
 
 ## Need Help?
 
+- Check the [User Registration and Role Management Guide](./user-registration-and-roles.md) for registration and user management details
 - Check the [Supplier Guide](./supplier-guide.md) for detailed supplier instructions
 - Check the [Company Guide](./company-guide.md) for detailed company instructions
 - Review the [API Testing Guide](./api-testing.md) for API access
+
+
+
 
 
 

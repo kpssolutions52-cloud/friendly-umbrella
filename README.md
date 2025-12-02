@@ -14,6 +14,10 @@ A real-time pricing platform connecting construction suppliers with companies/es
 - ✅ Responsive web application
 - ✅ Price search and filtering
 - ✅ Audit logging
+- ✅ User registration and role management system
+- ✅ Admin approval workflow (Super Admin & Tenant Admin)
+- ✅ User permission management (view/create/admin)
+- ✅ Pending user approval system
 
 ### Coming Soon (Phase 2+)
 - 📱 Mobile applications (iOS/Android)
@@ -142,8 +146,10 @@ npm test --workspace=@platform/frontend
 ## 📚 Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Complete architecture and planning document
-- API documentation (coming soon)
-- Component documentation (coming soon)
+- [User Registration & Role Management](./docs/user-guide/user-registration-and-roles.md) - Complete guide for registration and user management
+- [Technical: User Registration](./docs/technical/user-registration-role-management.md) - Technical implementation details
+- [User Guides](./docs/user-guide/) - Step-by-step guides for all user types
+- [Technical Documentation](./docs/technical/) - Developer documentation and API reference
 
 ## 🛣️ Roadmap
 
@@ -177,10 +183,27 @@ MIT License - see LICENSE file for details
 
 ## 👥 User Roles
 
-- **Supplier Admin** - Full access to products and pricing
-- **Supplier Staff** - View/edit products (configurable)
-- **Company Admin** - View all prices, manage team, export
+### Tenant-Level Roles
+
+- **Supplier Admin** - Full access to products and pricing, manage users
+- **Supplier Staff** - View/edit products (configurable permissions)
+- **Company Admin** - View all prices, manage team, export, manage users
 - **Company Staff** - View prices only
+
+### System-Level Roles
+
+- **Super Admin** - System-wide administration, approve tenants, manage all organizations
+
+### Registration and Approval
+
+The platform features a comprehensive registration and approval system:
+
+- **New Company/Supplier Registration** - Creates new organization, pending Super Admin approval
+- **New User Registration** - Adds users to existing organizations, pending Tenant Admin approval
+- **Role Management** - Admins can assign permissions (view/create/admin) to users
+- **Status Management** - Users can be pending, active, rejected, or inactive
+
+See [User Registration and Role Management Guide](./docs/user-guide/user-registration-and-roles.md) for complete details.
 
 ## 🔗 API Endpoints
 
@@ -213,6 +236,9 @@ For issues and questions, please open an issue in the repository.
 ---
 
 **Status**: 🚧 In Development - MVP Phase
+
+
+
 
 
 

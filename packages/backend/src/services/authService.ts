@@ -4,13 +4,16 @@ import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import createError from 'http-errors';
 
 export interface RegisterInput {
-  tenantName: string;
-  tenantType: 'supplier' | 'company';
+  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user';
+  tenantName?: string; // Required for new_company and new_supplier
+  tenantType?: 'supplier' | 'company'; // Required for new_company and new_supplier
+  tenantId?: string; // Required for new_company_user and new_supplier_user
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
   role?: string;
+  permissions?: Record<string, any>;
 }
 
 export interface LoginInput {
@@ -29,6 +32,24 @@ export class AuthService {
       throw createError(409, 'Email already registered');
     }
 
+    // Handle different registration types
+    if (input.registrationType === 'new_company' || input.registrationType === 'new_supplier') {
+      return this.registerNewTenant(input);
+    } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user') {
+      return this.registerNewUser(input);
+    } else {
+      throw createError(400, 'Invalid registration type');
+    }
+  }
+
+  /**
+   * Register a new company or supplier (creates tenant + admin user)
+   */
+  private async registerNewTenant(input: RegisterInput) {
+    if (!input.tenantName || !input.tenantType) {
+      throw createError(400, 'Tenant name and type are required for new tenant registration');
+    }
+
     // Check if tenant email already exists
     const existingTenant = await prisma.tenant.findUnique({
       where: { email: input.email },
@@ -38,19 +59,16 @@ export class AuthService {
       throw createError(409, 'Email already registered');
     }
 
-    // Determine role based on tenant type if not provided
-    let role = input.role;
-    if (!role) {
-      role = input.tenantType === 'supplier' ? 'supplier_admin' : 'company_admin';
-    }
+    // Determine role - admin for new tenant creators
+    const role = input.tenantType === 'supplier' ? 'supplier_admin' : 'company_admin';
 
     // Create tenant and user in transaction - both start as pending
     const result = await prisma.$transaction(async (tx) => {
       // Create tenant with pending status
       const tenant = await tx.tenant.create({
         data: {
-          name: input.tenantName,
-          type: input.tenantType,
+          name: input.tenantName!,
+          type: input.tenantType!,
           email: input.email,
           status: 'pending',
           isActive: false,
@@ -60,7 +78,7 @@ export class AuthService {
       // Hash password
       const passwordHash = await hashPassword(input.password);
 
-      // Create user with pending status
+      // Create user with pending status (but will become admin once tenant is approved)
       const user = await tx.user.create({
         data: {
           tenantId: tenant.id,
@@ -71,6 +89,7 @@ export class AuthService {
           role: role as any,
           status: 'pending',
           isActive: false,
+          permissions: { view: true, create: true, admin: true }, // Full admin permissions
         },
         include: {
           tenant: true,
@@ -80,8 +99,6 @@ export class AuthService {
       return { user, tenant };
     });
 
-    // Don't generate tokens - user must wait for approval
-    // Return a message indicating pending approval
     return {
       message: 'Registration successful. Your account is pending approval by a super administrator.',
       user: {
@@ -94,6 +111,76 @@ export class AuthService {
         tenantId: result.user.tenantId,
         tenantType: result.tenant.type,
         tenantStatus: result.tenant.status,
+      },
+    };
+  }
+
+  /**
+   * Register a new user for existing company or supplier
+   */
+  private async registerNewUser(input: RegisterInput) {
+    if (!input.tenantId) {
+      throw createError(400, 'Tenant ID is required for new user registration');
+    }
+
+    // Verify tenant exists and is active
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: input.tenantId },
+    });
+
+    if (!tenant) {
+      throw createError(404, 'Tenant not found');
+    }
+
+    if (tenant.status !== 'active' || !tenant.isActive) {
+      throw createError(403, 'Cannot register users for inactive or pending tenants');
+    }
+
+    // Determine role based on tenant type
+    const defaultRole = tenant.type === 'supplier' ? 'supplier_staff' : 'company_staff';
+    const role = input.role || defaultRole;
+
+    // Validate role matches tenant type
+    if (tenant.type === 'supplier' && !['supplier_admin', 'supplier_staff'].includes(role)) {
+      throw createError(400, 'Invalid role for supplier tenant');
+    }
+    if (tenant.type === 'company' && !['company_admin', 'company_staff'].includes(role)) {
+      throw createError(400, 'Invalid role for company tenant');
+    }
+
+    // Hash password
+    const passwordHash = await hashPassword(input.password);
+
+    // Create user with pending status - needs admin approval
+    const user = await prisma.user.create({
+      data: {
+        tenantId: input.tenantId,
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: role as any,
+        status: 'pending',
+        isActive: false,
+        permissions: input.permissions || { view: true, create: false, admin: false }, // Default permissions
+      },
+      include: {
+        tenant: true,
+      },
+    });
+
+    return {
+      message: 'Registration successful. Your account is pending approval by your organization administrator.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        tenantId: user.tenantId,
+        tenantType: tenant.type,
+        tenantStatus: tenant.status,
       },
     };
   }

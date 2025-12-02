@@ -26,12 +26,23 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    const error: ApiError = await response.json().catch(() => ({
+    const errorData = await response.json().catch(() => ({
       error: {
         message: response.statusText || 'An error occurred',
         statusCode: response.status,
       },
     }));
+    
+    // Preserve the full error structure, especially for validation errors
+    const error: any = {
+      error: {
+        message: errorData.message || errorData.error?.message || response.statusText || 'An error occurred',
+        statusCode: response.status,
+        ...(errorData.errors && { errors: errorData.errors }),
+      },
+      ...(errorData.errors && { errors: errorData.errors }),
+    };
+    
     throw error;
   }
 
@@ -59,6 +70,9 @@ export async function apiPut<T>(endpoint: string, data?: any): Promise<T> {
 export async function apiDelete<T>(endpoint: string): Promise<T> {
   return apiRequest<T>(endpoint, { method: 'DELETE' });
 }
+
+
+
 
 
 

@@ -1,13 +1,16 @@
 import { apiPost, apiGet } from './api';
 
 export interface RegisterInput {
-  tenantName: string;
-  tenantType: 'supplier' | 'company';
+  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user';
+  tenantName?: string;
+  tenantType?: 'supplier' | 'company';
+  tenantId?: string;
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
   role?: string;
+  permissions?: Record<string, any>;
 }
 
 export interface LoginInput {
@@ -30,19 +33,21 @@ export interface User {
   firstName?: string;
   lastName?: string;
   role: string;
-  tenant: Tenant;
+  tenant?: Tenant; // Optional for super admins
+  tenantId?: string | null; // Optional for super admins
 }
 
 export interface AuthResponse {
   user: User;
-  tokens: {
+  tokens?: {
     accessToken: string;
     refreshToken: string;
   };
+  message?: string;
 }
 
-export async function register(input: RegisterInput): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/api/v1/auth/register', input);
+export async function register(input: RegisterInput): Promise<AuthResponse | { message: string; user: any }> {
+  return apiPost<any>('/api/v1/auth/register', input);
 }
 
 export async function login(input: LoginInput): Promise<AuthResponse> {

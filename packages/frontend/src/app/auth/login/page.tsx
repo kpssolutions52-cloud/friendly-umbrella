@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@platform/shared';
@@ -13,9 +13,18 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+
+  // Check for pending registration message
+  useEffect(() => {
+    if (searchParams.get('pending') === 'true') {
+      setPendingMessage('Your registration is pending approval. You will be able to login once your account is approved.');
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -57,6 +66,11 @@ export default function LoginPage() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          {pendingMessage && (
+            <div className="rounded-md bg-blue-50 p-4">
+              <p className="text-sm text-blue-800">{pendingMessage}</p>
+            </div>
+          )}
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <p className="text-sm text-red-800">{error}</p>
@@ -107,6 +121,9 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
 
 
 

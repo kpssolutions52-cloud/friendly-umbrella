@@ -56,17 +56,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await refreshUser();
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
+    
+    // Check if super admin
+    if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
+      router.push('/admin/dashboard');
+      return;
+    }
+    
     const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
     router.push(getDashboardPath(tenantType));
   };
 
   const register = async (input: RegisterInput) => {
     const response = await apiRegister(input);
+    
+    // Check if registration was successful but pending (no tokens)
+    if (!response.tokens) {
+      // Registration successful but pending approval - redirect to login with message
+      router.push('/auth/login?pending=true');
+      return;
+    }
+    
+    // If tokens are provided (active registration), store them and proceed
     storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
     // Refresh to get full user with tenant object
     await refreshUser();
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
+    
+    // Check if super admin
+    if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
+      router.push('/admin/dashboard');
+      return;
+    }
+    
     const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
     router.push(getDashboardPath(tenantType));
   };
@@ -78,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   function getDashboardPath(tenantType: string): string {
+    if (tenantType === 'system') {
+      return '/admin/dashboard';
+    }
     return tenantType === 'supplier' ? '/supplier/dashboard' : '/company/dashboard';
   }
 

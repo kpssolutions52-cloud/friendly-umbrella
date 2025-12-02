@@ -13,11 +13,15 @@ export default function Home() {
   useEffect(() => {
     if (!loading && user) {
       // Redirect to appropriate dashboard
-      const dashboardPath =
-        user.tenant?.type === 'supplier'
-          ? '/supplier/dashboard'
-          : '/company/dashboard';
-      router.push(dashboardPath);
+      if (user.role === 'super_admin') {
+        router.push('/admin/dashboard');
+      } else {
+        const dashboardPath =
+          user.tenant?.type === 'supplier'
+            ? '/supplier/dashboard'
+            : '/company/dashboard';
+        router.push(dashboardPath);
+      }
     }
   }, [user, loading, router]);
 

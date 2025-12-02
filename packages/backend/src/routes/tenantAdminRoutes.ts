@@ -264,6 +264,45 @@ router.put(
   }
 );
 
+// PUT /api/v1/tenant-admin/users/:userId/assign-role - Assign role-based permissions (view/create/admin)
+router.put(
+  '/users/:userId/assign-role',
+  [
+    param('userId').isUUID(),
+    body('roleType').isIn(['view', 'create', 'admin']),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { userId } = req.params;
+      const { roleType } = req.body;
+      const tenantId = req.tenantId!;
+      const adminId = req.userId!;
+
+      const user = await tenantAdminService.assignRolePermissions(
+        userId,
+        tenantId,
+        roleType,
+        adminId
+      );
+
+      res.json({
+        message: `User role set to ${roleType} successfully`,
+        user,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  }
+);
+
 // GET /api/v1/tenant-admin/statistics - Get tenant statistics
 router.get(
   '/statistics',
