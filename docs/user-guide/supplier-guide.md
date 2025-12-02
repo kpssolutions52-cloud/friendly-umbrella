@@ -120,13 +120,57 @@ PUT /api/v1/products/{productId}/default-price
 }
 ```
 
-### Private Prices
+### Special Prices (Private Prices)
 
-Private prices are company-specific and override default prices for that company.
+Special prices are company-specific prices that override default prices for that specific company. Only the selected company can see their special price - other companies will see the default price.
 
-#### Creating Private Prices
+#### Managing Special Prices Through UI
 
-**Using API:**
+**Step 1: Access Special Price Management**
+1. View your products list (click on any stat card)
+2. Find the product you want to set special prices for
+3. Click the **"Special Prices"** button in the Actions column
+4. A modal opens showing all special prices for that product
+
+**Step 2: Add a Special Price**
+1. Click **"Add Special Price"** button in the modal
+2. Fill in the form:
+   - **Company**: Select from the dropdown list of active companies
+   - **Currency**: Choose the currency (USD, EUR, GBP, SGD)
+   - **Special Price**: Enter the price amount
+   - **Notes** (Optional): Add any notes about this special price
+3. Click **"Add Price"** to save
+
+**Step 3: View Special Prices**
+- All special prices for the product are displayed in a table
+- Shows company name, price, currency, effective date, and notes
+- You can see which companies have special pricing
+
+**Step 4: Edit Special Price**
+1. Find the special price in the table
+2. Click **"Edit"** button
+3. Modify the price, currency, or notes
+4. Click **"Update Price"** to save changes
+
+**Step 5: Delete Special Price**
+1. Find the special price in the table
+2. Click **"Delete"** button
+3. Confirm the deletion
+4. The special price will be removed and the company will see the default price
+
+#### Benefits of Special Prices
+- Offer discounts to specific companies
+- Negotiate custom pricing
+- Maintain different pricing tiers
+- Track company-specific agreements
+- **Privacy**: Each company only sees their own special price
+- Easy management through the dashboard UI
+
+#### Using API (Advanced)
+
+You can also manage special prices via API:
+
+**Create Special Price:**
 ```bash
 POST /api/v1/products/{productId}/private-prices
 {
@@ -137,11 +181,24 @@ POST /api/v1/products/{productId}/private-prices
 }
 ```
 
-#### Benefits of Private Prices
-- Offer discounts to specific companies
-- Negotiate custom pricing
-- Maintain different pricing tiers
-- Track company-specific agreements
+**List All Special Prices for a Product:**
+```bash
+GET /api/v1/products/{productId}/private-prices
+```
+
+**Update Special Price:**
+```bash
+PUT /api/v1/private-prices/{privatePriceId}
+{
+  "price": 135.00,
+  "currency": "USD"
+}
+```
+
+**Delete Special Price:**
+```bash
+DELETE /api/v1/private-prices/{privatePriceId}
+```
 
 ## Viewing Statistics
 

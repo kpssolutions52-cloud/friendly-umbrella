@@ -11,6 +11,13 @@ All notable changes to the Construction Pricing Platform will be documented in t
 - **Edit Product Modal**: Full-featured product editing interface with form validation
 - **Delete Confirmation Modal**: Safe deletion workflow with confirmation dialog
 - **Product Status Toggle**: Quick activation/deactivation of products with confirmation
+- **Special Price Management UI**: Complete UI for suppliers to manage company-specific special prices
+  - View all special prices for a product
+  - Add new special prices for specific companies
+  - Edit existing special prices
+  - Delete special prices
+  - Special prices are visible only to the assigned company
+- **Companies List API**: New endpoint for suppliers to get list of active companies for special price assignment
 
 ### Changed
 - **Company Dashboard Product Details**: Simplified product details view to show only supplier contact information (phone and location) instead of price comparison table

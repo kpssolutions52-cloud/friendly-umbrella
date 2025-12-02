@@ -199,7 +199,7 @@ router.get(
         privatePrices.map((pp) => [pp.productId, pp])
       );
 
-      // Combine products with prices (private takes precedence)
+      // Combine products with prices - return both default and private prices
       const productsWithPrices = products.map((product) => {
         const privatePrice = privatePriceMap.get(product.id);
         const defaultPrice = product.defaultPrices[0];
@@ -213,6 +213,16 @@ router.get(
           unit: product.unit,
           supplierId: product.supplierId,
           supplierName: supplier.name,
+          // Return both prices for comparison
+          defaultPrice: defaultPrice ? {
+            price: Number(defaultPrice.price),
+            currency: defaultPrice.currency,
+          } : null,
+          privatePrice: privatePrice ? {
+            price: Number(privatePrice.price),
+            currency: privatePrice.currency,
+          } : null,
+          // Keep backward compatibility - this is the price that applies
           price: privatePrice
             ? Number(privatePrice.price)
             : defaultPrice
@@ -370,7 +380,7 @@ router.get(
         privatePrices.map((pp) => [pp.productId, pp])
       );
 
-      // Combine products with prices (private takes precedence)
+      // Combine products with prices - return both default and private prices
       const productsWithPrices = products.map((product) => {
         const privatePrice = privatePriceMap.get(product.id);
         const defaultPrice = product.defaultPrices[0];
@@ -384,6 +394,16 @@ router.get(
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
+          // Return both prices for comparison
+          defaultPrice: defaultPrice ? {
+            price: Number(defaultPrice.price),
+            currency: defaultPrice.currency,
+          } : null,
+          privatePrice: privatePrice ? {
+            price: Number(privatePrice.price),
+            currency: privatePrice.currency,
+          } : null,
+          // Keep backward compatibility - this is the price that applies
           price: privatePrice
             ? Number(privatePrice.price)
             : defaultPrice

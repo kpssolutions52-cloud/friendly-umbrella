@@ -3,6 +3,7 @@ import { priceService } from '../services/priceService';
 import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { body, param, validationResult } from 'express-validator';
 import { z } from 'zod';
+import { prisma } from '../utils/prisma';
 
 const router = Router();
 
@@ -257,6 +258,35 @@ router.get(
       );
 
       res.json({ history });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/v1/companies - List all active companies (for suppliers to select when creating private prices)
+router.get(
+  '/companies',
+  requireTenantType('supplier'),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const companies = await prisma.tenant.findMany({
+        where: {
+          type: 'company',
+          isActive: true,
+          status: 'active',
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      res.json({ companies });
     } catch (error) {
       next(error);
     }

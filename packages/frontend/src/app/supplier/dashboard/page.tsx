@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
 import Link from 'next/link';
+import { PrivatePriceManagement } from '@/components/supplier/PrivatePriceManagement';
 
 export default function SupplierDashboardPage() {
   return (
@@ -73,6 +74,8 @@ function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showPrivatePriceModal, setShowPrivatePriceModal] = useState(false);
+  const [selectedProductForPrivatePrice, setSelectedProductForPrivatePrice] = useState<Product | null>(null);
 
   const fetchStats = async () => {
     try {
@@ -579,6 +582,17 @@ function DashboardContent() {
                             >
                               Delete
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedProductForPrivatePrice(product);
+                                setShowPrivatePriceModal(true);
+                              }}
+                              className="h-8 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                            >
+                              Special Prices
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -947,6 +961,27 @@ function DashboardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Private Price Management Modal */}
+      {showPrivatePriceModal && selectedProductForPrivatePrice && (
+        <PrivatePriceManagement
+          productId={selectedProductForPrivatePrice.id}
+          productName={selectedProductForPrivatePrice.name}
+          defaultCurrency={selectedProductForPrivatePrice.defaultPrices?.[0]?.currency || 'USD'}
+          onClose={() => {
+            setShowPrivatePriceModal(false);
+            setSelectedProductForPrivatePrice(null);
+          }}
+          onUpdate={() => {
+            // Refresh stats after private price changes
+            fetchStats();
+            // Refresh product list if a filter is active
+            if (activeFilter) {
+              fetchProducts(activeFilter);
+            }
+          }}
+        />
       )}
     </div>
   );

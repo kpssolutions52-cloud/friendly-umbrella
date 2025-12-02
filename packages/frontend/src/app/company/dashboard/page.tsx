@@ -19,6 +19,14 @@ interface SearchProduct {
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;
+  defaultPrice: {
+    price: number;
+    currency: string;
+  } | null;
+  privatePrice: {
+    price: number;
+    currency: string;
+  } | null;
 }
 
 interface SupplierInfo {
@@ -354,18 +362,33 @@ function DashboardContent() {
                               {product.unit}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              {product.price ? (
-                                <div>
-                                  <div className="text-sm font-semibold text-gray-900">
-                                    {product.currency} {product.price.toFixed(2)}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {product.priceType === 'private' ? (
-                                      <span className="text-green-600">Special Rate</span>
-                                    ) : (
-                                      <span>Default Price</span>
-                                    )}
-                                  </div>
+                              {product.defaultPrice || product.privatePrice ? (
+                                <div className="space-y-1">
+                                  {/* Default Price */}
+                                  {product.defaultPrice && (
+                                    <div>
+                                      <div className="text-sm text-gray-600">
+                                        Default: {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Special Price */}
+                                  {product.privatePrice && (
+                                    <div>
+                                      <div className="text-sm font-semibold text-green-600">
+                                        Your Price: {product.privatePrice.currency} {product.privatePrice.price.toFixed(2)}
+                                      </div>
+                                      {product.defaultPrice && (
+                                        <div className="text-xs text-green-600">
+                                          {(((product.defaultPrice.price - product.privatePrice.price) / product.defaultPrice.price) * 100).toFixed(1)}% savings
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  {/* Show only default if no special price */}
+                                  {!product.privatePrice && product.defaultPrice && (
+                                    <div className="text-xs text-gray-400">No special rate</div>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-sm text-gray-400">No price</span>

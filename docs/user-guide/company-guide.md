@@ -85,18 +85,25 @@ Results include:
 - Set by suppliers
 - Standard pricing
 
-#### Private Prices
-- Company-specific pricing
-- Override default prices
-- Negotiated agreements
-- Shown automatically if available
+#### Private Prices (Special Prices)
+- Company-specific pricing negotiated with suppliers
+- Override default prices automatically
+- Visible only to your company (other companies can't see your special prices)
+- Shown automatically when viewing products
+- Displayed with a "Special Rate" label to distinguish from default prices
 
 ### Price Display
 
 When viewing products, you'll see:
-- **Current Price**: The price you'll pay (private if available, otherwise default)
+- **Current Price**: The price you'll pay (special price if available, otherwise default price)
 - **Currency**: Price currency
-- **Price Type**: Indicates if it's a private or default price
+- **Price Type**: Shows "Special Rate" if you have a negotiated special price, or "Default Price" if using standard pricing
+
+**How Special Prices Work:**
+- Suppliers can set special prices for your company on specific products
+- These prices are completely private - other companies cannot see your special prices
+- Special prices automatically override default prices when available
+- You'll see a green "Special Rate" indicator when viewing products with special pricing
 
 ## Viewing Supplier Details
 
