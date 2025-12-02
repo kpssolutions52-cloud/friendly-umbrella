@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiPost, apiGet } from '@/lib/api';
+import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
 import Link from 'next/link';
 
 export default function SupplierDashboardPage() {
@@ -48,6 +48,8 @@ type FilterType = 'all' | 'active' | 'withPrices' | 'withPrivatePrices' | null;
 function DashboardContent() {
   const { user, logout } = useAuth();
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stats, setStats] = useState<ProductStats>({
     totalProducts: 0,
@@ -70,6 +72,7 @@ function DashboardContent() {
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchStats = async () => {
     try {
@@ -199,8 +202,128 @@ function DashboardContent() {
   const handleCloseModal = () => {
     if (!isSubmitting) {
       setShowAddProductModal(false);
+      setShowEditProductModal(false);
+      setEditingProduct(null);
       setError(null);
       setSuccess(false);
+      setFormData({
+        sku: '',
+        name: '',
+        description: '',
+        category: '',
+        unit: '',
+        defaultPrice: '',
+        currency: 'USD',
+      });
+    }
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      sku: product.sku,
+      name: product.name,
+      description: product.description || '',
+      category: product.category || '',
+      unit: product.unit,
+      defaultPrice: product.defaultPrices && product.defaultPrices.length > 0 
+        ? product.defaultPrices[0].price.toString() 
+        : '',
+      currency: product.defaultPrices && product.defaultPrices.length > 0
+        ? product.defaultPrices[0].currency
+        : 'USD',
+    });
+    setShowEditProductModal(true);
+    setError(null);
+    setSuccess(false);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    setError(null);
+    setSuccess(false);
+    setIsSubmitting(true);
+
+    try {
+      const payload: any = {
+        sku: formData.sku,
+        name: formData.name,
+        description: formData.description || undefined,
+        category: formData.category || undefined,
+        unit: formData.unit,
+      };
+
+      // Only include price if it's provided
+      if (formData.defaultPrice) {
+        payload.defaultPrice = parseFloat(formData.defaultPrice);
+        payload.currency = formData.currency;
+      }
+
+      await apiPut(`/api/v1/products/${editingProduct.id}`, payload);
+      setSuccess(true);
+
+      // Refresh stats and products
+      await fetchStats();
+      if (activeFilter) {
+        await fetchProducts(activeFilter);
+      }
+
+      setTimeout(() => {
+        setShowEditProductModal(false);
+        setEditingProduct(null);
+        setSuccess(false);
+        setFormData({
+          sku: '',
+          name: '',
+          description: '',
+          category: '',
+          unit: '',
+          defaultPrice: '',
+          currency: 'USD',
+        });
+      }, 1000);
+    } catch (err: any) {
+      setError(err?.error?.message || 'Failed to update product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleInactive = async (product: Product) => {
+    if (!confirm(`Are you sure you want to ${product.isActive ? 'deactivate' : 'activate'} this product?`)) {
+      return;
+    }
+
+    try {
+      await apiPut(`/api/v1/products/${product.id}`, {
+        isActive: !product.isActive,
+      });
+
+      // Refresh stats and products
+      await fetchStats();
+      if (activeFilter) {
+        await fetchProducts(activeFilter);
+      }
+    } catch (err: any) {
+      alert(err?.error?.message || 'Failed to update product status');
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await apiDelete(`/api/v1/products/${productId}`);
+
+      // Refresh stats and products
+      await fetchStats();
+      if (activeFilter) {
+        await fetchProducts(activeFilter);
+      }
+
+      setDeleteConfirm(null);
+    } catch (err: any) {
+      alert(err?.error?.message || 'Failed to delete product');
     }
   };
 
@@ -388,6 +511,9 @@ function DashboardContent() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -424,6 +550,36 @@ function DashboardContent() {
                           >
                             {product.isActive ? 'Active' : 'Inactive'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditProduct(product)}
+                              className="h-8 px-3"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleToggleInactive(product)}
+                              className={`h-8 px-3 ${
+                                !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              {product.isActive ? 'Inactive' : 'Activate'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setDeleteConfirm(product.id)}
+                              className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -596,6 +752,198 @@ function DashboardContent() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {showEditProductModal && editingProduct && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={handleCloseModal}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
+                <button
+                  onClick={handleCloseModal}
+                  disabled={isSubmitting}
+                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md text-green-700 text-sm">
+                  Product updated successfully!
+                </div>
+              )}
+
+              <form onSubmit={handleUpdateProduct} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-sku">SKU *</Label>
+                    <Input
+                      id="edit-sku"
+                      name="sku"
+                      value={formData.sku}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isSubmitting}
+                      placeholder="PROD-001"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-unit">Unit *</Label>
+                    <Input
+                      id="edit-unit"
+                      name="unit"
+                      value={formData.unit}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isSubmitting}
+                      placeholder="piece, kg, m, etc."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-name">Product Name *</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Steel Beam 10x10"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Description</Label>
+                  <textarea
+                    id="edit-description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Product description..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-category">Category</Label>
+                    <Input
+                      id="edit-category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      placeholder="Steel, Cement, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-currency">Currency</Label>
+                    <select
+                      id="edit-currency"
+                      name="currency"
+                      value={formData.currency}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="SGD">SGD</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-defaultPrice">Default Price</Label>
+                  <Input
+                    id="edit-defaultPrice"
+                    name="defaultPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.defaultPrice}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                    placeholder="150.00"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseModal}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Updating...' : 'Update Product'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Product</h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this product? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteConfirm(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDeleteProduct(deleteConfirm)}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
           </div>
         </div>

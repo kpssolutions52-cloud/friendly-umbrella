@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,11 @@ interface SearchProduct {
   currency: string | null;
 }
 
-interface ProductSupplierPrice {
-  productId: string;
-  productName: string;
-  productSku: string;
-  supplierId: string;
-  supplierName: string;
-  defaultPrice: number | null;
-  privatePrice: number | null;
-  currency: string;
-  unit: string;
+interface SupplierInfo {
+  id: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
 }
 
 export default function CompanyDashboardPage() {
@@ -43,9 +38,9 @@ export default function CompanyDashboardPage() {
 
 function DashboardContent() {
   const { user, logout } = useAuth();
-  const [selectedProduct, setSelectedProduct] = useState<SearchProduct | null>(null);
-  const [productPrices, setProductPrices] = useState<ProductSupplierPrice[]>([]);
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [supplierInfo, setSupplierInfo] = useState<Map<string, SupplierInfo>>(new Map());
+  const [isLoadingSupplier, setIsLoadingSupplier] = useState<Map<string, boolean>>(new Map());
   
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
@@ -136,92 +131,59 @@ function DashboardContent() {
     setCurrentPage(1);
   };
 
-  // Fetch product prices from all suppliers
-  const fetchProductPrices = async (product: SearchProduct) => {
-    setIsLoadingPrices(true);
+  // Fetch supplier information (phone and address)
+  const fetchSupplierInfo = async (product: SearchProduct) => {
+    const productKey = `${product.id}-${product.supplierId}`;
+    setIsLoadingSupplier((prev) => new Map(prev).set(productKey, true));
     try {
-      // Search for products with the same name/SKU to find all suppliers
-      const searchTerm = product.sku || product.name;
-      const response = await apiGet<{ products: SearchProduct[] }>(
-        `/api/v1/products/search?q=${encodeURIComponent(searchTerm)}&limit=100`
+      // Fetch supplier details including phone and address
+      const response = await apiGet<{ supplier: SupplierInfo }>(
+        `/api/v1/suppliers/${product.supplierId}`
       );
-
-      // Group by product name+SKU combination to find all suppliers with the same product
-      const productKey = `${product.name}-${product.sku}`.toLowerCase();
-      const matchingProducts = response.products.filter(
-        (p) => `${p.name}-${p.sku}`.toLowerCase() === productKey
-      );
-
-      // Group by supplier - the API returns the price that applies (private if available, else default)
-      // We need to fetch default prices for products that show private prices
-      const supplierProducts = new Map<string, SearchProduct>();
-      matchingProducts.forEach((p) => {
-        // Keep the product with private price if available, otherwise keep default
-        const existing = supplierProducts.get(p.supplierId);
-        if (!existing || (p.priceType === 'private' && existing.priceType !== 'private')) {
-          supplierProducts.set(p.supplierId, p);
-        }
+      
+      setSupplierInfo((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(productKey, response.supplier);
+        return newMap;
       });
-
-      // Transform to supplier price format
-      // Note: API returns the applicable price (private if available, else default)
-      // For products with private prices, we'll show the private price and indicate default exists
-      const prices: ProductSupplierPrice[] = Array.from(supplierProducts.values()).map((p) => {
-        return {
-          productId: p.id,
-          productName: p.name,
-          productSku: p.sku,
-          supplierId: p.supplierId,
-          supplierName: p.supplierName,
-          defaultPrice: p.priceType === 'default' ? p.price : null, // Will be null if private price exists
-          privatePrice: p.priceType === 'private' ? p.price : null,
-          currency: p.currency || 'USD',
-          unit: p.unit,
-        };
-      });
-
-      // For products showing private prices, try to fetch default prices
-      const pricesWithDefaults = await Promise.all(
-        prices.map(async (price) => {
-          if (price.privatePrice !== null && price.defaultPrice === null) {
-            // Try to get default price from supplier's catalog
-            try {
-              const supplierProductsResponse = await apiGet<{ products: SearchProduct[] }>(
-                `/api/v1/suppliers/${price.supplierId}/products?search=${encodeURIComponent(price.productSku)}&limit=10`
-              );
-              // Find the same product with default price
-              const defaultProduct = supplierProductsResponse.products.find(
-                (sp) => sp.sku === price.productSku && sp.priceType === 'default'
-              );
-              if (defaultProduct) {
-                return { ...price, defaultPrice: defaultProduct.price };
-              }
-            } catch (error) {
-              console.warn('Could not fetch default price:', error);
-            }
-          }
-          return price;
-        })
-      );
-
-      // Sort by price (private price if available, otherwise default)
-      pricesWithDefaults.sort((a, b) => {
-        const priceA = a.privatePrice ?? a.defaultPrice ?? Infinity;
-        const priceB = b.privatePrice ?? b.defaultPrice ?? Infinity;
-        return priceA - priceB;
-      });
-
-              setProductPrices(pricesWithDefaults);
-      setSelectedProduct(product);
     } catch (error) {
-      console.error('Failed to fetch product prices:', error);
+      console.error('Failed to fetch supplier info:', error);
+      setSupplierInfo((prev) => {
+        const newMap = new Map(prev);
+        // Set with at least the name we know
+        newMap.set(productKey, {
+          id: product.supplierId,
+          name: product.supplierName,
+          phone: null,
+          address: null,
+        });
+        return newMap;
+      });
     } finally {
-      setIsLoadingPrices(false);
+      setIsLoadingSupplier((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(productKey, false);
+        return newMap;
+      });
     }
   };
 
   const handleProductSelect = (product: SearchProduct) => {
-    fetchProductPrices(product);
+    const productKey = `${product.id}-${product.supplierId}`;
+    
+    // Toggle expansion
+    if (expandedProductId === productKey) {
+      // Collapse
+      setExpandedProductId(null);
+    } else {
+      // Expand
+      setExpandedProductId(productKey);
+      
+      // Fetch supplier info if not already loaded
+      if (!supplierInfo.has(productKey)) {
+        fetchSupplierInfo(product);
+      }
+    }
   };
 
   return (
@@ -369,50 +331,115 @@ function DashboardContent() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredProducts.map((product) => (
-                      <tr key={`${product.id}-${product.supplierId}`} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">SKU: {product.sku}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {product.supplierName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.category || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {product.price ? (
-                            <div>
-                              <div className="text-sm font-semibold text-gray-900">
-                                {product.currency} {product.price.toFixed(2)}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {product.priceType === 'private' ? (
-                                  <span className="text-green-600">Special Rate</span>
-                                ) : (
-                                  <span>Default Price</span>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">No price</span>
+                    {filteredProducts.map((product) => {
+                      const productKey = `${product.id}-${product.supplierId}`;
+                      const isExpanded = expandedProductId === productKey;
+                      const supplier = supplierInfo.get(productKey);
+                      const loading = isLoadingSupplier.get(productKey) || false;
+
+                      return (
+                        <React.Fragment key={productKey}>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                              <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {product.supplierName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.category || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.unit}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {product.price ? (
+                                <div>
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {product.currency} {product.price.toFixed(2)}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {product.priceType === 'private' ? (
+                                      <span className="text-green-600">Special Rate</span>
+                                    ) : (
+                                      <span>Default Price</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-400">No price</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleProductSelect(product)}
+                              >
+                                {isExpanded ? 'Hide Details' : 'View Details'}
+                              </Button>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={`${product.id}-${product.supplierId}-expanded`}>
+                              <td colSpan={6} className="px-6 py-4 bg-gray-50">
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                                  <div className="mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Supplier Information</h3>
+                                    <p className="text-sm text-gray-500">
+                                      Contact details for {product.supplierName}
+                                    </p>
+                                  </div>
+
+                                  {loading ? (
+                                    <div className="text-center py-8">
+                                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                                      <p className="mt-2 text-gray-500">Loading supplier information...</p>
+                                    </div>
+                                  ) : supplier ? (
+                                    <div className="space-y-4">
+                                      <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                          </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                          <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                                          <p className="text-sm text-gray-900 mt-1">
+                                            {supplier.phone || <span className="text-gray-400">Not available</span>}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                          <p className="text-sm font-medium text-gray-500">Location</p>
+                                          <p className="text-sm text-gray-900 mt-1">
+                                            {supplier.address || <span className="text-gray-400">Not available</span>}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                      Supplier information not available
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleProductSelect(product)}
-                          >
-                            View Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -446,118 +473,6 @@ function DashboardContent() {
             </>
           )}
         </div>
-
-        {/* Product Prices Table */}
-        {selectedProduct && (
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">{selectedProduct.name}</h2>
-                <p className="text-sm text-gray-500">
-                  SKU: {selectedProduct.sku} • Unit: {selectedProduct.unit}
-                  {selectedProduct.category && ` • Category: ${selectedProduct.category}`}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setProductPrices([]);
-                }}
-              >
-                Clear Selection
-              </Button>
-            </div>
-
-            {isLoadingPrices ? (
-              <div className="text-center py-8">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                <p className="mt-2 text-gray-500">Loading supplier prices...</p>
-              </div>
-            ) : productPrices.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No suppliers found for this product
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Supplier
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Default Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Your Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Currency
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Savings
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {productPrices.map((price, index) => {
-                      const hasPrivatePrice = price.privatePrice !== null;
-                      const savings = price.defaultPrice && price.privatePrice
-                        ? ((price.defaultPrice - price.privatePrice) / price.defaultPrice * 100).toFixed(1)
-                        : null;
-
-                      return (
-                        <tr key={`${price.supplierId}-${index}`} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {price.supplierName}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {price.defaultPrice !== null ? (
-                              <div className="text-sm text-gray-900">
-                                {price.currency} {price.defaultPrice.toFixed(2)}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-gray-400">Not set</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {hasPrivatePrice ? (
-                              <div className="flex items-center">
-                                <span className="text-sm font-semibold text-green-600">
-                                  {price.currency} {price.privatePrice!.toFixed(2)}
-                                </span>
-                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                  Special Rate
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-gray-400">No special rate</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {price.currency}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {savings && parseFloat(savings) > 0 ? (
-                              <span className="text-sm font-semibold text-green-600">
-                                {savings}% off
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="grid grid-cols-1 gap-6">
           <div className="bg-white shadow rounded-lg p-6">
