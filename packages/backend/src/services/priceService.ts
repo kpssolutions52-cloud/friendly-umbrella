@@ -13,7 +13,8 @@ export interface UpdateDefaultPriceInput {
 
 export interface CreatePrivatePriceInput {
   companyId: string;
-  price: number;
+  price?: number; // Optional if discountPercentage is provided
+  discountPercentage?: number; // Optional if price is provided (0-100)
   currency?: string;
   effectiveFrom?: Date;
   effectiveUntil?: Date | null;
@@ -21,7 +22,8 @@ export interface CreatePrivatePriceInput {
 }
 
 export interface UpdatePrivatePriceInput {
-  price?: number;
+  price?: number; // Optional if discountPercentage is provided
+  discountPercentage?: number; // Optional if price is provided (0-100)
   currency?: string;
   effectiveFrom?: Date;
   effectiveUntil?: Date | null;
@@ -164,6 +166,18 @@ export class PriceService {
       throw createError(404, 'Company not found');
     }
 
+    // Validate: either price OR discountPercentage must be provided, but not both
+    if ((!input.price && !input.discountPercentage) || (input.price && input.discountPercentage)) {
+      throw createError(400, 'Either price or discountPercentage must be provided, but not both');
+    }
+
+    // Validate discountPercentage range (0-100)
+    if (input.discountPercentage !== undefined) {
+      if (input.discountPercentage < 0 || input.discountPercentage > 100) {
+        throw createError(400, 'Discount percentage must be between 0 and 100');
+      }
+    }
+
     return prisma.$transaction(async (tx) => {
       // Deactivate existing private price for this product-company combination
       const existing = await tx.privatePrice.findFirst({
@@ -186,7 +200,8 @@ export class PriceService {
         data: {
           productId,
           companyId: input.companyId,
-          price: new Decimal(input.price),
+          price: input.price ? new Decimal(input.price) : null,
+          discountPercentage: input.discountPercentage !== undefined ? new Decimal(input.discountPercentage) : null,
           currency: input.currency || 'USD',
           effectiveFrom: input.effectiveFrom || new Date(),
           effectiveUntil: input.effectiveUntil || null,
@@ -196,15 +211,16 @@ export class PriceService {
       });
 
       // Create audit log
+      const priceForLog = input.price || (existing && existing.price ? existing.price : new Decimal(0));
       await tx.priceAuditLog.create({
         data: {
           productId,
           priceType: 'private',
           companyId: input.companyId,
-          oldPrice: existing ? new Decimal(existing.price) : null,
-          newPrice: new Decimal(input.price),
+          oldPrice: existing ? (existing.price || new Decimal(0)) : null,
+          newPrice: priceForLog,
           changedBy: userId,
-          changeReason: `Private price ${existing ? 'updated' : 'created'} for ${company.name}`,
+          changeReason: `Private price ${existing ? 'updated' : 'created'} for ${company.name}${input.discountPercentage ? ` (${input.discountPercentage}% discount)` : ''}`,
           ipAddress,
           userAgent,
         },
@@ -221,15 +237,18 @@ export class PriceService {
         });
 
         if (product) {
-          broadcastPriceUpdate(io, {
-            productId,
-            productName: product.name,
-            priceType: 'private',
-            newPrice: input.price,
-            currency: input.currency || 'USD',
-            companyId: input.companyId,
-            supplierId,
-          });
+          // Only broadcast if we have a price (not discount percentage)
+          if (input.price !== undefined) {
+            broadcastPriceUpdate(io, {
+              productId,
+              productName: product.name,
+              priceType: 'private',
+              newPrice: input.price,
+              currency: input.currency || 'USD',
+              companyId: input.companyId,
+              supplierId,
+            });
+          }
         }
       }
 
@@ -264,14 +283,43 @@ export class PriceService {
       throw createError(403, 'Not authorized to update this price');
     }
 
+    // Validate: if both price and discountPercentage are provided, or neither is provided, it's an error
+    const hasPrice = input.price !== undefined;
+    const hasDiscount = input.discountPercentage !== undefined;
+    const currentHasPrice = privatePrice.price !== null;
+    const currentHasDiscount = privatePrice.discountPercentage !== null;
+
+    // If updating, at least one must remain or be set
+    if (hasPrice && hasDiscount) {
+      throw createError(400, 'Either price or discountPercentage must be provided, but not both');
+    }
+
+    // Validate discountPercentage range (0-100)
+    if (hasDiscount && (input.discountPercentage! < 0 || input.discountPercentage! > 100)) {
+      throw createError(400, 'Discount percentage must be between 0 and 100');
+    }
+
+    // Ensure at least one pricing method remains after update
+    if (!hasPrice && !hasDiscount) {
+      // No change to pricing method - this is okay
+    } else if (hasPrice) {
+      // Setting price - clear discount
+      input.discountPercentage = undefined;
+    } else if (hasDiscount) {
+      // Setting discount - clear price
+      input.price = undefined;
+    }
+
     return prisma.$transaction(async (tx) => {
-      const oldPrice = Number(privatePrice.price);
+      const oldPrice = privatePrice.price ? Number(privatePrice.price) : null;
+      const oldDiscount = privatePrice.discountPercentage ? Number(privatePrice.discountPercentage) : null;
 
       // Update private price
       const updated = await tx.privatePrice.update({
         where: { id: privatePriceId },
         data: {
-          ...(input.price !== undefined && { price: new Decimal(input.price) }),
+          ...(input.price !== undefined && { price: input.price !== null ? new Decimal(input.price) : null }),
+          ...(input.discountPercentage !== undefined && { discountPercentage: input.discountPercentage !== null ? new Decimal(input.discountPercentage) : null }),
           ...(input.currency && { currency: input.currency }),
           ...(input.effectiveFrom && { effectiveFrom: input.effectiveFrom }),
           ...(input.effectiveUntil !== undefined && { effectiveUntil: input.effectiveUntil }),
@@ -280,17 +328,23 @@ export class PriceService {
         },
       });
 
-      // Create audit log if price changed
-      if (input.price !== undefined && input.price !== oldPrice) {
+      // Create audit log if price or discount changed
+      const priceChanged = hasPrice && input.price !== undefined && input.price !== oldPrice;
+      const discountChanged = hasDiscount && input.discountPercentage !== undefined && input.discountPercentage !== oldDiscount;
+
+      if (priceChanged || discountChanged) {
+        const newPriceValue = hasPrice && input.price !== undefined ? new Decimal(input.price) : (oldPrice ? new Decimal(oldPrice) : null);
+        const oldPriceValue = oldPrice ? new Decimal(oldPrice) : null;
+        
         await tx.priceAuditLog.create({
           data: {
             productId: privatePrice.productId,
             priceType: 'private',
             companyId: privatePrice.companyId,
-            oldPrice: new Decimal(oldPrice),
-            newPrice: new Decimal(input.price),
+            oldPrice: oldPriceValue,
+            newPrice: newPriceValue || new Decimal(0),
             changedBy: userId,
-            changeReason: input.notes || 'Private price updated',
+            changeReason: input.notes || `Private price updated${hasDiscount ? ` (${input.discountPercentage}% discount)` : ''}`,
             ipAddress,
             userAgent,
           },

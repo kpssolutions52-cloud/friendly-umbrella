@@ -20,13 +20,34 @@ const router = Router();
 router.use(authenticate);
 router.use(requireTenantType('supplier'));
 
+const specialPriceSchema = z.object({
+  companyId: z.string().uuid('Invalid company ID'),
+  price: z.number().min(0, 'Price must be positive').optional(),
+  discountPercentage: z.number().min(0).max(100, 'Discount percentage must be between 0 and 100').optional(),
+  currency: z.string().length(3).optional(),
+  notes: z.string().optional(),
+}).refine(
+  (data) => {
+    // Either price or discountPercentage must be provided, but not both
+    const hasPrice = data.price !== undefined;
+    const hasDiscount = data.discountPercentage !== undefined;
+    return (hasPrice || hasDiscount) && !(hasPrice && hasDiscount);
+  },
+  {
+    message: 'Either price or discountPercentage must be provided, but not both',
+    path: ['price'],
+  }
+);
+
 const createProductSchema = productSchema.extend({
   defaultPrice: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
+  specialPrices: z.array(specialPriceSchema).optional(),
 });
 
 const updateProductSchema = productSchema.partial().extend({
   isActive: z.boolean().optional(),
+  specialPrices: z.array(specialPriceSchema).optional(),
 });
 
 // GET /api/v1/products - List all products for supplier

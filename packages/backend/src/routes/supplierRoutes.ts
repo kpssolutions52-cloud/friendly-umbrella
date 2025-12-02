@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma';
 import { priceService } from '../services/priceService';
 import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
@@ -14,7 +14,7 @@ router.use(authenticate);
 const requireCompany = requireTenantType('company');
 
 // GET /api/v1/suppliers - List all active suppliers
-router.get('/suppliers', requireCompany, async (req: AuthRequest, res, next) => {
+router.get('/suppliers', requireCompany, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const suppliers = await prisma.tenant.findMany({
       where: {
@@ -51,7 +51,7 @@ router.get(
   '/suppliers/:id',
   requireCompany,
   [param('id').isUUID().withMessage('Invalid supplier ID')],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -108,7 +108,7 @@ router.get(
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
   ],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -204,6 +204,31 @@ router.get(
         const privatePrice = privatePriceMap.get(product.id);
         const defaultPrice = product.defaultPrices[0];
 
+        // Calculate final price: use privatePrice if available, otherwise defaultPrice
+        // If privatePrice has discountPercentage, calculate from defaultPrice
+        let finalPrice: number | null = null;
+        let finalCurrency: string | null = null;
+        let discountPercentage: number | null = null;
+        let calculatedPrice: number | null = null;
+
+        if (privatePrice) {
+          if (privatePrice.discountPercentage !== null && defaultPrice) {
+            // Discount percentage is set, calculate price from default price
+            discountPercentage = Number(privatePrice.discountPercentage);
+            const defaultPriceValue = Number(defaultPrice.price);
+            calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
+            finalPrice = calculatedPrice;
+            finalCurrency = privatePrice.currency || defaultPrice.currency;
+          } else if (privatePrice.price !== null) {
+            // Fixed price is set
+            finalPrice = Number(privatePrice.price);
+            finalCurrency = privatePrice.currency;
+          }
+        } else if (defaultPrice) {
+          finalPrice = Number(defaultPrice.price);
+          finalCurrency = defaultPrice.currency;
+        }
+
         return {
           id: product.id,
           sku: product.sku,
@@ -219,21 +244,15 @@ router.get(
             currency: defaultPrice.currency,
           } : null,
           privatePrice: privatePrice ? {
-            price: Number(privatePrice.price),
+            price: privatePrice.price ? Number(privatePrice.price) : null,
+            discountPercentage: privatePrice.discountPercentage ? Number(privatePrice.discountPercentage) : null,
+            calculatedPrice: calculatedPrice,
             currency: privatePrice.currency,
           } : null,
           // Keep backward compatibility - this is the price that applies
-          price: privatePrice
-            ? Number(privatePrice.price)
-            : defaultPrice
-            ? Number(defaultPrice.price)
-            : null,
+          price: finalPrice,
           priceType: privatePrice ? 'private' : defaultPrice ? 'default' : null,
-          currency: privatePrice
-            ? privatePrice.currency
-            : defaultPrice
-            ? defaultPrice.currency
-            : null,
+          currency: finalCurrency,
         };
       });
 
@@ -257,7 +276,7 @@ router.get(
   '/products/:id/price',
   requireCompany,
   [param('id').isUUID().withMessage('Invalid product ID')],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -293,7 +312,7 @@ router.get(
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
   ],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -400,12 +419,20 @@ router.get(
             currency: defaultPrice.currency,
           } : null,
           privatePrice: privatePrice ? {
-            price: Number(privatePrice.price),
+            price: privatePrice.price ? Number(privatePrice.price) : null,
+            discountPercentage: privatePrice.discountPercentage ? Number(privatePrice.discountPercentage) : null,
+            calculatedPrice: privatePrice.discountPercentage && defaultPrice 
+              ? Number(defaultPrice.price) * (1 - Number(privatePrice.discountPercentage) / 100)
+              : null,
             currency: privatePrice.currency,
           } : null,
           // Keep backward compatibility - this is the price that applies
           price: privatePrice
-            ? Number(privatePrice.price)
+            ? (privatePrice.discountPercentage && defaultPrice
+                ? Number(defaultPrice.price) * (1 - Number(privatePrice.discountPercentage) / 100)
+                : privatePrice.price
+                  ? Number(privatePrice.price)
+                  : null)
             : defaultPrice
             ? Number(defaultPrice.price)
             : null,
@@ -434,7 +461,7 @@ router.get(
 );
 
 // GET /api/v1/products/categories - Get all product categories
-router.get('/products/categories', requireCompany, async (req: AuthRequest, res, next) => {
+router.get('/products/categories', requireCompany, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const categories = await prisma.product.findMany({
       where: {

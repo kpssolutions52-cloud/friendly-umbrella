@@ -24,7 +24,9 @@ interface SearchProduct {
     currency: string;
   } | null;
   privatePrice: {
-    price: number;
+    price: number | null;
+    discountPercentage: number | null;
+    calculatedPrice: number | null;
     currency: string;
   } | null;
 }
@@ -375,14 +377,34 @@ function DashboardContent() {
                                   {/* Special Price */}
                                   {product.privatePrice && (
                                     <div>
-                                      <div className="text-sm font-semibold text-green-600">
-                                        Your Price: {product.privatePrice.currency} {product.privatePrice.price.toFixed(2)}
-                                      </div>
-                                      {product.defaultPrice && (
-                                        <div className="text-xs text-green-600">
-                                          {(((product.defaultPrice.price - product.privatePrice.price) / product.defaultPrice.price) * 100).toFixed(1)}% savings
-                                        </div>
-                                      )}
+                                      {product.privatePrice.discountPercentage !== null && product.privatePrice.calculatedPrice !== null ? (
+                                        // Discount percentage applied
+                                        <>
+                                          <div className="text-sm font-semibold text-green-600">
+                                            Your Price: {product.privatePrice.currency} {product.privatePrice.calculatedPrice.toFixed(2)}
+                                          </div>
+                                          <div className="text-xs text-green-600 font-medium">
+                                            {product.privatePrice.discountPercentage.toFixed(1)}% Discount Applied
+                                          </div>
+                                          {product.defaultPrice && (
+                                            <div className="text-xs text-green-600">
+                                              {(((product.defaultPrice.price - product.privatePrice.calculatedPrice) / product.defaultPrice.price) * 100).toFixed(1)}% savings
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : product.privatePrice.price !== null ? (
+                                        // Fixed special price
+                                        <>
+                                          <div className="text-sm font-semibold text-green-600">
+                                            Your Price: {product.privatePrice.currency} {product.privatePrice.price.toFixed(2)}
+                                          </div>
+                                          {product.defaultPrice && (
+                                            <div className="text-xs text-green-600">
+                                              {(((product.defaultPrice.price - product.privatePrice.price) / product.defaultPrice.price) * 100).toFixed(1)}% savings
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : null}
                                     </div>
                                   )}
                                   {/* Show only default if no special price */}

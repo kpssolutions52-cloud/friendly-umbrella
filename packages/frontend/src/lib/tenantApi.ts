@@ -13,3 +13,5 @@ export async function getActiveTenants(type?: 'supplier' | 'company'): Promise<{
   return apiGet<{ tenants: Tenant[] }>(`/api/v1/auth/tenants${query}`);
 }
 
+
+

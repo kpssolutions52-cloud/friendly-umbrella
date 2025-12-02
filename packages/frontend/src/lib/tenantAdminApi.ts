@@ -74,3 +74,5 @@ export async function getTenantStatistics(): Promise<TenantStatistics> {
   return apiGet<TenantStatistics>(`${BASE_PATH}/statistics`);
 }
 
+
+

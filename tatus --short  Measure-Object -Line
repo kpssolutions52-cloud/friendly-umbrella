@@ -1,0 +1,92 @@
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/CHANGELOG.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/user-guide/company-guide.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/user-guide/getting-started.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/user-guide/supplier-guide.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/prisma/schema.prisma', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/routes/priceRoutes.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/routes/productRoutes.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/routes/supplierRoutes.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/routes/tenantAdminRoutes.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/services/priceService.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/services/productService.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/backend/src/services/tenantAdminService.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/app/auth/login/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/app/auth/register/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/app/company/dashboard/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/app/supplier/dashboard/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/components/supplier/PrivatePriceManagement.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/frontend/src/lib/api.ts', LF will be replaced by CRLF the next time Git touches it
+ .github/workflows/ci.yml                           |   2 [32m+[m
+ .gitignore                                         |   2 [32m+[m
+ .prettierignore                                    |   2 [32m+[m
+ .prettierrc                                        |   2 [32m+[m
+ Dockerfile                                         |   2 [32m+[m
+ LICENSE                                            |   2 [32m+[m
+ curl-commands.ps1                                  |   2 [32m+[m
+ docker-compose.yml                                 |   2 [32m+[m
+ docs/ACCESS.md                                     |   2 [32m+[m
+ docs/FEATURE_USER_REGISTRATION_ROLES.md            |   2 [32m+[m
+ docs/technical/api-reference.md                    |   2 [32m+[m
+ docs/technical/architecture.md                     |   2 [32m+[m
+ docs/technical/deployment.md                       |   2 [32m+[m
+ docs/technical/price-management-flow.md            |   2 [32m+[m
+ docs/technical/setup.md                            |   2 [32m+[m
+ .../technical/user-registration-role-management.md |   2 [32m+[m
+ docs/user-guide/api-testing.md                     |   2 [32m+[m
+ docs/user-guide/user-registration-and-roles.md     |   2 [32m+[m
+ package.json                                       |   2 [32m+[m
+ packages/backend/.eslintrc.json                    |   2 [32m+[m
+ packages/backend/env.example                       |   2 [32m+[m
+ packages/backend/jest.config.js                    |   2 [32m+[m
+ packages/backend/logs/.gitkeep                     |   2 [32m+[m
+ packages/backend/package.json                      |   2 [32m+[m
+ packages/backend/prisma/schema.prisma              |  23 [32m+[m[31m-[m
+ packages/backend/src/middleware/errorHandler.ts    |   2 [32m+[m
+ packages/backend/src/middleware/notFoundHandler.ts |   2 [32m+[m
+ packages/backend/src/routes/priceRoutes.ts         | 122 [32m+++[m[31m--[m
+ packages/backend/src/routes/productRoutes.ts       |  21 [32m+[m
+ packages/backend/src/routes/superAdminRoutes.ts    |   2 [32m+[m
+ packages/backend/src/routes/supplierRoutes.ts      |  67 [32m++[m[31m-[m
+ packages/backend/src/services/priceService.ts      |  98 [32m+++[m[31m-[m
+ packages/backend/src/services/productService.ts    | 208 [32m+++++++[m[31m-[m
+ packages/backend/src/services/superAdminService.ts |   2 [32m+[m
+ packages/backend/src/utils/logger.ts               |   2 [32m+[m
+ packages/backend/src/utils/password.ts             |   2 [32m+[m
+ packages/backend/src/utils/prisma.ts               |   2 [32m+[m
+ packages/backend/src/utils/socket.ts               |   2 [32m+[m
+ packages/backend/src/websocket/auth.ts             |   2 [32m+[m
+ packages/backend/tsconfig.json                     |   2 [32m+[m
+ packages/frontend/.eslintrc.json                   |   2 [32m+[m
+ packages/frontend/package.json                     |   2 [32m+[m
+ packages/frontend/postcss.config.js                |   2 [32m+[m
+ packages/frontend/src/app/admin/dashboard/page.tsx |   2 [32m+[m
+ packages/frontend/src/app/api/docs/route.ts        |   2 [32m+[m
+ .../frontend/src/app/company/dashboard/page.tsx    |  40 [32m+[m[31m-[m
+ packages/frontend/src/app/company/users/page.tsx   |   2 [32m+[m
+ packages/frontend/src/app/providers.tsx            |   2 [32m+[m
+ .../frontend/src/app/supplier/dashboard/page.tsx   | 541 [32m++++++++++++++++++++[m[31m-[m
+ packages/frontend/src/app/supplier/users/page.tsx  |   2 [32m+[m
+ .../frontend/src/components/admin/AllTenants.tsx   |   2 [32m+[m
+ .../src/components/admin/PendingTenants.tsx        |   2 [32m+[m
+ .../src/components/admin/StatisticsOverview.tsx    |   2 [32m+[m
+ .../src/components/admin/SuperAdminManagement.tsx  |   2 [32m+[m
+ .../src/components/admin/UserManagement.tsx        |   2 [32m+[m
+ packages/frontend/src/components/ui/button.tsx     |   2 [32m+[m
+ packages/frontend/src/components/ui/input.tsx      |   2 [32m+[m
+ packages/frontend/src/components/ui/label.tsx      |   2 [32m+[m
+ packages/frontend/src/lib/adminApi.ts              |   2 [32m+[m
+ packages/frontend/src/lib/tenantAdminApi.ts        |   2 [32m+[m
+ packages/frontend/src/lib/tenantApi.ts             |   2 [32m+[m
+ packages/frontend/src/lib/utils.ts                 |   2 [32m+[m
+ packages/frontend/tailwind.config.ts               |   2 [32m+[m
+ packages/frontend/tsconfig.json                    |   2 [32m+[m
+ packages/shared/package.json                       |   2 [32m+[m
+ packages/shared/src/index.ts                       |   2 [32m+[m
+ packages/shared/src/schemas/index.ts               |   2 [32m+[m
+ packages/shared/src/types/index.ts                 |   2 [32m+[m
+ packages/shared/tsconfig.json                      |   2 [32m+[m
+ start-app.ps1                                      |   2 [32m+[m
+ test-data/README.md                                |   2 [32m+[m
+ tsconfig.json                                      |   2 [32m+[m
+ 72 files changed, 1104 insertions(+), 144 deletions(-)

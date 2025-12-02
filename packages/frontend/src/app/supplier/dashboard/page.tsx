@@ -76,6 +76,22 @@ function DashboardContent() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [showPrivatePriceModal, setShowPrivatePriceModal] = useState(false);
   const [selectedProductForPrivatePrice, setSelectedProductForPrivatePrice] = useState<Product | null>(null);
+  
+  // Special prices for new product
+  interface SpecialPriceEntry {
+    id: string; // temporary id for React key
+    companyId: string;
+    priceType: 'price' | 'discount'; // 'price' for fixed price, 'discount' for discount percentage
+    price: string;
+    discountPercentage: string;
+    currency: string;
+    notes: string;
+  }
+  
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [specialPrices, setSpecialPrices] = useState<SpecialPriceEntry[]>([]);
+  const [editSpecialPrices, setEditSpecialPrices] = useState<SpecialPriceEntry[]>([]);
 
   const fetchStats = async () => {
     try {
@@ -153,6 +169,49 @@ function DashboardContent() {
     setError(null);
   };
 
+  // Load companies when modal opens
+  useEffect(() => {
+    if (showAddProductModal || showEditProductModal) {
+      loadCompanies();
+    }
+  }, [showAddProductModal, showEditProductModal]);
+
+  const loadCompanies = async () => {
+    try {
+      setLoadingCompanies(true);
+      const response = await apiGet<{ companies: Array<{ id: string; name: string; email: string }> }>('/api/v1/companies');
+      setCompanies(response.companies || []);
+    } catch (err: any) {
+      console.error('Failed to load companies:', err);
+      setError('Failed to load companies list');
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  const handleAddSpecialPrice = () => {
+    const newEntry: SpecialPriceEntry = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      companyId: '',
+      priceType: 'price', // Default to price
+      price: '',
+      discountPercentage: '',
+      currency: formData.currency || 'USD',
+      notes: '',
+    };
+    setSpecialPrices([...specialPrices, newEntry]);
+  };
+
+  const handleRemoveSpecialPrice = (id: string) => {
+    setSpecialPrices(specialPrices.filter(sp => sp.id !== id));
+  };
+
+  const handleSpecialPriceChange = (id: string, field: keyof SpecialPriceEntry, value: string) => {
+    setSpecialPrices(specialPrices.map(sp => 
+      sp.id === id ? { ...sp, [field]: value } : sp
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -160,6 +219,31 @@ function DashboardContent() {
     setIsSubmitting(true);
 
     try {
+      // Validate and prepare special prices
+      const validSpecialPrices = specialPrices
+        .filter(sp => {
+          if (!sp.companyId) return false;
+          if (sp.priceType === 'price') {
+            return sp.price && parseFloat(sp.price) > 0;
+          } else {
+            return sp.discountPercentage && parseFloat(sp.discountPercentage) >= 0 && parseFloat(sp.discountPercentage) <= 100;
+          }
+        })
+        .map(sp => ({
+          companyId: sp.companyId,
+          ...(sp.priceType === 'price' 
+            ? { 
+                price: parseFloat(sp.price),
+                currency: sp.currency || formData.currency || 'USD',
+              }
+            : { 
+                discountPercentage: parseFloat(sp.discountPercentage),
+                // Don't include currency for discount percentage - it will use product default currency
+              }
+          ),
+          notes: sp.notes || undefined,
+        }));
+
       const payload = {
         sku: formData.sku,
         name: formData.name,
@@ -168,6 +252,7 @@ function DashboardContent() {
         unit: formData.unit,
         defaultPrice: formData.defaultPrice ? parseFloat(formData.defaultPrice) : undefined,
         currency: formData.currency,
+        specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
 
       await apiPost('/api/v1/products', payload);
@@ -181,6 +266,7 @@ function DashboardContent() {
         defaultPrice: '',
         currency: 'USD',
       });
+      setSpecialPrices([]);
       
       // Refresh stats after product creation
       await fetchStats();
@@ -218,27 +304,78 @@ function DashboardContent() {
         defaultPrice: '',
         currency: 'USD',
       });
+      setSpecialPrices([]);
+      setEditSpecialPrices([]);
     }
   };
+  
+  const handleAddEditSpecialPrice = () => {
+    const newEntry: SpecialPriceEntry = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      companyId: '',
+      priceType: 'price',
+      price: '',
+      discountPercentage: '',
+      currency: formData.currency || 'USD',
+      notes: '',
+    };
+    setEditSpecialPrices([...editSpecialPrices, newEntry]);
+  };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      sku: product.sku,
-      name: product.name,
-      description: product.description || '',
-      category: product.category || '',
-      unit: product.unit,
-      defaultPrice: product.defaultPrices && product.defaultPrices.length > 0 
-        ? product.defaultPrices[0].price.toString() 
-        : '',
-      currency: product.defaultPrices && product.defaultPrices.length > 0
-        ? product.defaultPrices[0].currency
-        : 'USD',
-    });
-    setShowEditProductModal(true);
-    setError(null);
-    setSuccess(false);
+  const handleRemoveEditSpecialPrice = (id: string) => {
+    setEditSpecialPrices(editSpecialPrices.filter(sp => sp.id !== id));
+  };
+
+  const handleEditSpecialPriceChange = (id: string, field: keyof SpecialPriceEntry, value: string) => {
+    setEditSpecialPrices(editSpecialPrices.map(sp => 
+      sp.id === id ? { ...sp, [field]: value } : sp
+    ));
+  };
+
+  const handleEditProduct = async (product: Product) => {
+    try {
+      // Fetch full product data with private prices
+      const response = await apiGet<{ product: any }>(`/api/v1/products/${product.id}`);
+      const fullProduct = response.product;
+      
+      setEditingProduct(fullProduct);
+      setFormData({
+        sku: fullProduct.sku,
+        name: fullProduct.name,
+        description: fullProduct.description || '',
+        category: fullProduct.category || '',
+        unit: fullProduct.unit,
+        defaultPrice: fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0 
+          ? fullProduct.defaultPrices[0].price.toString() 
+          : '',
+        currency: fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0
+          ? fullProduct.defaultPrices[0].currency
+          : 'USD',
+      });
+      
+      // Load existing private prices into edit special prices state
+      if (fullProduct.privatePrices && fullProduct.privatePrices.length > 0) {
+        const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.privatePrices.map((pp: any) => ({
+          id: pp.id,
+          companyId: pp.companyId,
+          priceType: pp.price !== null ? 'price' : 'discount',
+          price: pp.price !== null ? pp.price.toString() : '',
+          discountPercentage: pp.discountPercentage !== null ? pp.discountPercentage.toString() : '',
+          currency: pp.currency || 'USD',
+          notes: pp.notes || '',
+        }));
+        setEditSpecialPrices(existingSpecialPrices);
+      } else {
+        setEditSpecialPrices([]);
+      }
+      
+      setShowEditProductModal(true);
+      setError(null);
+      setSuccess(false);
+    } catch (err: any) {
+      console.error('Failed to fetch product details:', err);
+      setError('Failed to load product details');
+    }
   };
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
@@ -250,12 +387,37 @@ function DashboardContent() {
     setIsSubmitting(true);
 
     try {
+      // Validate and prepare special prices for edit
+      const validSpecialPrices = editSpecialPrices
+        .filter(sp => {
+          if (!sp.companyId) return false;
+          if (sp.priceType === 'price') {
+            return sp.price && parseFloat(sp.price) > 0;
+          } else {
+            return sp.discountPercentage && parseFloat(sp.discountPercentage) >= 0 && parseFloat(sp.discountPercentage) <= 100;
+          }
+        })
+        .map(sp => ({
+          companyId: sp.companyId,
+          ...(sp.priceType === 'price' 
+            ? { 
+                price: parseFloat(sp.price),
+                currency: sp.currency || formData.currency || 'USD',
+              }
+            : { 
+                discountPercentage: parseFloat(sp.discountPercentage),
+              }
+          ),
+          notes: sp.notes || undefined,
+        }));
+
       const payload: any = {
         sku: formData.sku,
         name: formData.name,
         description: formData.description || undefined,
         category: formData.category || undefined,
         unit: formData.unit,
+        specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
 
       // Only include price if it's provided
@@ -276,6 +438,7 @@ function DashboardContent() {
       setTimeout(() => {
         setShowEditProductModal(false);
         setEditingProduct(null);
+        setEditSpecialPrices([]);
         setSuccess(false);
         setFormData({
           sku: '',
@@ -752,6 +915,181 @@ function DashboardContent() {
                   />
                 </div>
 
+                {/* Special Prices Section */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label className="text-base font-semibold">Special Prices (Optional)</Label>
+                      <p className="text-sm text-gray-500 mt-1">Add company-specific prices for this product</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddSpecialPrice}
+                      disabled={isSubmitting || loadingCompanies}
+                    >
+                      + Add Company Price
+                    </Button>
+                  </div>
+
+                  {loadingCompanies && specialPrices.length === 0 && (
+                    <div className="text-sm text-gray-500 py-2">Loading companies...</div>
+                  )}
+
+                  {specialPrices.length > 0 && (
+                    <div className="space-y-3">
+                      {specialPrices.map((specialPrice, index) => (
+                        <div key={specialPrice.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700">
+                              Company Price #{index + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveSpecialPrice(specialPrice.id)}
+                              disabled={isSubmitting}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor={`company-${specialPrice.id}`}>Company *</Label>
+                              <select
+                                id={`company-${specialPrice.id}`}
+                                value={specialPrice.companyId}
+                                onChange={(e) => handleSpecialPriceChange(specialPrice.id, 'companyId', e.target.value)}
+                                disabled={isSubmitting || loadingCompanies}
+                                required
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="">Select a company</option>
+                                {companies
+                                  .filter(company => 
+                                    // Always show the currently selected company, or companies not selected in other entries
+                                    company.id === specialPrice.companyId ||
+                                    !specialPrices.some(sp => 
+                                      sp.id !== specialPrice.id && sp.companyId === company.id
+                                    )
+                                  )
+                                  .map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                      {company.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                            <div>
+                              <Label htmlFor={`priceType-${specialPrice.id}`}>Pricing Type *</Label>
+                              <select
+                                id={`priceType-${specialPrice.id}`}
+                                value={specialPrice.priceType}
+                                onChange={(e) => {
+                                  const newPriceType = e.target.value as 'price' | 'discount';
+                                  // Update both priceType and clear the other field in one go
+                                  setSpecialPrices(specialPrices.map(sp => {
+                                    if (sp.id === specialPrice.id) {
+                                      if (newPriceType === 'price') {
+                                        return { ...sp, priceType: 'price', discountPercentage: '' };
+                                      } else {
+                                        return { ...sp, priceType: 'discount', price: '' };
+                                      }
+                                    }
+                                    return sp;
+                                  }));
+                                }}
+                                disabled={isSubmitting}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="price">Special Price</option>
+                                <option value="discount">Discount %</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {specialPrice.priceType === 'price' ? (
+                              <>
+                                <div>
+                                  <Label htmlFor={`price-${specialPrice.id}`}>Special Price *</Label>
+                                  <Input
+                                    id={`price-${specialPrice.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={specialPrice.price}
+                                    onChange={(e) => handleSpecialPriceChange(specialPrice.id, 'price', e.target.value)}
+                                    disabled={isSubmitting}
+                                    placeholder="0.00"
+                                    required={specialPrice.companyId !== ''}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`currency-${specialPrice.id}`}>Currency</Label>
+                                  <select
+                                    id={`currency-${specialPrice.id}`}
+                                    value={specialPrice.currency}
+                                    onChange={(e) => handleSpecialPriceChange(specialPrice.id, 'currency', e.target.value)}
+                                    disabled={isSubmitting}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
+                                    <option value="SGD">SGD</option>
+                                  </select>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="md:col-span-2">
+                                <Label htmlFor={`discount-${specialPrice.id}`}>Discount Percentage *</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={`discount-${specialPrice.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    value={specialPrice.discountPercentage}
+                                    onChange={(e) => handleSpecialPriceChange(specialPrice.id, 'discountPercentage', e.target.value)}
+                                    disabled={isSubmitting}
+                                    placeholder="0.00"
+                                    required={specialPrice.companyId !== ''}
+                                    className="flex-1 max-w-xs"
+                                  />
+                                  <span className="text-sm text-gray-500 whitespace-nowrap">%</span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Discount will be calculated from the default price ({formData.currency || 'USD'})</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            <Label htmlFor={`notes-${specialPrice.id}`}>Notes (Optional)</Label>
+                            <Input
+                              id={`notes-${specialPrice.id}`}
+                              type="text"
+                              value={specialPrice.notes}
+                              onChange={(e) => handleSpecialPriceChange(specialPrice.id, 'notes', e.target.value)}
+                              disabled={isSubmitting}
+                              placeholder="Additional notes..."
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {specialPrices.length === 0 && !loadingCompanies && (
+                    <div className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
+                      No special prices added. Click "Add Company Price" to add one.
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
@@ -905,6 +1243,173 @@ function DashboardContent() {
                     disabled={isSubmitting}
                     placeholder="150.00"
                   />
+                </div>
+
+                {/* Special Prices Section for Edit */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <Label className="text-base font-semibold">Special Prices (Optional)</Label>
+                      <p className="text-sm text-gray-500 mt-1">Add or update company-specific prices for this product</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddEditSpecialPrice}
+                      disabled={isSubmitting || loadingCompanies}
+                    >
+                      + Add Company Price
+                    </Button>
+                  </div>
+
+                  {loadingCompanies && editSpecialPrices.length === 0 && (
+                    <div className="text-sm text-gray-500 py-2">Loading companies...</div>
+                  )}
+
+                  {editSpecialPrices.length > 0 && (
+                    <div className="space-y-3">
+                      {editSpecialPrices.map((specialPrice, index) => (
+                        <div key={specialPrice.id} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700">
+                              Company Price #{index + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveEditSpecialPrice(specialPrice.id)}
+                              disabled={isSubmitting}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor={`edit-company-${specialPrice.id}`}>Company *</Label>
+                              <select
+                                id={`edit-company-${specialPrice.id}`}
+                                value={specialPrice.companyId}
+                                onChange={(e) => handleEditSpecialPriceChange(specialPrice.id, 'companyId', e.target.value)}
+                                disabled={isSubmitting || loadingCompanies}
+                                required
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="">Select a company</option>
+                                {companies
+                                  .filter(company => 
+                                    company.id === specialPrice.companyId ||
+                                    !editSpecialPrices.some(sp => 
+                                      sp.id !== specialPrice.id && sp.companyId === company.id
+                                    )
+                                  )
+                                  .map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                      {company.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                            <div>
+                              <Label htmlFor={`edit-priceType-${specialPrice.id}`}>Pricing Type *</Label>
+                              <select
+                                id={`edit-priceType-${specialPrice.id}`}
+                                value={specialPrice.priceType}
+                                onChange={(e) => {
+                                  const newPriceType = e.target.value as 'price' | 'discount';
+                                  setEditSpecialPrices(editSpecialPrices.map(sp => {
+                                    if (sp.id === specialPrice.id) {
+                                      if (newPriceType === 'price') {
+                                        return { ...sp, priceType: 'price', discountPercentage: '' };
+                                      } else {
+                                        return { ...sp, priceType: 'discount', price: '' };
+                                      }
+                                    }
+                                    return sp;
+                                  }));
+                                }}
+                                disabled={isSubmitting}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="price">Special Price</option>
+                                <option value="discount">Discount %</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {specialPrice.priceType === 'price' ? (
+                              <>
+                                <div>
+                                  <Label htmlFor={`edit-price-${specialPrice.id}`}>Special Price *</Label>
+                                  <Input
+                                    id={`edit-price-${specialPrice.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={specialPrice.price}
+                                    onChange={(e) => handleEditSpecialPriceChange(specialPrice.id, 'price', e.target.value)}
+                                    disabled={isSubmitting}
+                                    placeholder="0.00"
+                                    required={specialPrice.companyId !== ''}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`edit-currency-${specialPrice.id}`}>Currency</Label>
+                                  <select
+                                    id={`edit-currency-${specialPrice.id}`}
+                                    value={specialPrice.currency}
+                                    onChange={(e) => handleEditSpecialPriceChange(specialPrice.id, 'currency', e.target.value)}
+                                    disabled={isSubmitting}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="GBP">GBP</option>
+                                    <option value="SGD">SGD</option>
+                                  </select>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="md:col-span-2">
+                                <Label htmlFor={`edit-discount-${specialPrice.id}`}>Discount Percentage *</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id={`edit-discount-${specialPrice.id}`}
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    value={specialPrice.discountPercentage}
+                                    onChange={(e) => handleEditSpecialPriceChange(specialPrice.id, 'discountPercentage', e.target.value)}
+                                    disabled={isSubmitting}
+                                    placeholder="0.00"
+                                    required={specialPrice.companyId !== ''}
+                                    className="flex-1 max-w-xs"
+                                  />
+                                  <span className="text-sm text-gray-500 whitespace-nowrap">%</span>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Discount will be calculated from the default price ({formData.currency || 'USD'})</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="mt-3">
+                            <Label htmlFor={`edit-notes-${specialPrice.id}`}>Notes</Label>
+                            <Input
+                              id={`edit-notes-${specialPrice.id}`}
+                              value={specialPrice.notes}
+                              onChange={(e) => handleEditSpecialPriceChange(specialPrice.id, 'notes', e.target.value)}
+                              disabled={isSubmitting}
+                              placeholder="Optional notes about this price"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4">

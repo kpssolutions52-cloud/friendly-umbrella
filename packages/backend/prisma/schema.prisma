@@ -153,17 +153,18 @@ model DefaultPrice {
 
 // Company-specific negotiated prices
 model PrivatePrice {
-  id            String    @id @default(uuid())
-  productId     String    @map("product_id")
-  companyId     String    @map("company_id")
-  price         Decimal   @db.Decimal(12, 2)
-  currency      String    @default("USD") @db.VarChar(3)
-  effectiveFrom DateTime  @default(now()) @map("effective_from")
-  effectiveUntil DateTime? @map("effective_until")
-  isActive      Boolean   @default(true) @map("is_active")
-  notes         String?   @db.Text
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  productId         String    @map("product_id")
+  companyId         String    @map("company_id")
+  price             Decimal?  @db.Decimal(12, 2) // Nullable if discountPercentage is used
+  discountPercentage Decimal? @map("discount_percentage") @db.Decimal(5, 2) // e.g., 10.00 for 10%
+  currency          String    @default("USD") @db.VarChar(3)
+  effectiveFrom     DateTime  @default(now()) @map("effective_from")
+  effectiveUntil    DateTime? @map("effective_until")
+  isActive          Boolean   @default(true) @map("is_active")
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)

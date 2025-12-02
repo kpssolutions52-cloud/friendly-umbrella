@@ -216,3 +216,5 @@ Potential improvements:
 For detailed usage instructions, see [User Registration and Role Management Guide](./user-guide/user-registration-and-roles.md).  
 For technical details, see [Technical Documentation](./technical/user-registration-role-management.md).
 
+
+

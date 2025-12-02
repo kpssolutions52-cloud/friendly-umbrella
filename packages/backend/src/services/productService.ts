@@ -2,6 +2,14 @@ import { prisma } from '../utils/prisma';
 import createError from 'http-errors';
 import { Decimal } from '@prisma/client/runtime/library';
 
+export interface SpecialPriceInput {
+  companyId: string;
+  price?: number; // Optional if discountPercentage is provided
+  discountPercentage?: number; // Optional if price is provided (0-100)
+  currency?: string;
+  notes?: string;
+}
+
 export interface CreateProductInput {
   sku: string;
   name: string;
@@ -10,6 +18,7 @@ export interface CreateProductInput {
   unit: string;
   defaultPrice?: number;
   currency?: string;
+  specialPrices?: SpecialPriceInput[];
   metadata?: Record<string, any>;
 }
 
@@ -21,6 +30,7 @@ export interface UpdateProductInput {
   unit?: string;
   isActive?: boolean;
   metadata?: Record<string, any>;
+  specialPrices?: SpecialPriceInput[]; // Optional: add/update special prices
 }
 
 export class ProductService {
@@ -135,6 +145,72 @@ export class ProductService {
         });
       }
 
+      // Create special prices if provided
+      if (input.specialPrices && input.specialPrices.length > 0) {
+        // Check for duplicate company IDs
+        const companyIds = input.specialPrices.map((sp) => sp.companyId);
+        const uniqueCompanyIds = new Set(companyIds);
+        if (companyIds.length !== uniqueCompanyIds.size) {
+          throw createError(400, 'Duplicate company IDs found in special prices');
+        }
+
+        // Verify all companies exist and are active
+        const companies = await tx.tenant.findMany({
+          where: {
+            id: { in: Array.from(uniqueCompanyIds) },
+            type: 'company',
+            isActive: true,
+          },
+        });
+
+        if (companies.length !== uniqueCompanyIds.size) {
+          throw createError(400, 'One or more companies not found or inactive');
+        }
+
+        // Get default price currency if it exists (for discount percentage)
+        const defaultPriceCurrency = input.currency || 'USD';
+        if (input.defaultPrice !== undefined) {
+          // We already know the currency from input.currency
+        }
+
+        // Create private prices for each company
+        for (const specialPrice of input.specialPrices) {
+          // Validate: either price OR discountPercentage must be provided, but not both
+          if ((!specialPrice.price && !specialPrice.discountPercentage) || 
+              (specialPrice.price && specialPrice.discountPercentage)) {
+            throw createError(400, 'Each special price must have either price or discountPercentage, but not both');
+          }
+
+          // Validate discountPercentage range (0-100)
+          if (specialPrice.discountPercentage !== undefined) {
+            if (specialPrice.discountPercentage < 0 || specialPrice.discountPercentage > 100) {
+              throw createError(400, 'Discount percentage must be between 0 and 100');
+            }
+          }
+
+          // For discount percentage, use the product's default currency if currency not provided
+          let finalCurrency = specialPrice.currency || input.currency || 'USD';
+          if (specialPrice.discountPercentage !== undefined && !specialPrice.currency) {
+            // When using discount percentage without explicit currency, use product's default currency
+            finalCurrency = defaultPriceCurrency;
+          }
+
+          await tx.privatePrice.create({
+            data: {
+              productId: product.id,
+              companyId: specialPrice.companyId,
+              price: specialPrice.price ? new Decimal(specialPrice.price) : null,
+              discountPercentage: specialPrice.discountPercentage !== undefined 
+                ? new Decimal(specialPrice.discountPercentage) 
+                : null,
+              currency: finalCurrency,
+              notes: specialPrice.notes,
+              isActive: true,
+            },
+          });
+        }
+      }
+
       // Return product with default price
       return tx.product.findUnique({
         where: { id: product.id },
@@ -159,6 +235,13 @@ export class ProductService {
         id: productId,
         supplierId,
       },
+      include: {
+        defaultPrices: {
+          where: { isActive: true },
+          orderBy: { effectiveFrom: 'desc' },
+          take: 1,
+        },
+      },
     });
 
     if (!existing) {
@@ -181,25 +264,114 @@ export class ProductService {
       }
     }
 
-    // Update product
-    return prisma.product.update({
-      where: { id: productId },
-      data: {
-        ...(input.sku && { sku: input.sku }),
-        ...(input.name && { name: input.name }),
-        ...(input.description !== undefined && { description: input.description }),
-        ...(input.category !== undefined && { category: input.category }),
-        ...(input.unit && { unit: input.unit }),
-        ...(input.isActive !== undefined && { isActive: input.isActive }),
-        ...(input.metadata !== undefined && { metadata: input.metadata }),
-      },
-      include: {
-        defaultPrices: {
-          where: { isActive: true },
-          orderBy: { effectiveFrom: 'desc' },
-          take: 1,
+    // Get default price currency for discount percentage calculations
+    const defaultPriceCurrency = existing.defaultPrices[0]?.currency || 'USD';
+
+    // Update product and handle special prices in transaction
+    return prisma.$transaction(async (tx) => {
+      // Update product basic info
+      const product = await tx.product.update({
+        where: { id: productId },
+        data: {
+          ...(input.sku && { sku: input.sku }),
+          ...(input.name && { name: input.name }),
+          ...(input.description !== undefined && { description: input.description }),
+          ...(input.category !== undefined && { category: input.category }),
+          ...(input.unit && { unit: input.unit }),
+          ...(input.isActive !== undefined && { isActive: input.isActive }),
+          ...(input.metadata !== undefined && { metadata: input.metadata }),
         },
-      },
+      });
+
+      // Handle special prices if provided
+      if (input.specialPrices && input.specialPrices.length > 0) {
+        // Check for duplicate company IDs
+        const companyIds = input.specialPrices.map((sp) => sp.companyId);
+        const uniqueCompanyIds = new Set(companyIds);
+        if (companyIds.length !== uniqueCompanyIds.size) {
+          throw createError(400, 'Duplicate company IDs found in special prices');
+        }
+
+        // Verify all companies exist and are active
+        const companies = await tx.tenant.findMany({
+          where: {
+            id: { in: Array.from(uniqueCompanyIds) },
+            type: 'company',
+            isActive: true,
+          },
+        });
+
+        if (companies.length !== uniqueCompanyIds.size) {
+          throw createError(400, 'One or more companies not found or inactive');
+        }
+
+        // Process each special price
+        for (const specialPrice of input.specialPrices) {
+          // Validate: either price OR discountPercentage must be provided, but not both
+          if ((!specialPrice.price && !specialPrice.discountPercentage) || 
+              (specialPrice.price && specialPrice.discountPercentage)) {
+            throw createError(400, 'Each special price must have either price or discountPercentage, but not both');
+          }
+
+          // Validate discountPercentage range (0-100)
+          if (specialPrice.discountPercentage !== undefined) {
+            if (specialPrice.discountPercentage < 0 || specialPrice.discountPercentage > 100) {
+              throw createError(400, 'Discount percentage must be between 0 and 100');
+            }
+          }
+
+          // For discount percentage, use the product's default currency if currency not provided
+          let finalCurrency = specialPrice.currency || defaultPriceCurrency;
+          if (specialPrice.discountPercentage !== undefined && !specialPrice.currency) {
+            finalCurrency = defaultPriceCurrency;
+          }
+
+          // Check if a private price already exists for this company and product
+          const existingPrivatePrice = await tx.privatePrice.findFirst({
+            where: {
+              productId: product.id,
+              companyId: specialPrice.companyId,
+              isActive: true,
+            },
+            orderBy: { effectiveFrom: 'desc' },
+          });
+
+          if (existingPrivatePrice) {
+            // Deactivate the old price
+            await tx.privatePrice.update({
+              where: { id: existingPrivatePrice.id },
+              data: { isActive: false },
+            });
+          }
+
+          // Create new private price entry
+          await tx.privatePrice.create({
+            data: {
+              productId: product.id,
+              companyId: specialPrice.companyId,
+              price: specialPrice.price ? new Decimal(specialPrice.price) : null,
+              discountPercentage: specialPrice.discountPercentage !== undefined 
+                ? new Decimal(specialPrice.discountPercentage) 
+                : null,
+              currency: finalCurrency,
+              notes: specialPrice.notes,
+              isActive: true,
+            },
+          });
+        }
+      }
+
+      // Return updated product with default price
+      return tx.product.findUnique({
+        where: { id: product.id },
+        include: {
+          defaultPrices: {
+            where: { isActive: true },
+            orderBy: { effectiveFrom: 'desc' },
+            take: 1,
+          },
+        },
+      });
     });
   }
 

@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { priceService } from '../services/priceService';
+import { Router, Response, NextFunction } from 'express';
+import { priceService, UpdateDefaultPriceInput, CreatePrivatePriceInput, UpdatePrivatePriceInput } from '../services/priceService';
 import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { body, param, validationResult } from 'express-validator';
 import { z } from 'zod';
@@ -17,21 +17,52 @@ const defaultPriceSchema = z.object({
 
 const privatePriceSchema = z.object({
   companyId: z.string().uuid('Invalid company ID'),
-  price: z.number().min(0, 'Price must be positive'),
+  price: z.number().min(0, 'Price must be positive').optional(),
+  discountPercentage: z.number().min(0).max(100, 'Discount percentage must be between 0 and 100').optional(),
   currency: z.string().length(3, 'Currency must be 3 characters').optional().default('USD'),
   effectiveFrom: z.string().datetime().optional(),
   effectiveUntil: z.string().datetime().optional().nullable(),
   notes: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // Either price or discountPercentage must be provided, but not both
+    const hasPrice = data.price !== undefined;
+    const hasDiscount = data.discountPercentage !== undefined;
+    return (hasPrice || hasDiscount) && !(hasPrice && hasDiscount);
+  },
+  {
+    message: 'Either price or discountPercentage must be provided, but not both',
+    path: ['price'],
+  }
+);
 
 // All routes require authentication
 router.use(authenticate);
 
 const updateDefaultPriceSchema = defaultPriceSchema;
 const createPrivatePriceSchema = privatePriceSchema;
-const updatePrivatePriceSchema = privatePriceSchema.partial().extend({
+const updatePrivatePriceSchema = z.object({
+  companyId: z.string().uuid('Invalid company ID').optional(),
+  price: z.number().min(0, 'Price must be positive').optional(),
+  discountPercentage: z.number().min(0).max(100, 'Discount percentage must be between 0 and 100').optional(),
+  currency: z.string().length(3, 'Currency must be 3 characters').optional(),
+  effectiveFrom: z.string().datetime().optional(),
+  effectiveUntil: z.string().datetime().optional().nullable(),
+  notes: z.string().optional(),
   isActive: z.boolean().optional(),
-});
+}).refine(
+  (data) => {
+    // Either price or discountPercentage can be provided, but not both
+    const hasPrice = data.price !== undefined;
+    const hasDiscount = data.discountPercentage !== undefined;
+    // Allow neither (no changes), one, but not both
+    return !(hasPrice && hasDiscount);
+  },
+  {
+    message: 'Either price or discountPercentage can be provided, but not both',
+    path: ['price'],
+  }
+);
 
 // ========== DEFAULT PRICE ROUTES (Supplier only) ==========
 
@@ -49,24 +80,20 @@ router.put(
       .isLength({ min: 3, max: 3 })
       .withMessage('Currency must be 3 characters'),
   ],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const input = updateDefaultPriceSchema.parse({
-        ...req.body,
-        effectiveFrom: req.body.effectiveFrom
-          ? new Date(req.body.effectiveFrom)
-          : undefined,
-        effectiveUntil: req.body.effectiveUntil
-          ? req.body.effectiveUntil === null
-            ? null
-            : new Date(req.body.effectiveUntil)
-          : undefined,
-      });
+      const parsed = updateDefaultPriceSchema.parse(req.body);
+      const input: UpdateDefaultPriceInput = {
+        price: parsed.price,
+        currency: parsed.currency,
+        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
+        effectiveUntil: parsed.effectiveUntil ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+      };
 
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
       const userAgent = req.get('user-agent') || undefined;
@@ -100,27 +127,31 @@ router.post(
     param('id').isUUID().withMessage('Invalid product ID'),
     body('companyId').isUUID().withMessage('Invalid company ID'),
     body('price')
+      .optional()
       .isFloat({ min: 0 })
       .withMessage('Price must be a positive number'),
+    body('discountPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('Discount percentage must be between 0 and 100'),
   ],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const input = createPrivatePriceSchema.parse({
-        ...req.body,
-        effectiveFrom: req.body.effectiveFrom
-          ? new Date(req.body.effectiveFrom)
-          : undefined,
-        effectiveUntil: req.body.effectiveUntil
-          ? req.body.effectiveUntil === null
-            ? null
-            : new Date(req.body.effectiveUntil)
-          : undefined,
-      });
+      const parsed = createPrivatePriceSchema.parse(req.body);
+      const input: CreatePrivatePriceInput = {
+        companyId: parsed.companyId,
+        price: parsed.price,
+        discountPercentage: parsed.discountPercentage,
+        currency: parsed.currency,
+        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
+        effectiveUntil: parsed.effectiveUntil ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+        notes: parsed.notes,
+      };
 
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
       const userAgent = req.get('user-agent') || undefined;
@@ -149,7 +180,7 @@ router.get(
   '/products/:id/private-prices',
   requireTenantType('supplier'),
   [param('id').isUUID().withMessage('Invalid product ID')],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -179,24 +210,23 @@ router.put(
       .isFloat({ min: 0 })
       .withMessage('Price must be a positive number'),
   ],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const input = updatePrivatePriceSchema.parse({
-        ...req.body,
-        effectiveFrom: req.body.effectiveFrom
-          ? new Date(req.body.effectiveFrom)
-          : undefined,
-        effectiveUntil: req.body.effectiveUntil !== undefined
-          ? req.body.effectiveUntil === null
-            ? null
-            : new Date(req.body.effectiveUntil)
-          : undefined,
-      });
+      const parsed = updatePrivatePriceSchema.parse(req.body);
+      const input: UpdatePrivatePriceInput = {
+        price: parsed.price,
+        discountPercentage: parsed.discountPercentage,
+        currency: parsed.currency,
+        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
+        effectiveUntil: parsed.effectiveUntil !== undefined ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+        notes: parsed.notes,
+        isActive: parsed.isActive,
+      };
 
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
       const userAgent = req.get('user-agent') || undefined;
@@ -225,7 +255,7 @@ router.delete(
   '/private-prices/:id',
   requireTenantType('supplier'),
   [param('id').isUUID().withMessage('Invalid private price ID')],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -245,7 +275,7 @@ router.get(
   '/products/:id/price-history',
   requireTenantType('supplier'),
   [param('id').isUUID().withMessage('Invalid product ID')],
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -268,7 +298,7 @@ router.get(
 router.get(
   '/companies',
   requireTenantType('supplier'),
-  async (req: AuthRequest, res, next) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const companies = await prisma.tenant.findMany({
         where: {
