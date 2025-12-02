@@ -5,14 +5,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { StatisticsOverview } from '@/components/admin/StatisticsOverview';
 import { PendingTenants } from '@/components/admin/PendingTenants';
-import { AllTenants } from '@/components/admin/AllTenants';
+import { Companies } from '@/components/admin/Companies';
+import { Suppliers } from '@/components/admin/Suppliers';
 import { SuperAdminManagement } from '@/components/admin/SuperAdminManagement';
 
-type TabType = 'overview' | 'pending' | 'tenants' | 'super-admins';
+type TabType = 'overview' | 'super-admins';
+type ViewType = 'overview' | 'pending' | 'companies' | 'suppliers';
 
 export default function AdminDashboardPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeView, setActiveView] = useState<ViewType>('overview');
 
   // Check if user is super admin
   if (user?.role !== 'super_admin') {
@@ -53,7 +56,10 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             <button
-              onClick={() => setActiveTab('overview')}
+              onClick={() => {
+                setActiveTab('overview');
+                setActiveView('overview');
+              }}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'overview'
                   ? 'border-blue-500 text-blue-600'
@@ -61,26 +67,6 @@ export default function AdminDashboardPage() {
               }`}
             >
               Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'pending'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Pending Requests
-            </button>
-            <button
-              onClick={() => setActiveTab('tenants')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'tenants'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              All Tenants
             </button>
             <button
               onClick={() => setActiveTab('super-admins')}
@@ -98,9 +84,50 @@ export default function AdminDashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'overview' && <StatisticsOverview />}
-        {activeTab === 'pending' && <PendingTenants />}
-        {activeTab === 'tenants' && <AllTenants />}
+        {activeTab === 'overview' && (
+          <>
+            {activeView === 'overview' && <StatisticsOverview onViewChange={setActiveView} />}
+            {activeView === 'pending' && (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('overview')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ← Back to Overview
+                  </button>
+                </div>
+                <PendingTenants />
+              </>
+            )}
+            {activeView === 'companies' && (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('overview')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ← Back to Overview
+                  </button>
+                </div>
+                <Companies />
+              </>
+            )}
+            {activeView === 'suppliers' && (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('overview')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ← Back to Overview
+                  </button>
+                </div>
+                <Suppliers />
+              </>
+            )}
+          </>
+        )}
         {activeTab === 'super-admins' && <SuperAdminManagement />}
       </main>
     </div>

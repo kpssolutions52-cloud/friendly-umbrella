@@ -48,12 +48,15 @@ export class SuperAdminService {
   }
 
   /**
-   * Get all tenants (with filtering by status)
+   * Get all tenants (with filtering by status and type)
    */
-  async getAllTenants(status?: 'pending' | 'active' | 'rejected') {
+  async getAllTenants(status?: 'pending' | 'active' | 'rejected', type?: 'company' | 'supplier') {
     const where: any = {};
     if (status) {
       where.status = status;
+    }
+    if (type) {
+      where.type = type;
     }
 
     const tenants = await prisma.tenant.findMany({
@@ -153,6 +156,30 @@ export class SuperAdminService {
   }
 
   /**
+   * Toggle tenant active status
+   */
+  async toggleTenantStatus(tenantId: string, isActive: boolean, superAdminId: string) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+
+    if (!tenant) {
+      throw createError(404, 'Tenant not found');
+    }
+
+    if (tenant.status !== 'active') {
+      throw createError(400, 'Can only toggle active status for approved tenants');
+    }
+
+    return prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        isActive,
+      },
+    });
+  }
+
+  /**
    * Get all super admins
    */
   async getSuperAdmins() {
@@ -223,21 +250,23 @@ export class SuperAdminService {
    * Get tenant statistics
    */
   async getStatistics() {
-    const [totalTenants, pendingTenants, activeTenants, rejectedTenants, totalUsers] =
+    const [pendingTenants, activeTenants, rejectedTenants, totalUsers, companies, suppliers] =
       await Promise.all([
-        prisma.tenant.count(),
         prisma.tenant.count({ where: { status: 'pending' } }),
         prisma.tenant.count({ where: { status: 'active' } }),
         prisma.tenant.count({ where: { status: 'rejected' } }),
         prisma.user.count({ where: { role: { not: 'super_admin' } } }),
+        prisma.tenant.count({ where: { type: 'company' } }),
+        prisma.tenant.count({ where: { type: 'supplier' } }),
       ]);
 
     return {
       tenants: {
-        total: totalTenants,
         pending: pendingTenants,
         active: activeTenants,
         rejected: rejectedTenants,
+        companies: companies,
+        suppliers: suppliers,
       },
       users: {
         total: totalUsers,

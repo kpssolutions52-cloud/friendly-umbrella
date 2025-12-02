@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './api';
+import { apiGet, apiPost, apiPut } from './api';
 
 const BASE_PATH = '/api/v1/admin';
 
@@ -43,10 +43,11 @@ export interface SuperAdmin {
 
 export interface Statistics {
   tenants: {
-    total: number;
     pending: number;
     active: number;
     rejected: number;
+    companies: number;
+    suppliers: number;
   };
   users: {
     total: number;
@@ -58,10 +59,20 @@ export async function getPendingTenants(): Promise<{ tenants: Tenant[] }> {
   return apiGet<{ tenants: Tenant[] }>(`${BASE_PATH}/tenants/pending`);
 }
 
-// Get all tenants (with optional status filter)
-export async function getAllTenants(status?: 'pending' | 'active' | 'rejected'): Promise<{ tenants: Tenant[] }> {
-  const query = status ? `?status=${status}` : '';
+// Get all tenants (with optional status and type filter)
+export async function getAllTenants(status?: 'pending' | 'active' | 'rejected', type?: 'company' | 'supplier'): Promise<{ tenants: Tenant[] }> {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (type) params.append('type', type);
+  const query = params.toString() ? `?${params.toString()}` : '';
   return apiGet<{ tenants: Tenant[] }>(`${BASE_PATH}/tenants${query}`);
+}
+
+// Toggle tenant active status
+export async function toggleTenantStatus(tenantId: string, isActive: boolean): Promise<{ message: string; tenant: Tenant }> {
+  return apiPut<{ message: string; tenant: Tenant }>(`${BASE_PATH}/tenants/${tenantId}/toggle-status`, {
+    isActive,
+  });
 }
 
 // Approve or reject a tenant

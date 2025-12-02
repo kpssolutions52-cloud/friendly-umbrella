@@ -458,21 +458,28 @@ function DashboardContent() {
   };
 
   const handleToggleInactive = async (product: Product) => {
-    if (!confirm(`Are you sure you want to ${product.isActive ? 'deactivate' : 'activate'} this product?`)) {
-      return;
-    }
+    const newStatus = !product.isActive;
+    
+    // Store previous state for rollback on error
+    const previousProducts = [...products];
+    
+    // Optimistically update UI immediately
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === product.id ? { ...p, isActive: newStatus } : p
+      )
+    );
 
     try {
       await apiPut(`/api/v1/products/${product.id}`, {
-        isActive: !product.isActive,
+        isActive: newStatus,
       });
 
-      // Refresh stats and products
+      // Refresh stats after successful update
       await fetchStats();
-      if (activeFilter) {
-        await fetchProducts(activeFilter);
-      }
     } catch (err: any) {
+      // Rollback on error
+      setProducts(previousProducts);
       alert(err?.error?.message || 'Failed to update product status');
     }
   };

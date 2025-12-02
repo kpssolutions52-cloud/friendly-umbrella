@@ -34,11 +34,12 @@ router.get(
   }
 );
 
-// GET /api/v1/admin/tenants - Get all tenants (with optional status filter)
+// GET /api/v1/admin/tenants - Get all tenants (with optional status and type filter)
 router.get(
   '/tenants',
   [
     query('status').optional().isIn(['pending', 'active', 'rejected']),
+    query('type').optional().isIn(['company', 'supplier']),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -48,7 +49,8 @@ router.get(
       }
 
       const status = req.query.status as 'pending' | 'active' | 'rejected' | undefined;
-      const tenants = await superAdminService.getAllTenants(status);
+      const type = req.query.type as 'company' | 'supplier' | undefined;
+      const tenants = await superAdminService.getAllTenants(status, type);
       res.json({ tenants });
     } catch (error) {
       next(error);
@@ -139,6 +141,36 @@ router.post(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
+      next(error);
+    }
+  }
+);
+
+// PUT /api/v1/admin/tenants/:tenantId/toggle-status - Toggle tenant active status
+router.put(
+  '/tenants/:tenantId/toggle-status',
+  [
+    param('tenantId').isUUID(),
+    body('isActive').isBoolean(),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { tenantId } = req.params;
+      const { isActive } = req.body;
+      const superAdminId = req.userId!;
+
+      const tenant = await superAdminService.toggleTenantStatus(tenantId, isActive, superAdminId);
+
+      res.json({
+        message: isActive ? 'Tenant activated successfully' : 'Tenant deactivated successfully',
+        tenant,
+      });
+    } catch (error) {
       next(error);
     }
   }
