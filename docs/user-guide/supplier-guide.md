@@ -24,8 +24,9 @@ The Supplier Dashboard provides an overview of your business on the platform.
 ### Quick Actions
 
 - **Add Product**: Create a new product in your catalog
-- **Import CSV**: Bulk import products (coming soon)
-- **View Products**: View all your products
+- **Import CSV**: Bulk import products (coming soon - currently disabled)
+- **User Management**: Manage users in your organization (admin only)
+  - Shows a red notification badge with pending user request count
 
 ## Managing Products
 
@@ -63,6 +64,12 @@ Click "Create Product" to save. The product will appear in your catalog immediat
 - **Products with Prices**: Shows products with default prices
 - **Private Prices**: Shows products with company-specific pricing
 
+#### Method 3: Search Products
+1. Use the search bar at the top of the products table
+2. Type the product name to filter
+3. Search is case-insensitive and filters in real-time
+4. Results update as you type
+
 ### Product Information Displayed
 
 The product table shows:
@@ -92,7 +99,9 @@ Each product row includes action buttons:
 4. Inactive products won't appear in company searches
 
 #### Delete Product
-1. Click the **"Delete"** button on any product row
+**Note**: Delete functionality is only available to admin users (supplier_admin). Staff users cannot delete products.
+
+1. Click the **"Delete"** button on any product row (admin only)
 2. A confirmation modal appears asking to confirm deletion
 3. Click **"Delete"** in the modal to permanently remove the product
 4. **Warning**: This action cannot be undone
@@ -124,39 +133,79 @@ PUT /api/v1/products/{productId}/default-price
 
 Special prices are company-specific prices that override default prices for that specific company. Only the selected company can see their special price - other companies will see the default price.
 
-#### Managing Special Prices Through UI
+You can set special prices in two ways:
+1. **Fixed Price**: Set a specific price amount (e.g., SGD 38.00)
+2. **Discount Percentage**: Set a discount percentage (e.g., 3% off the default price)
 
-**Step 1: Access Special Price Management**
-1. View your products list (click on any stat card)
-2. Find the product you want to set special prices for
-3. Click the **"Special Prices"** button in the Actions column
-4. A modal opens showing all special prices for that product
+#### Managing Special Prices During Product Creation
 
-**Step 2: Add a Special Price**
-1. Click **"Add Special Price"** button in the modal
-2. Fill in the form:
+**Step 1: Add Special Price Entry**
+1. When creating a new product, scroll to the "Special Prices (Optional)" section
+2. Click **"Add Company Price"** button
+3. Fill in the form:
    - **Company**: Select from the dropdown list of active companies
-   - **Currency**: Choose the currency (USD, EUR, GBP, SGD)
-   - **Special Price**: Enter the price amount
+   - **Pricing Type**: Choose "Special Price" or "Discount %"
+   - **If Special Price**:
+     - Enter the fixed price amount
+     - Select the currency (USD, EUR, GBP, SGD)
+   - **If Discount %**:
+     - Enter discount percentage (0-100)
+     - Currency will use the product's default currency
    - **Notes** (Optional): Add any notes about this special price
-3. Click **"Add Price"** to save
+4. Click **"Include"** to add the special price to the list
 
-**Step 3: View Special Prices**
-- All special prices for the product are displayed in a table
-- Shows company name, price, currency, effective date, and notes
-- You can see which companies have special pricing
+**Step 2: Review Included Special Prices**
+- All included special prices are shown in a table
+- Review the pricing type, price/discount, and company
+- Edit or delete entries before creating the product
 
-**Step 4: Edit Special Price**
-1. Find the special price in the table
-2. Click **"Edit"** button
-3. Modify the price, currency, or notes
-4. Click **"Update Price"** to save changes
+**Step 3: Create Product**
+- Click **"Create Product"** to save the product with all special prices
 
-**Step 5: Delete Special Price**
-1. Find the special price in the table
-2. Click **"Delete"** button
-3. Confirm the deletion
-4. The special price will be removed and the company will see the default price
+#### Managing Special Prices When Editing Product
+
+**Step 1: Edit Product**
+1. Click the **"Edit"** button on any product row
+2. The edit modal opens with current product information
+
+**Step 2: Manage Special Prices**
+1. Scroll to the "Special Prices (Optional)" section in the edit modal
+2. View existing special prices in the table
+3. Add new special prices:
+   - Click **"Add Company Price"**
+   - Fill in company, pricing type, and price/discount
+   - Click **"Include"** to add
+4. Edit existing special prices:
+   - Click **"Edit"** button on any special price row
+   - Modify pricing type, price/discount, or notes
+   - Click **"Update"** to save changes
+5. Delete special prices:
+   - Click **"Delete"** button on any special price row
+   - Confirm deletion
+
+**Step 3: Update Product**
+- Click **"Update Product"** to save all changes including special prices
+
+#### Pricing Type Options
+
+**Special Price (Fixed Price)**
+- Enter a specific price amount (e.g., 40.00)
+- Select currency independently
+- Company sees this exact price
+
+**Discount Percentage**
+- Enter discount percentage (0-100)
+- System calculates: Default Price × (1 - Discount% / 100)
+- Example: Default SGD 40.00 with 3% discount = SGD 38.80
+- Uses product's default currency
+- Company sees both discount percentage and calculated price
+
+#### Special Price Rules
+
+- **One Pricing Type Per Company**: Each company can have either a fixed price OR a discount percentage, not both
+- **Company Selection**: Once a company is included, it cannot be selected again for the same product
+- **Validation**: Discount percentage must be between 0-100
+- **Privacy**: Each company only sees their own special price
 
 #### Benefits of Special Prices
 - Offer discounts to specific companies

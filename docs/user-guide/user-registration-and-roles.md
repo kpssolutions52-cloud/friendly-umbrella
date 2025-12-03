@@ -36,6 +36,9 @@ When you visit the registration page (`/auth/register`), you'll see four registr
 - Company Name
 - Email address
 - Password (minimum 8 characters)
+- Phone Number
+- Address
+- Postal Code
 - First Name (optional)
 - Last Name (optional)
 
@@ -50,6 +53,9 @@ When you visit the registration page (`/auth/register`), you'll see four registr
 - Supplier Name
 - Email address
 - Password (minimum 8 characters)
+- Phone Number
+- Address
+- Postal Code
 - First Name (optional)
 - Last Name (optional)
 

@@ -48,9 +48,33 @@ Each supplier listing shows:
 
 ### Basic Search
 
-1. Use the search bar on the dashboard
-2. Enter product name, SKU, or description
-3. Results show products from all suppliers
+1. Use the search bar on the dashboard (labeled "Search by Product Name")
+2. Enter product name to filter products
+3. Search is case-insensitive and filters in real-time
+4. Results show products from all suppliers
+5. Products with special prices appear first in the results
+
+### Filtering Products
+
+The dashboard provides several filtering options:
+
+**Filter by Supplier:**
+1. Click the "Filter by Supplier" dropdown
+2. Type to search for a supplier name
+3. Select a supplier from the filtered list
+4. Products will be filtered to show only that supplier's products
+5. Select "All Suppliers" to remove the filter
+
+**Filter by Category:**
+1. Click the "Filter by Category" dropdown
+2. Type to search for a category name
+3. Select a category from the filtered list
+4. Products will be filtered to show only that category
+5. Select "All Categories" to remove the filter
+
+**Combining Filters:**
+- You can use search, supplier filter, and category filter together
+- Click "Clear Filters" button to reset all filters at once
 
 ### Advanced Search
 
@@ -68,11 +92,22 @@ GET /api/v1/products/search?q=steel&category=Steel&supplierId={supplierId}
 
 ### Search Results
 
+**Product Sorting:**
+- Products with special prices (your negotiated prices) appear at the top of the list
+- Other products appear below in alphabetical order
+
+**Pagination:**
+- Products are paginated with 10 items per page
+- Use the pagination controls at the bottom to navigate between pages
+- Page numbers show current page and total pages
+
 Results include:
 - **Product Name**: Full product name
 - **SKU**: Product identifier
 - **Supplier**: Supplier name
-- **Price**: Current price (default or private)
+- **Category**: Product category
+- **Unit**: Measurement unit
+- **Price**: Shows both default and your special price (if available)
 - **Price Type**: "default" or "private"
 - **Currency**: Price currency
 
@@ -95,15 +130,27 @@ Results include:
 ### Price Display
 
 When viewing products, you'll see:
-- **Current Price**: The price you'll pay (special price if available, otherwise default price)
-- **Currency**: Price currency
-- **Price Type**: Shows "Special Rate" if you have a negotiated special price, or "Default Price" if using standard pricing
+
+**If you have a special price:**
+- **Default Price**: Shows the standard price (e.g., "Default: SGD 40.00")
+- **Your Price**: Shows your special price in green (e.g., "Your Price: SGD 38.80")
+- **Discount Information**: 
+  - If using discount percentage, shows the discount percentage (e.g., "3% Discount Applied")
+  - Shows calculated savings percentage (e.g., "5.0% savings")
+
+**If no special price:**
+- **Default Price**: Shows the standard price
+- **Message**: Shows "No special rate"
 
 **How Special Prices Work:**
 - Suppliers can set special prices for your company on specific products
+- Special prices can be:
+  - **Fixed Price**: A specific price amount (e.g., SGD 38.00)
+  - **Discount Percentage**: A percentage off the default price (e.g., 3% discount)
 - These prices are completely private - other companies cannot see your special prices
 - Special prices automatically override default prices when available
-- You'll see a green "Special Rate" indicator when viewing products with special pricing
+- Products with special prices appear first in the product list
+- Discount percentage prices show both the percentage and calculated final price
 
 ## Viewing Supplier Details
 
