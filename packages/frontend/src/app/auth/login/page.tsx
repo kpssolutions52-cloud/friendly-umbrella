@@ -40,9 +40,9 @@ function LoginForm() {
       setError(null);
       await login(data);
     } catch (err: any) {
-      setError(
-        err?.error?.message || 'Login failed. Please check your credentials.'
-      );
+      console.error('Login error:', err);
+      const errorMessage = err?.error?.message || err?.message || err?.toString() || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

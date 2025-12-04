@@ -52,22 +52,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (input: LoginInput) => {
     const response = await apiLogin(input);
-    if (response.tokens) {
-      storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
-      // Refresh to get full user with tenant object
-      await refreshUser();
-      // Get tenantType from refreshed user
-      const updatedUser = await getCurrentUser().catch(() => null);
-      
-      // Check if super admin
-      if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
-        router.push('/admin/dashboard');
-        return;
-      }
-      
-      const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
-      router.push(getDashboardPath(tenantType));
+    
+    if (!response.tokens) {
+      throw new Error('Login failed: No tokens received from server');
     }
+    
+    storeTokens(response.tokens.accessToken, response.tokens.refreshToken);
+    
+    // Refresh to get full user with tenant object
+    try {
+      await refreshUser();
+    } catch (error) {
+      console.error('Failed to refresh user after login:', error);
+      // Don't fail login if refresh fails, we can still use the response data
+    }
+    
+    // Get tenantType from refreshed user or response
+    const updatedUser = await getCurrentUser().catch(() => null);
+    
+    // Check if super admin
+    if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
+      router.push('/admin/dashboard');
+      return;
+    }
+    
+    const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
+    router.push(getDashboardPath(tenantType));
   };
 
   const register = async (input: RegisterInput) => {
