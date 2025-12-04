@@ -12,7 +12,7 @@
     "dev:frontend": "npm run dev --workspace=@platform/frontend",
     "build": "npm run build --workspace=@platform/backend && npm run build --workspace=@platform/frontend",
     "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
+    "lint": "npm run lint --workspace=@platform/backend && npm run lint --workspace=@platform/frontend",
     "type-check": "npm run type-check --workspaces",
     "db:generate": "npm run db:generate --workspace=@platform/backend",
     "db:migrate": "npm run db:migrate --workspace=@platform/backend",
