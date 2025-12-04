@@ -7,6 +7,17 @@ import { prisma } from '../utils/prisma';
 
 const router = Router();
 
+// Helper function to convert string dates to Date objects
+function parseDate(value: string | undefined): Date | undefined {
+  return value ? new Date(value) : undefined;
+}
+
+function parseNullableDate(value: string | null | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  return new Date(value);
+}
+
 // Define schemas locally
 const defaultPriceSchema = z.object({
   price: z.number().min(0, 'Price must be positive'),
@@ -91,8 +102,8 @@ router.put(
       const input: UpdateDefaultPriceInput = {
         price: parsed.price,
         currency: parsed.currency,
-        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
-        effectiveUntil: parsed.effectiveUntil ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+        effectiveFrom: parseDate(parsed.effectiveFrom),
+        effectiveUntil: parseNullableDate(parsed.effectiveUntil),
       };
 
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
@@ -148,8 +159,8 @@ router.post(
         price: parsed.price,
         discountPercentage: parsed.discountPercentage,
         currency: parsed.currency,
-        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
-        effectiveUntil: parsed.effectiveUntil ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+        effectiveFrom: parseDate(parsed.effectiveFrom),
+        effectiveUntil: parseNullableDate(parsed.effectiveUntil),
         notes: parsed.notes,
       };
 
@@ -222,8 +233,8 @@ router.put(
         price: parsed.price,
         discountPercentage: parsed.discountPercentage,
         currency: parsed.currency,
-        effectiveFrom: parsed.effectiveFrom ? new Date(parsed.effectiveFrom as string) : undefined,
-        effectiveUntil: parsed.effectiveUntil !== undefined ? (parsed.effectiveUntil === null ? null : new Date(parsed.effectiveUntil as string)) : undefined,
+        effectiveFrom: parseDate(parsed.effectiveFrom),
+        effectiveUntil: parseNullableDate(parsed.effectiveUntil),
         notes: parsed.notes,
         isActive: parsed.isActive,
       };
