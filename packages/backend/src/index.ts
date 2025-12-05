@@ -45,10 +45,20 @@ app.use(errorHandler);
 // Support multiple platforms: Railway, Fly.io, Render, etc.
 const PORT = process.env.PORT || process.env.RAILWAY_PORT || 8000;
 
+// Add console.log for Railway to capture startup
+console.log('Starting server...');
+console.log(`PORT: ${PORT}`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+
 httpServer.listen(PORT, () => {
+  console.log(`✅ Server started successfully on port ${PORT}`);
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📡 WebSocket server ready`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+}).on('error', (err: Error) => {
+  console.error('❌ Server failed to start:', err);
+  logger.error('Server failed to start', { error: err });
+  process.exit(1);
 });
 
 export { app, io };
