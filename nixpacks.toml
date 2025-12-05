@@ -21,4 +21,4 @@ cmds = [
 ]
 
 [start]
-cmd = "cd packages/backend && node dist/index.js"
+cmd = "cd packages/backend && npm run db:migrate:deploy && node dist/index.js"
