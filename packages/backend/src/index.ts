@@ -26,18 +26,40 @@ if (missingVars.length > 0) {
 const app = express();
 const httpServer = createServer(app);
 
-// CORS configuration - support multiple origins
+// CORS configuration - support multiple origins and normalize (remove trailing slashes)
 const getAllowedOrigins = () => {
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  // Normalize function to remove trailing slashes
+  const normalize = (origin: string) => origin.trim().replace(/\/+$/, '');
+  
   // Support comma-separated origins for multiple frontends
   if (corsOrigin.includes(',')) {
-    return corsOrigin.split(',').map((origin) => origin.trim());
+    return corsOrigin.split(',').map(normalize);
   }
-  return corsOrigin;
+  return normalize(corsOrigin);
 };
 
 const corsOptions = {
-  origin: getAllowedOrigins(),
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const allowedOrigins = getAllowedOrigins();
+    const normalizedOrigin = origin ? origin.replace(/\/+$/, '') : undefined;
+    
+    // If no origin (e.g., same-origin request), allow it
+    if (!normalizedOrigin) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list (normalized)
+    const isAllowed = Array.isArray(allowedOrigins)
+      ? allowedOrigins.some((allowed) => normalize(allowed) === normalizedOrigin)
+      : normalize(allowedOrigins) === normalizedOrigin;
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 };
 
