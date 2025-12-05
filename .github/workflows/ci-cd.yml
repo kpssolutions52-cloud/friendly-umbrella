@@ -1,18 +1,13 @@
-name: Frontend CI/CD
+name: Full Stack CI/CD
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'packages/frontend/**'
-      - 'packages/shared/**'
-      - 'vercel.json'
-      - 'package.json'
   workflow_dispatch:
 
 jobs:
   test-and-build:
-    name: Test & Build Frontend
+    name: Test & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -30,16 +25,40 @@ jobs:
       - name: Build shared package
         run: cd packages/shared && npm run build
 
+      - name: Generate Prisma Client
+        run: cd packages/backend && npm run db:generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build backend
+        run: cd packages/backend && npm run build
+
       - name: Type check
-        run: npm run type-check --workspace=@platform/frontend
+        run: npm run type-check
 
       - name: Build frontend
         run: cd packages/frontend && npm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://friendly-umbrella-production.up.railway.app' }}
 
-  deploy:
-    name: Deploy to Vercel
+  deploy-backend:
+    name: Deploy Backend to Railway
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+          detach: false
+
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
     needs: test-and-build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
