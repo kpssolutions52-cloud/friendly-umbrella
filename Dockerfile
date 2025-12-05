@@ -32,13 +32,16 @@ COPY packages/shared ./packages/shared
 WORKDIR /app/packages/shared
 RUN npm run build
 
-# Build backend
+# Build backend - force rebuild
 WORKDIR /app/packages/backend
-RUN npm run build
+RUN rm -rf dist && npm run build
 
-# Verify build output exists
-RUN ls -la dist/ || (echo "Build failed - dist folder not found" && exit 1)
-RUN test -f dist/index.js || (echo "dist/index.js not found" && exit 1)
+# Verify build output exists and show contents
+RUN echo "=== Checking dist folder ===" && \
+    ls -la dist/ && \
+    echo "=== Checking for index.js ===" && \
+    test -f dist/index.js && echo "✅ dist/index.js exists" || (echo "❌ dist/index.js NOT FOUND" && exit 1) && \
+    echo "=== Build verification complete ==="
 
 # Production backend image
 FROM node:20-alpine AS backend
@@ -58,9 +61,12 @@ COPY --from=backend-builder /app/packages/backend/dist ./packages/backend/dist
 COPY --from=backend-builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=backend-builder /app/packages/backend/prisma ./packages/backend/prisma
 
-# Verify files were copied
-RUN ls -la packages/backend/dist/ || (echo "dist folder not copied" && exit 1)
-RUN test -f packages/backend/dist/index.js || (echo "dist/index.js not found in final image" && exit 1)
+# Verify files were copied to final image
+RUN echo "=== Verifying files in final image ===" && \
+    ls -la packages/backend/ && \
+    ls -la packages/backend/dist/ && \
+    test -f packages/backend/dist/index.js && echo "✅ dist/index.js found in final image" || (echo "❌ dist/index.js NOT FOUND in final image" && exit 1) && \
+    echo "=== Final image verification complete ==="
 
 WORKDIR /app/packages/backend
 
