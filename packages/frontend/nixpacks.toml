@@ -1,0 +1,23 @@
+[phases.setup]
+nixPkgs = ["nodejs"]
+
+[phases.install]
+cmds = [
+  # Install ALL dependencies including devDependencies (needed for Next.js build)
+  "NODE_ENV=development npm install",
+  # Build shared package first (frontend depends on it)
+  "cd packages/shared && npm run build"
+]
+
+[phases.build]
+cmds = [
+  # Build Next.js application
+  "cd packages/frontend && npm run build",
+  # Verify build output exists
+  "test -d packages/frontend/.next || (echo 'ERROR: .next folder not found!' && ls -la packages/frontend/ && exit 1)",
+  "echo '✅ Frontend build successful: .next folder exists'"
+]
+
+[start]
+cmd = "cd packages/frontend && npm start"
+
