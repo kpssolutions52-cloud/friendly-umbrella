@@ -42,18 +42,43 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-setupRoutes(app);
+try {
+  setupRoutes(app);
+  console.log('✅ Routes setup complete');
+} catch (error) {
+  console.error('❌ Error setting up routes:', error);
+  // Continue anyway - at least health endpoint will work
+}
 
 // WebSocket setup
-const io = new SocketIOServer(httpServer, {
-  cors: corsOptions,
-});
-setSocketIO(io);
-setupWebSocket(io);
+let io: SocketIOServer;
+try {
+  io = new SocketIOServer(httpServer, {
+    cors: corsOptions,
+  });
+  setSocketIO(io);
+  setupWebSocket(io);
+  console.log('✅ WebSocket setup complete');
+} catch (error) {
+  console.error('❌ Error setting up WebSocket:', error);
+  // Continue anyway - HTTP endpoints will still work
+}
 
 // Error handling middleware (must be last)
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+// Global error handlers
+process.on('uncaughtException', (error: Error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('❌ Stack:', error.stack);
+  // Don't exit - let the server try to continue
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit - let the server try to continue
+});
 
 // Support multiple platforms: Railway, Fly.io, Render, etc.
 const PORT = process.env.PORT || process.env.RAILWAY_PORT || 8000;
