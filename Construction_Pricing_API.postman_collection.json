@@ -18,10 +18,16 @@
 								"exec": [
 									"if (pm.response.code === 201) {",
 									"    const jsonData = pm.response.json();",
-									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
-									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
-									"    pm.environment.set('userId', jsonData.user.id);",
-									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"    if (jsonData.tokens) {",
+									"        pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"        pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    }",
+									"    if (jsonData.user) {",
+									"        pm.environment.set('userId', jsonData.user.id);",
+									"        if (jsonData.user.tenantId) {",
+									"            pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"        }",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -38,7 +44,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"tenantName\": \"Test Supplier Inc\",\n  \"tenantType\": \"supplier\",\n  \"email\": \"testsupplier@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Supplier\"\n}"
+							"raw": "{\n  \"registrationType\": \"new_supplier\",\n  \"tenantName\": \"Test Supplier Inc\",\n  \"tenantType\": \"supplier\",\n  \"email\": \"testsupplier@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Supplier\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Test Street\",\n  \"postalCode\": \"12345\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/auth/register",
@@ -56,10 +62,16 @@
 								"exec": [
 									"if (pm.response.code === 201) {",
 									"    const jsonData = pm.response.json();",
-									"    pm.environment.set('accessToken', jsonData.tokens.accessToken);",
-									"    pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
-									"    pm.environment.set('userId', jsonData.user.id);",
-									"    pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"    if (jsonData.tokens) {",
+									"        pm.environment.set('accessToken', jsonData.tokens.accessToken);",
+									"        pm.environment.set('refreshToken', jsonData.tokens.refreshToken);",
+									"    }",
+									"    if (jsonData.user) {",
+									"        pm.environment.set('userId', jsonData.user.id);",
+									"        if (jsonData.user.tenantId) {",
+									"            pm.environment.set('tenantId', jsonData.user.tenantId);",
+									"        }",
+									"    }",
 									"}"
 								],
 								"type": "text/javascript"
@@ -76,7 +88,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"tenantName\": \"Test Construction Co\",\n  \"tenantType\": \"company\",\n  \"email\": \"testcompany@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Company\"\n}"
+							"raw": "{\n  \"registrationType\": \"new_company\",\n  \"tenantName\": \"Test Construction Co\",\n  \"tenantType\": \"company\",\n  \"email\": \"testcompany@example.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Company\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"456 Company Avenue\",\n  \"postalCode\": \"54321\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/auth/register",
