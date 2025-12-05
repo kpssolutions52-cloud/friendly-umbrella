@@ -1,0 +1,39 @@
+name: Setup Environment Variables
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Backend URL (e.g., https://your-app.railway.app)'
+        required: true
+      frontend_url:
+        description: 'Frontend URL (e.g., https://your-app.vercel.app)'
+        required: true
+
+jobs:
+  update-backend-env:
+    name: Update Backend Environment Variables
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Railway Environment Variables
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        uses: bervProject/railway-deploy@v1.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+          detach: false
+        env:
+          CORS_ORIGIN: ${{ github.event.inputs.frontend_url }}
+          API_URL: ${{ github.event.inputs.backend_url }}
+
+      - name: Update Vercel Environment Variables
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        env:
+          NEXT_PUBLIC_API_URL: ${{ github.event.inputs.backend_url }}
+          NEXT_PUBLIC_WS_URL: ${{ github.event.inputs.backend_url }}
+

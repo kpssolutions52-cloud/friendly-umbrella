@@ -42,7 +42,8 @@ setupWebSocket(io);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 8000;
+// Support multiple platforms: Railway, Fly.io, Render, etc.
+const PORT = process.env.PORT || process.env.RAILWAY_PORT || 8000;
 
 httpServer.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);

@@ -1,0 +1,22 @@
+{
+  "appType": "node",
+  "buildCommand": "npm install && cd packages/shared && npm run build && cd ../backend && npm run db:generate && npm run build",
+  "startCommand": "cd packages/backend && npm start",
+  "ignore": [
+    "node_modules",
+    ".git",
+    ".next",
+    "dist",
+    "coverage",
+    "*.log",
+    ".env",
+    ".env.local",
+    ".DS_Store",
+    "test-results",
+    "playwright-report",
+    "e2e",
+    "packages/frontend",
+    "docs"
+  ]
+}
+

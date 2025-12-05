@@ -1,0 +1,21 @@
+# This workflow is replaced by deploy-full-stack.yml
+# Keeping for backward compatibility
+name: Deploy (Legacy)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  info:
+    name: Info
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notice
+        run: |
+          echo "This workflow is deprecated."
+          echo "Please use: .github/workflows/deploy-full-stack.yml"
+          echo "Or use individual workflows:"
+          echo "  - deploy-backend-railway.yml"
+          echo "  - deploy-backend-cyclic.yml"
+          echo "  - deploy-frontend-vercel.yml"
+

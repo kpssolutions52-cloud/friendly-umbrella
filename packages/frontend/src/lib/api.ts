@@ -1,5 +1,15 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+// Use wss:// for HTTPS (production) and ws:// for HTTP (development)
+const getWSUrl = () => {
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return API_URL.replace('http://', 'wss://').replace('https://', 'wss://');
+  }
+  return API_URL.replace('http://', 'ws://');
+};
+const WS_URL = getWSUrl();
 
 export { API_URL, WS_URL };
 

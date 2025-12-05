@@ -1,0 +1,18 @@
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "npm"]
+
+[phases.install]
+cmds = [
+  "npm install",
+  "cd packages/shared && npm run build || true",
+  "cd packages/backend && npm run db:generate"
+]
+
+[phases.build]
+cmds = [
+  "cd packages/backend && npm run build"
+]
+
+[start]
+cmd = "cd packages/backend && npm start"
+
