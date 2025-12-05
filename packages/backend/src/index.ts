@@ -27,22 +27,22 @@ const app = express();
 const httpServer = createServer(app);
 
 // CORS configuration - support multiple origins and normalize (remove trailing slashes)
+const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '');
+
 const getAllowedOrigins = () => {
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
-  // Normalize function to remove trailing slashes
-  const normalize = (origin: string) => origin.trim().replace(/\/+$/, '');
   
   // Support comma-separated origins for multiple frontends
   if (corsOrigin.includes(',')) {
-    return corsOrigin.split(',').map(normalize);
+    return corsOrigin.split(',').map(normalizeOrigin);
   }
-  return normalize(corsOrigin);
+  return normalizeOrigin(corsOrigin);
 };
 
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean | string) => void) => {
     const allowedOrigins = getAllowedOrigins();
-    const normalizedOrigin = origin ? origin.replace(/\/+$/, '') : undefined;
+    const normalizedOrigin = origin ? normalizeOrigin(origin) : undefined;
     
     // If no origin (e.g., same-origin request), allow it
     if (!normalizedOrigin) {
@@ -50,12 +50,12 @@ const corsOptions = {
     }
     
     // Check if origin is in allowed list (normalized)
-    const isAllowed = Array.isArray(allowedOrigins)
-      ? allowedOrigins.some((allowed) => normalize(allowed) === normalizedOrigin)
-      : normalize(allowedOrigins) === normalizedOrigin;
+    const allowedOriginsList = Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins];
+    const matchedOrigin = allowedOriginsList.find((allowed) => normalizeOrigin(allowed) === normalizedOrigin);
     
-    if (isAllowed) {
-      callback(null, true);
+    if (matchedOrigin) {
+      // Return the normalized origin (without trailing slash) as the header value
+      callback(null, normalizedOrigin);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
