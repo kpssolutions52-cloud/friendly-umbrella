@@ -5,13 +5,8 @@ nixPkgs = ["nodejs"]
 cmds = [
   "npm install",
   "cd packages/shared && npm run build",
-  "cd packages/backend && npm run db:generate"
-]
-
-[phases.build]
-cmds = [
-  "cd packages/backend && npm run build",
-  "cd packages/backend && echo '=== Verifying build ===' && ls -la dist/ && test -f dist/index.js && echo '✅ dist/index.js exists' || (echo '❌ dist/index.js NOT FOUND' && pwd && ls -la && exit 1)"
+  "cd packages/backend && npm run db:generate",
+  "cd packages/backend && npm run build"
 ]
 
 [start]
