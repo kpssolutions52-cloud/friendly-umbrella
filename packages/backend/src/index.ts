@@ -57,19 +57,25 @@ app.use(errorHandler);
 
 // Support multiple platforms: Railway, Fly.io, Render, etc.
 const PORT = process.env.PORT || process.env.RAILWAY_PORT || 8000;
+const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces for Railway
 
 // Add console.log for Railway to capture startup
-console.log('Starting server...');
-console.log(`PORT: ${PORT}`);
-console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+console.log('🚀 Starting server...');
+console.log(`📡 PORT: ${PORT}`);
+console.log(`🌐 HOST: ${HOST}`);
+console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+console.log(`💾 DATABASE_URL: ${process.env.DATABASE_URL ? '✅ Set' : '❌ Missing'}`);
+console.log(`🔑 JWT_SECRET: ${process.env.JWT_SECRET ? '✅ Set' : '❌ Missing'}`);
 
-httpServer.listen(PORT, () => {
-  console.log(`✅ Server started successfully on port ${PORT}`);
-  logger.info(`🚀 Server running on port ${PORT}`);
+httpServer.listen(parseInt(PORT as string, 10), HOST, () => {
+  console.log(`✅ Server started successfully on ${HOST}:${PORT}`);
+  logger.info(`🚀 Server running on ${HOST}:${PORT}`);
   logger.info(`📡 WebSocket server ready`);
   logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 }).on('error', (err: Error) => {
   console.error('❌ Server failed to start:', err);
+  console.error('❌ Error details:', err.message);
+  console.error('❌ Stack:', err.stack);
   logger.error('Server failed to start', { error: err });
   process.exit(1);
 });
