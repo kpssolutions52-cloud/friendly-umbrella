@@ -1,4 +1,4 @@
-name: Full Stack CI/CD
+name: KPS FEBE CI/CD
 
 on:
   push:
