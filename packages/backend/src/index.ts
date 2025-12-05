@@ -10,17 +10,17 @@ import { setupRoutes } from './routes';
 import { setupWebSocket } from './websocket';
 import { setSocketIO } from './utils/socket';
 
-// Validate required environment variables
+// Validate required environment variables (warn but don't exit - let server start)
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('❌ ERROR: Missing required environment variables:');
+  console.error('⚠️  WARNING: Missing required environment variables:');
   missingVars.forEach((varName) => {
     console.error(`   - ${varName}`);
   });
-  console.error('\nPlease set these in your Railway service Variables tab.');
-  process.exit(1);
+  console.error('⚠️  Server will start but may not function correctly.');
+  console.error('⚠️  Please set these in your Railway service Variables tab.');
 }
 
 const app = express();
