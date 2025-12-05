@@ -26,9 +26,18 @@ if (missingVars.length > 0) {
 const app = express();
 const httpServer = createServer(app);
 
-// CORS configuration
+// CORS configuration - support multiple origins
+const getAllowedOrigins = () => {
+  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  // Support comma-separated origins for multiple frontends
+  if (corsOrigin.includes(',')) {
+    return corsOrigin.split(',').map((origin) => origin.trim());
+  }
+  return corsOrigin;
+};
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: getAllowedOrigins(),
   credentials: true,
 };
 
