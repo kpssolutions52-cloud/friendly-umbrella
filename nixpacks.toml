@@ -3,15 +3,15 @@ nixPkgs = ["nodejs"]
 
 [phases.install]
 cmds = [
-  "npm ci"
+  "npm ci --include=dev",
+  "cd packages/shared && npm run build",
+  "cd packages/backend && npm run db:generate"
 ]
 
 [phases.build]
 cmds = [
-  "cd packages/shared && npm run build",
-  "cd packages/backend && npm run db:generate",
   "cd packages/backend && npm run build",
-  "cd packages/backend && ls -la dist/ && echo 'Files in dist:' && ls -la dist/ || echo 'DIST FOLDER NOT FOUND'"
+  "cd packages/backend && echo '=== Checking dist folder ===' && ls -la dist/ && echo '=== Files in dist ===' && ls -la dist/ || (echo '❌ DIST FOLDER NOT FOUND' && pwd && ls -la && exit 1)"
 ]
 
 [start]
