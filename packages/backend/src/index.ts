@@ -10,6 +10,19 @@ import { setupRoutes } from './routes';
 import { setupWebSocket } from './websocket';
 import { setSocketIO } from './utils/socket';
 
+// Validate required environment variables
+const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ ERROR: Missing required environment variables:');
+  missingVars.forEach((varName) => {
+    console.error(`   - ${varName}`);
+  });
+  console.error('\nPlease set these in your Railway service Variables tab.');
+  process.exit(1);
+}
+
 const app = express();
 const httpServer = createServer(app);
 
