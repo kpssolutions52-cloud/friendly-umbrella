@@ -131,4 +131,55 @@
   @apply my-8 border-gray-300;
 }
 
+/* Mobile optimizations */
+@layer utilities {
+  /* Touch-friendly targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Mobile-friendly tables - card view on small screens */
+  @media (max-width: 768px) {
+    .mobile-card-table {
+      @apply block;
+    }
+    
+    .mobile-card-table thead {
+      @apply hidden;
+    }
+    
+    .mobile-card-table tbody {
+      @apply block space-y-4;
+    }
+    
+    .mobile-card-table tr {
+      @apply block bg-white rounded-lg shadow p-4 border border-gray-200;
+    }
+    
+    .mobile-card-table td {
+      @apply block px-0 py-2 text-sm;
+    }
+    
+    .mobile-card-table td:before {
+      @apply content-[attr(data-label)] font-semibold text-gray-700 block mb-1;
+    }
+  }
+
+  /* Mobile modal - full screen on small devices */
+  @media (max-width: 640px) {
+    .mobile-full-modal {
+      @apply m-0 max-w-full h-full rounded-none;
+    }
+  }
+
+  /* Prevent text size adjustment on iOS */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+}
+
 

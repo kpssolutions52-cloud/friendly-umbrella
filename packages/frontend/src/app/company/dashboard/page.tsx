@@ -254,24 +254,28 @@ function DashboardContent() {
     }
   };
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
                 Price Tracker
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 truncate">
                 {user?.tenant?.name}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Desktop menu */}
+            <div className="hidden sm:flex items-center gap-2">
               {user?.role === 'company_admin' && (
                 <Link href="/company/users">
-                  <Button variant="outline" className="relative">
-                    User Management
+                  <Button variant="outline" className="relative touch-target">
+                    <span className="hidden md:inline">User Management</span>
+                    <span className="md:hidden">Users</span>
                     {pendingUserCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
                         {pendingUserCount > 99 ? '99+' : pendingUserCount}
@@ -280,19 +284,55 @@ function DashboardContent() {
                   </Button>
                 </Link>
               )}
-              <Button onClick={logout} variant="outline">
+              <Button onClick={logout} variant="outline" className="touch-target">
                 Logout
               </Button>
             </div>
+            {/* Mobile menu button */}
+            <div className="sm:hidden">
+              <Button
+                variant="outline"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="touch-target"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </Button>
+            </div>
           </div>
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              {user?.role === 'company_admin' && (
+                <Link href="/company/users" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full relative touch-target justify-start">
+                    User Management
+                    {pendingUserCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              )}
+              <Button onClick={logout} variant="outline" className="w-full touch-target justify-start">
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
         {/* Product Filters */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Browse Products</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Browse Products</h2>
             <Button
               variant="outline"
               onClick={() => {
@@ -302,12 +342,13 @@ function DashboardContent() {
                 setSupplierDropdownOpen(false);
                 setCategoryDropdownOpen(false);
               }}
+              className="touch-target w-full sm:w-auto"
             >
               Clear Filters
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="relative supplier-dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Supplier
@@ -472,9 +513,9 @@ function DashboardContent() {
         </div>
 
         {/* Products List */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               Available Products
               {filteredProducts.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
@@ -490,14 +531,15 @@ function DashboardContent() {
               <p className="mt-2 text-gray-500">Loading products...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 px-4">
               {filters.supplierId || filters.category || filters.search
                 ? 'No products match your filters. Try adjusting your filters.'
                 : 'No products available yet. Suppliers need to add products with default prices.'}
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Desktop table view */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -602,6 +644,7 @@ function DashboardContent() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleProductSelect(product)}
+                                className="touch-target"
                               >
                                 {isExpanded ? 'Hide Details' : 'View Details'}
                               </Button>

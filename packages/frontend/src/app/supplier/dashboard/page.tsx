@@ -709,24 +709,28 @@ function DashboardContent() {
     }
   };
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
                 Supplier Dashboard
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-xs sm:text-sm text-gray-500 truncate">
                 {user?.tenant?.name}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Desktop menu */}
+            <div className="hidden sm:flex items-center gap-2">
               {user?.role === 'supplier_admin' && (
                 <Link href="/supplier/users">
-                  <Button variant="outline" className="relative">
-                    User Management
+                  <Button variant="outline" className="relative touch-target">
+                    <span className="hidden md:inline">User Management</span>
+                    <span className="md:hidden">Users</span>
                     {pendingUserCount > 0 && (
                       <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
                         {pendingUserCount > 99 ? '99+' : pendingUserCount}
@@ -735,16 +739,52 @@ function DashboardContent() {
                   </Button>
                 </Link>
               )}
-              <Button onClick={logout} variant="outline">
+              <Button onClick={logout} variant="outline" className="touch-target">
                 Logout
               </Button>
             </div>
+            {/* Mobile menu button */}
+            <div className="sm:hidden">
+              <Button
+                variant="outline"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="touch-target"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </Button>
+            </div>
           </div>
+          {/* Mobile menu */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              {user?.role === 'supplier_admin' && (
+                <Link href="/supplier/users" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full relative touch-target justify-start">
+                    User Management
+                    {pendingUserCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+              )}
+              <Button onClick={logout} variant="outline" className="w-full touch-target justify-start">
+                Logout
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div 
             className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
               activeFilter === 'all' ? 'ring-2 ring-blue-500' : ''
@@ -883,7 +923,8 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop table view */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -956,7 +997,7 @@ function DashboardContent() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditProduct(product)}
-                              className="h-8 px-3"
+                              className="h-8 px-3 touch-target"
                             >
                               Edit
                             </Button>
@@ -964,7 +1005,7 @@ function DashboardContent() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleToggleInactive(product)}
-                              className={`h-8 px-3 ${
+                              className={`h-8 px-3 touch-target ${
                                 !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                               }`}
                             >
@@ -975,7 +1016,7 @@ function DashboardContent() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setDeleteConfirm(product.id)}
-                                className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700 touch-target"
                               >
                                 Delete
                               </Button>
@@ -986,6 +1027,83 @@ function DashboardContent() {
                     ))}
                   </tbody>
                   </table>
+                </div>
+
+                {/* Mobile card view */}
+                <div className="md:hidden space-y-4">
+                  {products
+                    .filter(product => 
+                      searchQuery === '' || 
+                      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((product) => (
+                    <div key={product.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-gray-900 truncate">{product.name}</h3>
+                          <p className="text-xs text-gray-500 mt-1">SKU: {product.sku}</p>
+                        </div>
+                        <span
+                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${
+                            product.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {product.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div>
+                          <span className="text-gray-500">Category:</span>
+                          <span className="ml-1 text-gray-900">{product.category || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Unit:</span>
+                          <span className="ml-1 text-gray-900">{product.unit}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-gray-500">Price:</span>
+                          <span className="ml-1 text-gray-900 font-medium">
+                            {product.defaultPrices && product.defaultPrices.length > 0 ? (
+                              <>{product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}</>
+                            ) : (
+                              <span className="text-gray-400">No price</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleEditProduct(product)}
+                          className="w-full touch-target"
+                        >
+                          Edit
+                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleToggleInactive(product)}
+                            className={`touch-target ${
+                              !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          >
+                            {product.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          {user?.role === 'supplier_admin' && (
+                            <Button
+                              variant="outline"
+                              onClick={() => setDeleteConfirm(product.id)}
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700 touch-target"
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Pagination */}

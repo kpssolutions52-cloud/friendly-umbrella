@@ -164,17 +164,17 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
+    <div className="flex min-h-screen items-start sm:items-center justify-center bg-gray-50 px-4 py-6 sm:py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link
               href="/auth/login"
-              className="font-medium text-primary hover:text-primary/80"
+              className="font-medium text-primary hover:text-primary/80 touch-target"
             >
               sign in to existing account
             </Link>
@@ -404,7 +404,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">First Name (Optional)</Label>
                 <Input
@@ -446,7 +446,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <Button type="submit" className="w-full" disabled={loading || loadingTenants}>
+            <Button type="submit" className="w-full touch-target" disabled={loading || loadingTenants}>
               {loading ? 'Creating account...' : 'Create account'}
             </Button>
           </div>
