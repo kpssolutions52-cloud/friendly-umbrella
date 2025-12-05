@@ -12,6 +12,12 @@
     "dev:frontend": "npm run dev --workspace=@platform/frontend",
     "build": "npm run build --workspace=@platform/backend && npm run build --workspace=@platform/frontend",
     "test": "npm run test --workspace=@platform/backend",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:install": "playwright install",
     "lint": "npm run lint --workspace=@platform/backend && npm run lint --workspace=@platform/frontend",
     "type-check": "npm run type-check --workspaces",
     "db:generate": "npm run db:generate --workspace=@platform/backend",
@@ -19,7 +25,9 @@
     "db:studio": "npm run db:studio --workspace=@platform/backend"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "concurrently": "^8.2.2",
+    "playwright": "^1.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3"
   },
@@ -30,15 +38,3 @@
   "author": "",
   "license": "MIT"
 }
-
-
-
-
-
-
-
-
-
-
-
-
