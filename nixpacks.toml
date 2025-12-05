@@ -4,15 +4,24 @@ nixPkgs = ["nodejs"]
 [phases.install]
 cmds = [
   "npm ci",
+  "echo '=== Building shared package ==='",
   "cd packages/shared && npm run build",
-  "cd packages/backend && npm run db:generate"
+  "echo '=== Generating Prisma Client ==='",
+  "cd packages/backend && npm run db:generate",
+  "echo '=== Install phase complete ==='"
 ]
 
 [phases.build]
 cmds = [
+  "echo '=== Starting build phase ==='",
+  "cd packages/backend && pwd",
+  "cd packages/backend && ls -la",
+  "cd packages/backend && echo 'Running npm run build...'",
   "cd packages/backend && npm run build",
-  "cd packages/backend && ls -la dist/",
-  "cd packages/backend && test -f dist/index.js && echo '✅ dist/index.js exists' || (echo '❌ dist/index.js NOT FOUND' && ls -la && exit 1)"
+  "echo '=== Build completed, checking dist folder ==='",
+  "cd packages/backend && ls -la dist/ || (echo '❌ dist folder not found!' && ls -la && exit 1)",
+  "cd packages/backend && test -f dist/index.js && echo '✅ dist/index.js exists' || (echo '❌ dist/index.js NOT FOUND' && ls -la dist/ && exit 1)",
+  "echo '✅ Build verification complete'"
 ]
 
 [start]
