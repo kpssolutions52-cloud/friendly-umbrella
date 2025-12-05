@@ -3,11 +3,22 @@ nixPkgs = ["nodejs"]
 
 [phases.install]
 cmds = [
-  "npm install",
+  # Install ALL dependencies including devDependencies (needed for tsc)
+  "NODE_ENV=development npm install"
+]
+
+[phases.build]
+cmds = [
+  # Build shared package first (backend depends on it)
   "cd packages/shared && npm run build",
-  "cd packages/backend && npm run db:generate",
-  "cd packages/backend && npm run build"
+  # Generate Prisma Client
+  "cd ../backend && npm run db:generate",
+  # Build backend TypeScript to dist/
+  "npm run build",
+  # Verify build output exists
+  "test -f dist/index.js || (echo 'ERROR: dist/index.js not found!' && ls -la dist/ && exit 1)",
+  "echo '✅ Build successful: dist/index.js exists'"
 ]
 
 [start]
-cmd = "cd packages/backend && npm start"
+cmd = "cd packages/backend && node dist/index.js"
