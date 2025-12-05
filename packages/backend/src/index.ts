@@ -51,7 +51,7 @@ try {
 }
 
 // WebSocket setup
-let io: SocketIOServer;
+let io: SocketIOServer | null = null;
 try {
   io = new SocketIOServer(httpServer, {
     cors: corsOptions,
@@ -92,18 +92,29 @@ console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 console.log(`💾 DATABASE_URL: ${process.env.DATABASE_URL ? '✅ Set' : '❌ Missing'}`);
 console.log(`🔑 JWT_SECRET: ${process.env.JWT_SECRET ? '✅ Set' : '❌ Missing'}`);
 
-httpServer.listen(parseInt(PORT as string, 10), HOST, () => {
-  console.log(`✅ Server started successfully on ${HOST}:${PORT}`);
-  logger.info(`🚀 Server running on ${HOST}:${PORT}`);
-  logger.info(`📡 WebSocket server ready`);
-  logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-}).on('error', (err: Error) => {
-  console.error('❌ Server failed to start:', err);
-  console.error('❌ Error details:', err.message);
-  console.error('❌ Stack:', err.stack);
-  logger.error('Server failed to start', { error: err });
+// Wrap server startup in try-catch to ensure we always log errors
+try {
+  httpServer.listen(parseInt(PORT as string, 10), HOST, () => {
+    console.log(`✅ Server started successfully on ${HOST}:${PORT}`);
+    console.log(`✅ Health endpoint available at http://${HOST}:${PORT}/health`);
+    logger.info(`🚀 Server running on ${HOST}:${PORT}`);
+    if (io) {
+      logger.info(`📡 WebSocket server ready`);
+    }
+    logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  }).on('error', (err: Error) => {
+    console.error('❌ Server failed to start:', err);
+    console.error('❌ Error details:', err.message);
+    console.error('❌ Stack:', err.stack);
+    logger.error('Server failed to start', { error: err });
+    process.exit(1);
+  });
+} catch (error: any) {
+  console.error('❌ Fatal error during server startup:', error);
+  console.error('❌ Error details:', error?.message);
+  console.error('❌ Stack:', error?.stack);
   process.exit(1);
-});
+}
 
 export { app, io };
 
