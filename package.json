@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "cd packages/backend && (npm run db:migrate:deploy || echo '⚠️  Migration failed, continuing anyway...') && node dist/index.js",
+    "start": "cd packages/backend && echo '🚀 Starting backend...' && (npm run db:migrate:deploy || echo '⚠️  Migration failed, continuing anyway...') && echo '✅ Starting server...' && node dist/index.js || (echo '❌ Server failed to start' && exit 1)",
     "build": "cd packages/shared && npm run build && cd ../backend && npm run db:generate && npm run build",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm run dev --workspace=@platform/backend",
