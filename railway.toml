@@ -1,9 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "NODE_ENV=development npm install && cd packages/shared && npm run build && cd ../backend && npm run db:generate && npm run build && ls -la packages/backend/dist/ && test -f packages/backend/dist/index.js && echo '✅ Build successful: dist/index.js exists' || (echo '❌ Build failed: dist/index.js not found' && exit 1)"
-
-[deploy]
-startCommand = "cd packages/backend && node dist/index.js"
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
-
