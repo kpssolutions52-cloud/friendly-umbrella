@@ -4,16 +4,15 @@ nixPkgs = ["nodejs"]
 [phases.install]
 cmds = [
   "npm ci",
-  "cd packages/shared && npm run build || echo 'Shared build skipped'",
-  "cd packages/backend && npm run db:generate || echo 'Prisma generate skipped'"
+  "cd packages/shared && npm run build",
+  "cd packages/backend && npm run db:generate"
 ]
 
 [phases.build]
 cmds = [
-  "cd packages/backend && npm run build || (echo '❌ Build failed!' && exit 1)",
-  "cd packages/backend && ls -la dist/ || (echo '❌ dist folder not found!' && exit 1)",
-  "cd packages/backend && test -f dist/index.js || (echo '❌ dist/index.js not found!' && exit 1)",
-  "echo '✅ Build verification complete - dist/index.js exists'"
+  "cd packages/backend && npm run build",
+  "cd packages/backend && ls -la dist/",
+  "cd packages/backend && test -f dist/index.js && echo '✅ dist/index.js exists' || (echo '❌ dist/index.js NOT FOUND' && ls -la && exit 1)"
 ]
 
 [start]
