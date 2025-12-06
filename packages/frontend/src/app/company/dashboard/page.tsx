@@ -65,7 +65,7 @@ function DashboardContent() {
   const [isLoadingSupplier, setIsLoadingSupplier] = useState<Map<string, boolean>>(new Map());
   const [productImages, setProductImages] = useState<Map<string, ProductImage[]>>(new Map());
   const [isLoadingImages, setIsLoadingImages] = useState<Map<string, boolean>>(new Map());
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
