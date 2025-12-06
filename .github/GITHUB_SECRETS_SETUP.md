@@ -6,15 +6,17 @@ This guide explains how to set up the required GitHub Secrets for automatic depl
 
 ### Backend (Railway) Secrets
 
-1. **RAILWAY_TOKEN** (Railway API Token)
-   - Get from: Railway Dashboard → Account Settings → Tokens → New Token
-   - Create a token with deployment permissions
-   - **Important**: This must be an API token, not a project token
+1. **RAILWAY_TOKEN** (Railway Project Token - REQUIRED)
+   - **CRITICAL**: This must be a **PROJECT TOKEN**, not a user token!
+   - Get from: Railway Dashboard → Your **Project** (not service) → **Settings** → **Project Tokens** → **New Token**
+   - Name it "GitHub Actions" or similar
+   - Copy the token immediately (you can't see it again)
    - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
+   - **Note**: User tokens from Account Settings will NOT work - you MUST use a Project Token
 
 2. **RAILWAY_SERVICE_ID**
-   - Get from: Railway Dashboard → Your Backend Service → Settings → Service ID
-   - Copy the Service ID (UUID format)
+   - Get from: Railway Dashboard → Your Backend Service → **Settings** → **Service ID**
+   - Copy the Service ID (UUID format, e.g., `abc123-def456-...`)
    - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
 
 3. **DATABASE_URL** (optional, for local testing in CI)

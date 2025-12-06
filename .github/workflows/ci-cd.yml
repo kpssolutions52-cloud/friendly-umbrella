@@ -48,17 +48,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Railway via API
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli@latest
+
+      - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
         run: |
-          # Trigger deployment via Railway REST API
-          curl -X POST \
-            -H "Authorization: Bearer $RAILWAY_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.railway.app/v1/services/$RAILWAY_SERVICE_ID/deployments" \
-            -d '{}'
+          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
 
   deploy-frontend:
     name: Deploy Frontend to Vercel
