@@ -1,8 +1,7 @@
 name: KPS FEBE CI/CD
 
 on:
-  push:
-    branches: [main]
+  # Manual trigger only - no automatic deployments
   workflow_dispatch:
 
 jobs:
@@ -45,7 +44,6 @@ jobs:
     name: Deploy Backend to Railway
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +58,6 @@ jobs:
     name: Deploy Frontend to Vercel
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
