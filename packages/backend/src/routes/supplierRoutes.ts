@@ -27,6 +27,7 @@ router.get('/suppliers', requireCompany, async (req: AuthRequest, res: Response,
         email: true,
         phone: true,
         address: true,
+        logoUrl: true,
         _count: {
           select: {
             products: {
@@ -70,6 +71,7 @@ router.get(
           email: true,
           phone: true,
           address: true,
+          logoUrl: true,
           _count: {
             select: {
               products: {
@@ -359,6 +361,7 @@ router.get(
               select: {
                 id: true,
                 name: true,
+                logoUrl: true,
               },
             },
             defaultPrices: {

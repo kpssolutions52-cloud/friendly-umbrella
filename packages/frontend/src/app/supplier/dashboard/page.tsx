@@ -726,6 +726,12 @@ function DashboardContent() {
             </div>
             {/* Desktop menu */}
             <div className="hidden sm:flex items-center gap-2">
+              <Link href="/supplier/profile">
+                <Button variant="outline" className="touch-target">
+                  <span className="hidden md:inline">Profile</span>
+                  <span className="md:hidden">Profile</span>
+                </Button>
+              </Link>
               {user?.role === 'supplier_admin' && (
                 <Link href="/supplier/users">
                   <Button variant="outline" className="relative touch-target">
@@ -763,6 +769,11 @@ function DashboardContent() {
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              <Link href="/supplier/profile" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="outline" className="w-full touch-target justify-start">
+                  Profile
+                </Button>
+              </Link>
               {user?.role === 'supplier_admin' && (
                 <Link href="/supplier/users" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full relative touch-target justify-start">

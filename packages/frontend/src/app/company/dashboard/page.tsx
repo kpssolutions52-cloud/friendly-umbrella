@@ -37,6 +37,7 @@ interface SupplierInfo {
   name: string;
   phone: string | null;
   address: string | null;
+  logoUrl: string | null;
 }
 
 export default function CompanyDashboardPage() {
@@ -62,7 +63,7 @@ function DashboardContent() {
     category: '',
     search: '',
   });
-  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -131,7 +132,7 @@ function DashboardContent() {
     const loadInitialData = async () => {
       try {
         // Load suppliers
-        const suppliersResponse = await apiGet<{ suppliers: Array<{ id: string; name: string }> }>('/api/v1/suppliers');
+        const suppliersResponse = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/suppliers');
         setSuppliers(suppliersResponse.suppliers);
 
         // Load categories
@@ -224,6 +225,7 @@ function DashboardContent() {
           name: product.supplierName,
           phone: null,
           address: null,
+          logoUrl: null,
         });
         return newMap;
       });
@@ -408,7 +410,23 @@ function DashboardContent() {
                             setSupplierDropdownOpen(false);
                           }}
                         >
-                          {supplier.name}
+                          <div className="flex items-center gap-2">
+                            {supplier.logoUrl ? (
+                              <img
+                                src={supplier.logoUrl}
+                                alt={supplier.name}
+                                className="h-6 w-6 rounded-full object-cover border border-gray-200"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                                {supplier.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <span>{supplier.name}</span>
+                          </div>
                         </div>
                       ))}
                     {suppliers.filter(supplier =>
@@ -578,7 +596,23 @@ function DashboardContent() {
                               <div className="text-sm text-gray-500">SKU: {product.sku}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {product.supplierName}
+                              <div className="flex items-center gap-2">
+                                {supplier?.logoUrl ? (
+                                  <img
+                                    src={supplier.logoUrl}
+                                    alt={product.supplierName}
+                                    className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                                    {product.supplierName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span>{product.supplierName}</span>
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {product.category || '-'}
@@ -668,6 +702,26 @@ function DashboardContent() {
                                     </div>
                                   ) : supplier ? (
                                     <div className="space-y-4">
+                                      {/* Supplier Logo and Name */}
+                                      <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+                                        {supplier.logoUrl ? (
+                                          <img
+                                            src={supplier.logoUrl}
+                                            alt={product.supplierName}
+                                            className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
+                                            {product.supplierName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                        <div>
+                                          <h4 className="text-lg font-semibold text-gray-900">{product.supplierName}</h4>
+                                        </div>
+                                      </div>
                                       <div className="flex items-start">
                                         <div className="flex-shrink-0">
                                           <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
