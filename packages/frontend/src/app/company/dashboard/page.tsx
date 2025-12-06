@@ -17,6 +17,7 @@ interface SearchProduct {
   unit: string;
   supplierId: string;
   supplierName: string;
+  supplierLogoUrl: string | null;
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;
@@ -597,20 +598,25 @@ function DashboardContent() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <div className="flex items-center gap-2">
-                                {supplier?.logoUrl ? (
+                                {product.supplierLogoUrl ? (
                                   <img
-                                    src={supplier.logoUrl}
+                                    src={product.supplierLogoUrl}
                                     alt={product.supplierName}
                                     className="h-8 w-8 rounded-full object-cover border border-gray-200"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      // Fallback to initial if image fails to load
+                                      const img = e.target as HTMLImageElement;
+                                      img.style.display = 'none';
+                                      const fallback = img.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
                                     }}
                                   />
-                                ) : (
-                                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-                                    {product.supplierName.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                ) : null}
+                                <div 
+                                  className={`h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 ${product.supplierLogoUrl ? 'hidden' : ''}`}
+                                >
+                                  {product.supplierName.charAt(0).toUpperCase()}
+                                </div>
                                 <span>{product.supplierName}</span>
                               </div>
                             </td>

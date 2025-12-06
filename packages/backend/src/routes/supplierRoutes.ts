@@ -243,6 +243,7 @@ router.get(
           unit: product.unit,
           supplierId: product.supplierId,
           supplierName: supplier.name,
+          supplierLogoUrl: supplier.logoUrl,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
@@ -419,6 +420,7 @@ router.get(
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
+          supplierLogoUrl: product.supplier.logoUrl,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
