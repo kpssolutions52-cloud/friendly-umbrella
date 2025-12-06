@@ -32,13 +32,13 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const hasSpecialPrice = product.privatePrice !== null && 
     (product.privatePrice.price !== null || product.privatePrice.calculatedPrice !== null);
   
-  const displayPrice = hasSpecialPrice && product.privatePrice.calculatedPrice !== null
+  const displayPrice = hasSpecialPrice && product.privatePrice !== null && product.privatePrice.calculatedPrice !== null
     ? product.privatePrice.calculatedPrice
-    : hasSpecialPrice && product.privatePrice.price !== null
+    : hasSpecialPrice && product.privatePrice !== null && product.privatePrice.price !== null
     ? product.privatePrice.price
     : product.defaultPrice?.price || null;
   
-  const priceCurrency = hasSpecialPrice && product.privatePrice.currency
+  const priceCurrency = hasSpecialPrice && product.privatePrice !== null && product.privatePrice.currency
     ? product.privatePrice.currency
     : product.defaultPrice?.currency || 'USD';
 
