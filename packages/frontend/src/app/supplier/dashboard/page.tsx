@@ -373,20 +373,8 @@ function DashboardContent() {
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
 
-      await apiPost('/api/v1/products', payload);
+      const response = await apiPost<{ product: { id: string } }>('/api/v1/products', payload);
       setSuccess(true);
-      setFormData({
-        sku: '',
-        name: '',
-        description: '',
-        category: '',
-        unit: '',
-        defaultPrice: '',
-        currency: 'USD',
-      });
-      setIncludedSpecialPrices([]);
-      setDraftSpecialPrice(null);
-      setEditingSpecialPriceId(null);
       
       // Refresh stats after product creation
       await fetchStats();
@@ -396,11 +384,59 @@ function DashboardContent() {
         await fetchProducts(activeFilter, currentPage);
       }
       
-      // Close modal after 1 second
-      setTimeout(() => {
+      // If product was created successfully, switch to edit mode to allow image upload
+      if (response.product?.id) {
+        // Fetch the full product and switch to edit mode
+        const fullProduct = await apiGet<{ product: Product }>(`/api/v1/products/${response.product.id}`);
+        setEditingProduct(fullProduct.product);
+        setFormData({
+          sku: formData.sku,
+          name: formData.name,
+          description: formData.description,
+          category: formData.category,
+          unit: formData.unit,
+          defaultPrice: formData.defaultPrice,
+          currency: formData.currency,
+        });
+        // Load existing private prices into edit included special prices state
+        if (fullProduct.product.privatePrices && fullProduct.product.privatePrices.length > 0) {
+          const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.product.privatePrices.map((pp: any) => {
+            const companyInfo = companies.find(c => c.id === pp.companyId);
+            return {
+              id: pp.id,
+              companyId: pp.companyId,
+              companyName: companyInfo?.name,
+              priceType: pp.discountPercentage !== null && pp.discountPercentage !== undefined ? 'discount' : 'price',
+              price: pp.price ? pp.price.toString() : '',
+              discountPercentage: pp.discountPercentage ? pp.discountPercentage.toString() : '',
+              currency: pp.currency || formData.currency,
+              notes: pp.notes || '',
+            };
+          });
+          setEditIncludedSpecialPrices(existingSpecialPrices);
+        }
         setShowAddProductModal(false);
+        setShowEditProductModal(true);
         setSuccess(false);
-      }, 1000);
+      } else {
+        // Fallback: close modal after 1 second
+        setFormData({
+          sku: '',
+          name: '',
+          description: '',
+          category: '',
+          unit: '',
+          defaultPrice: '',
+          currency: 'USD',
+        });
+        setIncludedSpecialPrices([]);
+        setDraftSpecialPrice(null);
+        setEditingSpecialPriceId(null);
+        setTimeout(() => {
+          setShowAddProductModal(false);
+          setSuccess(false);
+        }, 1000);
+      }
     } catch (err: any) {
       setError(err?.error?.message || 'Failed to create product');
     } finally {
