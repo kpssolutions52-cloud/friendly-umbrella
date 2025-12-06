@@ -8,6 +8,7 @@ import { apiGet } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
+import { ProductCard } from '@/components/ProductCard';
 
 interface SearchProduct {
   id: string;
@@ -64,6 +65,7 @@ function DashboardContent() {
   const [isLoadingSupplier, setIsLoadingSupplier] = useState<Map<string, boolean>>(new Map());
   const [productImages, setProductImages] = useState<Map<string, ProductImage[]>>(new Map());
   const [isLoadingImages, setIsLoadingImages] = useState<Map<string, boolean>>(new Map());
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
@@ -279,16 +281,16 @@ function DashboardContent() {
     }
   };
 
+  const [selectedProductForDetails, setSelectedProductForDetails] = useState<SearchProduct | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const handleProductSelect = (product: SearchProduct) => {
     const productKey = `${product.id}-${product.supplierId}`;
     
-    // Toggle expansion
-    if (expandedProductId === productKey) {
-      // Collapse
-      setExpandedProductId(null);
-    } else {
-      // Expand
-      setExpandedProductId(productKey);
+    if (viewMode === 'grid') {
+      // In grid view, show modal
+      setSelectedProductForDetails(product);
+      setShowDetailsModal(true);
       
       // Fetch supplier info if not already loaded
       if (!supplierInfo.has(productKey)) {
@@ -298,6 +300,25 @@ function DashboardContent() {
       // Fetch product images if not already loaded
       if (!productImages.has(product.id)) {
         fetchProductImages(product.id);
+      }
+    } else {
+      // In list view, toggle expansion
+      if (expandedProductId === productKey) {
+        // Collapse
+        setExpandedProductId(null);
+      } else {
+        // Expand
+        setExpandedProductId(productKey);
+        
+        // Fetch supplier info if not already loaded
+        if (!supplierInfo.has(productKey)) {
+          fetchSupplierInfo(product);
+        }
+        
+        // Fetch product images if not already loaded
+        if (!productImages.has(product.id)) {
+          fetchProductImages(product.id);
+        }
       }
     }
   };
@@ -587,6 +608,31 @@ function DashboardContent() {
                 </span>
               )}
             </h2>
+            {/* View Toggle Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="touch-target"
+                title="List View"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="touch-target"
+                title="Grid View"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </Button>
+            </div>
           </div>
 
           {isLoadingProducts ? (
@@ -600,6 +646,49 @@ function DashboardContent() {
                 ? 'No products match your filters. Try adjusting your filters.'
                 : 'No products available yet. Suppliers need to add products with default prices.'}
             </div>
+          ) : viewMode === 'grid' ? (
+            <>
+              {/* Grid View */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {filteredProducts.map((product) => {
+                  const productKey = `${product.id}-${product.supplierId}`;
+                  return (
+                    <ProductCard
+                      key={productKey}
+                      product={product}
+                      onViewDetails={() => handleProductSelect(product)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Pagination for Grid View */}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadProducts(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadProducts(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <>
               {/* Desktop table view */}
@@ -755,6 +844,75 @@ function DashboardContent() {
                                     )}
                                   </div>
 
+                                  {/* Product Details Section */}
+                                  <div className="border-t pt-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">Product Name</p>
+                                        <p className="text-base text-gray-900 mt-1">{product.name}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">SKU</p>
+                                        <p className="text-base text-gray-900 mt-1">{product.sku}</p>
+                                      </div>
+                                      {product.description && (
+                                        <div className="md:col-span-2">
+                                          <p className="text-sm font-medium text-gray-500">Description</p>
+                                          <p className="text-base text-gray-900 mt-1">{product.description}</p>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">Category</p>
+                                        <p className="text-base text-gray-900 mt-1">{product.category || 'N/A'}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">Unit</p>
+                                        <p className="text-base text-gray-900 mt-1">{product.unit}</p>
+                                      </div>
+                                      <div className="md:col-span-2">
+                                        <p className="text-sm font-medium text-gray-500 mb-2">Pricing</p>
+                                        <div className="space-y-2">
+                                          {product.defaultPrice && (
+                                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                              <span className="text-sm text-gray-600">Default Price</span>
+                                              <span className="text-base font-semibold text-gray-900">
+                                                {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {product.privatePrice && (
+                                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                                              <div>
+                                                <span className="text-sm font-medium text-green-700">Your Price</span>
+                                                {product.privatePrice.discountPercentage !== null && (
+                                                  <span className="text-xs text-green-600 ml-2">
+                                                    ({product.privatePrice.discountPercentage.toFixed(1)}% discount)
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <span className="text-base font-bold text-green-700">
+                                                {product.privatePrice.currency} {
+                                                  product.privatePrice.calculatedPrice !== null
+                                                    ? product.privatePrice.calculatedPrice.toFixed(2)
+                                                    : product.privatePrice.price !== null
+                                                    ? product.privatePrice.price.toFixed(2)
+                                                    : 'N/A'
+                                                }
+                                              </span>
+                                            </div>
+                                          )}
+                                          {!product.privatePrice && product.defaultPrice && (
+                                            <p className="text-sm text-gray-400">No special rate available</p>
+                                          )}
+                                          {!product.defaultPrice && !product.privatePrice && (
+                                            <p className="text-sm text-gray-400">Price not available</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
                                   {/* Supplier Information Section */}
                                   <div className="border-t pt-6">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Supplier Information</h3>
@@ -864,6 +1022,194 @@ function DashboardContent() {
             </>
           )}
         </div>
+
+        {/* Product Details Modal for Grid View */}
+        {showDetailsModal && selectedProductForDetails && (() => {
+          const productKey = `${selectedProductForDetails.id}-${selectedProductForDetails.supplierId}`;
+          const supplier = supplierInfo.get(productKey);
+          const loading = isLoadingSupplier.get(productKey) || false;
+          const images = productImages.get(selectedProductForDetails.id) || [];
+          const isLoadingImgs = isLoadingImages.get(selectedProductForDetails.id) || false;
+
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                  <h2 className="text-xl font-semibold text-gray-900">Product Details</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      setSelectedProductForDetails(null);
+                    }}
+                    className="touch-target"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </Button>
+                </div>
+                <div className="p-6 space-y-6">
+                  {/* Product Images Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
+                    {isLoadingImgs ? (
+                      <div className="text-center py-8">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        <p className="mt-2 text-gray-500">Loading images...</p>
+                      </div>
+                    ) : (
+                      <ProductImageCarousel
+                        images={images}
+                        productName={selectedProductForDetails.name}
+                      />
+                    )}
+                  </div>
+
+                  {/* Product Details Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Product Name</p>
+                        <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">SKU</p>
+                        <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.sku}</p>
+                      </div>
+                      {selectedProductForDetails.description && (
+                        <div className="md:col-span-2">
+                          <p className="text-sm font-medium text-gray-500">Description</p>
+                          <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.description}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Category</p>
+                        <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.category || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Unit</p>
+                        <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.unit}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-sm font-medium text-gray-500 mb-2">Pricing</p>
+                        <div className="space-y-2">
+                          {selectedProductForDetails.defaultPrice && (
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <span className="text-sm text-gray-600">Default Price</span>
+                              <span className="text-base font-semibold text-gray-900">
+                                {selectedProductForDetails.defaultPrice.currency} {selectedProductForDetails.defaultPrice.price.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                          {selectedProductForDetails.privatePrice && (
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                              <div>
+                                <span className="text-sm font-medium text-green-700">Your Price</span>
+                                {selectedProductForDetails.privatePrice.discountPercentage !== null && (
+                                  <span className="text-xs text-green-600 ml-2">
+                                    ({selectedProductForDetails.privatePrice.discountPercentage.toFixed(1)}% discount)
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-base font-bold text-green-700">
+                                {selectedProductForDetails.privatePrice.currency} {
+                                  selectedProductForDetails.privatePrice.calculatedPrice !== null
+                                    ? selectedProductForDetails.privatePrice.calculatedPrice.toFixed(2)
+                                    : selectedProductForDetails.privatePrice.price !== null
+                                    ? selectedProductForDetails.privatePrice.price.toFixed(2)
+                                    : 'N/A'
+                                }
+                              </span>
+                            </div>
+                          )}
+                          {!selectedProductForDetails.privatePrice && selectedProductForDetails.defaultPrice && (
+                            <p className="text-sm text-gray-400">No special rate available</p>
+                          )}
+                          {!selectedProductForDetails.defaultPrice && !selectedProductForDetails.privatePrice && (
+                            <p className="text-sm text-gray-400">Price not available</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Supplier Information Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Supplier Information</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Contact details for {selectedProductForDetails.supplierName}
+                    </p>
+
+                    {loading ? (
+                      <div className="text-center py-8">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        <p className="mt-2 text-gray-500">Loading supplier information...</p>
+                      </div>
+                    ) : supplier ? (
+                      <div className="space-y-4">
+                        {/* Supplier Logo and Name */}
+                        <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+                          {supplier.logoUrl ? (
+                            <img
+                              src={supplier.logoUrl}
+                              alt={selectedProductForDetails.supplierName}
+                              className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
+                              {selectedProductForDetails.supplierName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900">{selectedProductForDetails.supplierName}</h4>
+                          </div>
+                        </div>
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                            <p className="text-sm text-gray-900 mt-1">
+                              {supplier.phone || <span className="text-gray-400">Not available</span>}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-500">Location</p>
+                            <p className="text-sm text-gray-900 mt-1">
+                              {supplier.address || <span className="text-gray-400">Not available</span>}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        Supplier information not available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </main>
     </div>
