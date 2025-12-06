@@ -124,27 +124,50 @@ router.post(
       const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
 
       // Upload image
-      const imageUrl = await uploadProductImage(
-        productId,
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype
-      );
+      let imageUrl: string;
+      try {
+        imageUrl = await uploadProductImage(
+          productId,
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype
+        );
+      } catch (uploadError: any) {
+        console.error('Image upload error:', uploadError);
+        throw createError(500, `Failed to upload image: ${uploadError.message || 'Unknown error'}`);
+      }
 
       // Save image record
-      const image = await prisma.productImage.create({
-        data: {
-          productId,
-          imageUrl,
-          displayOrder: nextOrder,
-        },
-        select: {
-          id: true,
-          imageUrl: true,
-          displayOrder: true,
-          createdAt: true,
-        },
-      });
+      let image;
+      try {
+        image = await prisma.productImage.create({
+          data: {
+            productId,
+            imageUrl,
+            displayOrder: nextOrder,
+          },
+          select: {
+            id: true,
+            imageUrl: true,
+            displayOrder: true,
+            createdAt: true,
+          },
+        });
+      } catch (dbError: any) {
+        console.error('Database error:', dbError);
+        // Try to delete uploaded file if database save fails
+        try {
+          await deleteProductImage(imageUrl);
+        } catch (deleteError) {
+          console.error('Failed to cleanup uploaded file:', deleteError);
+        }
+        
+        // Check if it's a table doesn't exist error
+        if (dbError.message?.includes('does not exist') || dbError.code === '42P01') {
+          throw createError(500, 'Product images table not found. Please run database migration: database/10-create-product-images.sql');
+        }
+        throw createError(500, `Failed to save image record: ${dbError.message || 'Unknown error'}`);
+      }
 
       res.json({
         image,
