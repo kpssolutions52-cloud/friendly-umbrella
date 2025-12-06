@@ -40,22 +40,10 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://friendly-umbrella-production.up.railway.app' }}
 
-  deploy-backend:
-    name: Deploy Backend to Railway
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@latest
-
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
+  # Railway deployment removed - use Railway GitHub Integration instead
+  # Deploy manually from Railway Dashboard → Service → Deployments → Redeploy
+  # Or enable Railway GitHub Integration: Project → Settings → GitHub
+  # See RAILWAY_DEPLOYMENT_ALTERNATIVES.md for details
 
   deploy-frontend:
     name: Deploy Frontend to Vercel
