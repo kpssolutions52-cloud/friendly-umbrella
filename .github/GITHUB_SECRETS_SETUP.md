@@ -26,26 +26,21 @@ This guide explains how to set up the required GitHub Secrets for automatic depl
 
 ### Frontend (Vercel) Secrets
 
-1. **VERCEL_TOKEN**
-   - Get from: Vercel Dashboard → Settings → Tokens → Create Token
-   - Name it "GitHub Actions" or similar
-   - Copy the token
-   - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
+**Note**: Vercel uses built-in GitHub integration, so no GitHub Secrets are needed for deployment.
 
-2. **VERCEL_ORG_ID**
-   - Get from: Vercel Dashboard → Settings → General → Team ID
-   - Copy the Team/Org ID
-   - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
+However, you still need to configure environment variables in Vercel Dashboard:
 
-3. **VERCEL_PROJECT_ID**
-   - Get from: Vercel Dashboard → Your Project → Settings → General → Project ID
-   - Copy the Project ID
-   - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
+1. **NEXT_PUBLIC_API_URL**
+   - Set in: Vercel Dashboard → Your Project → Settings → Environment Variables
+   - Value: `https://friendly-umbrella-production.up.railway.app`
+   - Apply to: Production, Preview, Development
 
-4. **NEXT_PUBLIC_API_URL** (optional)
-   - Your backend API URL: `https://friendly-umbrella-production.up.railway.app`
-   - Only needed if you want to override the default
-   - Add to GitHub: Repository → Settings → Secrets and variables → Actions → New repository secret
+**Optional - Only if you want to deploy via GitHub Actions instead:**
+- `VERCEL_TOKEN` - Vercel API token
+- `VERCEL_ORG_ID` - Vercel organization ID  
+- `VERCEL_PROJECT_ID` - Vercel project ID
+
+But it's recommended to use Vercel's built-in GitHub integration instead.
 
 ## Step-by-Step Setup
 

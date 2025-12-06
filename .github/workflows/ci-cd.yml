@@ -1,7 +1,7 @@
 name: KPS FEBE CI/CD
 
 on:
-  # Manual trigger only - no automatic deployments
+  # Manual trigger only - for testing and validation
   workflow_dispatch:
 
 jobs:
@@ -40,35 +40,10 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://friendly-umbrella-production.up.railway.app' }}
 
-  # Railway deployment removed - use Railway GitHub Integration instead
-  # Deploy manually from Railway Dashboard → Service → Deployments → Redeploy
-  # Or enable Railway GitHub Integration: Project → Settings → GitHub
-  # See RAILWAY_DEPLOYMENT_ALTERNATIVES.md for details
-
-  deploy-frontend:
-    name: Deploy Frontend to Vercel
-    needs: test-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-
-      - name: Build and Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+  # Deployment Notes:
+  # - Railway: Deploy manually from Railway Dashboard → Service → Deployments → Redeploy
+  #   Or use Railway GitHub Integration: Project → Settings → GitHub
+  # - Vercel: Uses built-in GitHub integration - deploys automatically on push
+  #   Configure in Vercel Dashboard → Project → Settings → Git
+  # See RAILWAY_DEPLOYMENT_ALTERNATIVES.md and VERCEL_DEPLOYMENT_STEPS.md for details
 
