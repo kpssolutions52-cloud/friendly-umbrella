@@ -21,11 +21,16 @@ export function PendingTenants() {
   const loadPendingTenants = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getPendingTenants();
       setTenants(data.tenants);
-      setError(null);
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to load pending tenants');
+      const errorMessage = err.error?.message || 'Failed to load pending tenants';
+      if (err.error?.statusCode === 401) {
+        setError('Your session has expired. Please refresh the page or log in again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -34,11 +39,16 @@ export function PendingTenants() {
   const handleApprove = async (tenantId: string) => {
     try {
       setProcessingId(tenantId);
+      setError(null);
       await approveTenant(tenantId, true);
       await loadPendingTenants(); // Refresh list
-      setError(null);
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to approve tenant');
+      const errorMessage = err.error?.message || 'Failed to approve tenant';
+      if (err.error?.statusCode === 401) {
+        setError('Your session has expired. Please refresh the page or log in again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setProcessingId(null);
     }
@@ -47,13 +57,18 @@ export function PendingTenants() {
   const handleReject = async (tenantId: string) => {
     try {
       setProcessingId(tenantId);
+      setError(null);
       await approveTenant(tenantId, false, rejectReason);
       await loadPendingTenants(); // Refresh list
       setShowRejectModal(null);
       setRejectReason('');
-      setError(null);
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to reject tenant');
+      const errorMessage = err.error?.message || 'Failed to reject tenant';
+      if (err.error?.statusCode === 401) {
+        setError('Your session has expired. Please refresh the page or log in again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setProcessingId(null);
     }

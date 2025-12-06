@@ -22,7 +22,8 @@ export interface ApiError {
 
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryOn401 = true
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
@@ -34,6 +35,25 @@ export async function apiRequest<T>(
       ...options.headers,
     },
   });
+
+  // Handle 401 Unauthorized - try to refresh token
+  if (response.status === 401 && retryOn401 && typeof window !== 'undefined') {
+    const { refreshAccessToken, clearTokens } = await import('./auth');
+    
+    // Try to refresh the token
+    const newToken = await refreshAccessToken();
+    
+    if (newToken) {
+      // Retry the request with the new token
+      return apiRequest<T>(endpoint, options, false); // Don't retry again
+    } else {
+      // Refresh failed - clear tokens and redirect to login
+      clearTokens();
+      if (window.location.pathname !== '/auth/login') {
+        window.location.href = '/auth/login';
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({
@@ -78,52 +98,7 @@ export async function apiPut<T>(endpoint: string, data?: any): Promise<T> {
 }
 
 export async function apiDelete<T>(endpoint: string): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({
-      error: {
-        message: response.statusText || 'An error occurred',
-        statusCode: response.status,
-      },
-    }));
-    
-    const error: any = {
-      error: {
-        message: errorData.message || errorData.error?.message || response.statusText || 'An error occurred',
-        statusCode: response.status,
-        ...(errorData.errors && { errors: errorData.errors }),
-      },
-      ...(errorData.errors && { errors: errorData.errors }),
-    };
-    
-    throw error;
-  }
-
-  // Handle 204 No Content responses
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  // Try to parse JSON, but handle empty responses gracefully
-  const text = await response.text();
-  if (!text) {
-    return undefined as T;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined as T;
-  }
+  return apiRequest<T>(endpoint, { method: 'DELETE' });
 }
 
 

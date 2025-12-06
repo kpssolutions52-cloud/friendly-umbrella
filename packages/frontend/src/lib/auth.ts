@@ -83,3 +83,33 @@ export function isAuthenticated(): boolean {
   return !!getAccessToken();
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('refreshToken');
+  }
+  return null;
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await apiPost<{ accessToken: string }>('/api/v1/auth/refresh', {
+      refreshToken,
+    });
+    
+    if (response.accessToken) {
+      localStorage.setItem('accessToken', response.accessToken);
+      return response.accessToken;
+    }
+    return null;
+  } catch (error) {
+    // Refresh failed - clear tokens
+    clearTokens();
+    return null;
+  }
+}
+
