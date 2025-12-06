@@ -13,15 +13,36 @@ By default, Railway and Vercel can automatically deploy on every push to your re
 ### Step 1: Access Railway Service Settings
 
 1. Go to [Railway Dashboard](https://railway.app)
-2. Select your backend service
-3. Click on **Settings** tab
+2. Select your **Project** (the container that holds your service)
+3. Click on your **Backend Service** (the specific service you want to configure)
+4. Click on **Settings** tab (gear icon in the top right, or in the left sidebar)
 
 ### Step 2: Disable GitHub Auto-Deploy
 
-1. Scroll down to **"Source"** or **"GitHub"** section
-2. Look for **"Auto Deploy"** or **"Automatic Deployments"** toggle
-3. **Turn OFF** the auto-deploy option
-4. Save changes
+1. In the Settings page, scroll down to find the **"Source"** section
+2. Look for **"Auto Deploy"** or **"Automatic Deployments"** toggle/checkbox
+3. **Turn OFF** or **Uncheck** the auto-deploy option
+   - It might be labeled as:
+     - "Auto Deploy"
+     - "Automatic Deployments"
+     - "Deploy on Push"
+     - "Auto Deploy from GitHub"
+4. The change saves automatically (or click **Save** if there's a save button)
+
+### Step 3: Verify Auto-Deploy is Disabled
+
+1. After disabling, you should see:
+   - The toggle/checkbox is now OFF/unchecked
+   - Status shows "Manual Deploy Only" or similar
+2. Test by making a commit - Railway should NOT automatically deploy
+
+### Alternative: Disconnect GitHub Integration (Complete Manual Control)
+
+If you want complete manual control without any GitHub integration:
+
+1. Go to Service → Settings → Source
+2. Click **"Disconnect"** or **"Remove GitHub Integration"**
+3. Now you can only deploy manually via Railway dashboard or CLI
 
 ### Step 3: Manual Deployment Options
 
