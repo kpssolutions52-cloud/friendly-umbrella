@@ -387,7 +387,7 @@ function DashboardContent() {
       // If product was created successfully, switch to edit mode to allow image upload
       if (response.product?.id) {
         // Fetch the full product and switch to edit mode
-        const fullProduct = await apiGet<{ product: Product }>(`/api/v1/products/${response.product.id}`);
+        const fullProduct = await apiGet<{ product: any }>(`/api/v1/products/${response.product.id}`);
         setEditingProduct(fullProduct.product);
         setFormData({
           sku: formData.sku,
@@ -399,7 +399,7 @@ function DashboardContent() {
           currency: formData.currency,
         });
         // Load existing private prices into edit included special prices state
-        if (fullProduct.product.privatePrices && fullProduct.product.privatePrices.length > 0) {
+        if (fullProduct.product.privatePrices && Array.isArray(fullProduct.product.privatePrices) && fullProduct.product.privatePrices.length > 0) {
           const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.product.privatePrices.map((pp: any) => {
             const companyInfo = companies.find(c => c.id === pp.companyId);
             return {
