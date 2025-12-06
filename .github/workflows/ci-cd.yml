@@ -48,11 +48,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
       - name: Deploy to Railway
-        uses: railwayapp/railway-deploy-action@v1
-        with:
-          service: ${{ secrets.RAILWAY_SERVICE_ID }}
-          token: ${{ secrets.RAILWAY_TOKEN }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link --service ${{ secrets.RAILWAY_SERVICE_ID }} --non-interactive
+          railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
 
   deploy-frontend:
     name: Deploy Frontend to Vercel
