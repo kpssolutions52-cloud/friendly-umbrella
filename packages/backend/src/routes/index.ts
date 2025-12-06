@@ -4,6 +4,7 @@ import { productRoutes } from './productRoutes';
 import { priceRoutes } from './priceRoutes';
 import { supplierRoutes } from './supplierRoutes';
 import supplierProfileRoutes from './supplierProfileRoutes';
+import productImageRoutes from './productImageRoutes';
 import superAdminRoutes from './superAdminRoutes';
 import tenantAdminRoutes from './tenantAdminRoutes';
 
@@ -19,6 +20,9 @@ export function setupRoutes(app: Express) {
   
   // Supplier profile routes (requires supplier tenant type)
   app.use('/api/v1', supplierProfileRoutes);
+  
+  // Product image routes
+  app.use('/api/v1', productImageRoutes);
   
   // Register company routes (supplierRoutes) BEFORE supplier-specific routes
   // to ensure /products/search matches correctly for companies

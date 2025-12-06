@@ -123,6 +123,7 @@ model Product {
   privatePrices   PrivatePrice[]
   priceAudits     PriceAuditLog[]
   priceViews      PriceView[]
+  images          ProductImage[]
 
   @@unique([supplierId, sku])
   @@map("products")
@@ -130,6 +131,23 @@ model Product {
   @@index([isActive])
   @@index([sku])
   @@index([category])
+}
+
+// Product images
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  imageUrl  String   @map("image_url") @db.VarChar(500)
+  displayOrder Int    @default(0) @map("display_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+  @@index([productId])
+  @@index([productId, displayOrder])
 }
 
 // Default prices visible to all companies

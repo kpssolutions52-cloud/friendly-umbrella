@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
+import { ProductImageManager } from '@/components/ProductImageManager';
 import Link from 'next/link';
 
 export default function SupplierDashboardPage() {
@@ -764,7 +765,7 @@ function DashboardContent() {
                   )}
                 </svg>
               </Button>
-            </div>
+          </div>
           </div>
           {/* Mobile menu */}
           {mobileMenuOpen && (
@@ -1587,6 +1588,14 @@ function DashboardContent() {
                   )}
                 </div>
 
+                {/* Product Images Section - Only show after product is created */}
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-base font-semibold mb-2 block">Product Images</Label>
+                  <p className="text-sm text-gray-500">
+                    Save the product first, then you can upload images in the edit view.
+                  </p>
+                </div>
+
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
@@ -1996,6 +2005,12 @@ function DashboardContent() {
                     </div>
                   )}
                 </div>
+
+                {/* Product Images Section */}
+                <ProductImageManager
+                  productId={editingProduct?.id || null}
+                  disabled={isSubmitting}
+                />
 
                 <div className="flex justify-end gap-3 pt-4">
                   <Button

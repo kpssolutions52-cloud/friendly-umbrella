@@ -18,6 +18,7 @@ interface SearchProduct {
   supplierId: string;
   supplierName: string;
   supplierLogoUrl: string | null;
+  productImageUrl: string | null;
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;

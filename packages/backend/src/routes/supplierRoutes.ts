@@ -160,6 +160,10 @@ router.get(
         prisma.product.findMany({
           where,
           include: {
+            images: {
+              orderBy: { displayOrder: 'asc' },
+              take: 1, // Only get first image for list view
+            },
             defaultPrices: {
               where: {
                 isActive: true,
@@ -244,6 +248,7 @@ router.get(
           supplierId: product.supplierId,
           supplierName: supplier.name,
           supplierLogoUrl: supplier.logoUrl,
+          productImageUrl: product.images[0]?.imageUrl || null,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
@@ -365,6 +370,14 @@ router.get(
                 logoUrl: true,
               },
             },
+            images: {
+              orderBy: { displayOrder: 'asc' },
+              take: 1, // Only get first image for list view
+              select: {
+                id: true,
+                imageUrl: true,
+              },
+            },
             defaultPrices: {
               where: {
                 isActive: true,
@@ -421,6 +434,7 @@ router.get(
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
           supplierLogoUrl: product.supplier.logoUrl,
+          productImageUrl: product.images[0]?.imageUrl || null,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),

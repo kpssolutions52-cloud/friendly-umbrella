@@ -17,6 +17,7 @@ export const supabase = supabaseUrl && supabaseServiceKey
   : null;
 
 export const SUPABASE_BUCKET_NAME = 'supplier-logos';
+export const SUPABASE_PRODUCT_IMAGES_BUCKET = 'product-images';
 
 /**
  * Upload supplier logo to Supabase Storage
@@ -77,6 +78,69 @@ export async function deleteSupplierLogo(logoUrl: string): Promise<void> {
     }
   } catch (error) {
     console.error('Failed to delete logo:', error);
+    // Don't throw - deletion is not critical
+  }
+}
+
+/**
+ * Upload product image to Supabase Storage
+ */
+export async function uploadProductImage(
+  productId: string,
+  file: Buffer,
+  fileName: string,
+  contentType: string
+): Promise<string> {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+
+  const filePath = `${productId}/${Date.now()}-${fileName}`;
+
+  // Upload file
+  const { data, error } = await supabase.storage
+    .from(SUPABASE_PRODUCT_IMAGES_BUCKET)
+    .upload(filePath, file, {
+      contentType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(SUPABASE_PRODUCT_IMAGES_BUCKET)
+    .getPublicUrl(filePath);
+
+  if (!urlData?.publicUrl) {
+    throw new Error('Failed to get public URL for uploaded image');
+  }
+
+  return urlData.publicUrl;
+}
+
+/**
+ * Delete product image from Supabase Storage
+ */
+export async function deleteProductImage(imageUrl: string): Promise<void> {
+  if (!supabase || !imageUrl) {
+    return;
+  }
+
+  try {
+    // Extract file path from URL
+    const urlParts = imageUrl.split('/');
+    const filePath = urlParts.slice(urlParts.indexOf(SUPABASE_PRODUCT_IMAGES_BUCKET) + 1).join('/');
+
+    if (filePath) {
+      await supabase.storage
+        .from(SUPABASE_PRODUCT_IMAGES_BUCKET)
+        .remove([filePath]);
+    }
+  } catch (error) {
+    console.error('Failed to delete product image:', error);
     // Don't throw - deletion is not critical
   }
 }

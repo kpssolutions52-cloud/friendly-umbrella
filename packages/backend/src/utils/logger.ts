@@ -18,20 +18,20 @@ export const logger = winston.createLogger({
 });
 
 // Always log to console (needed for Railway, Docker, etc. to capture logs)
-logger.add(
-  new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        let msg = `${timestamp} [${level}]: ${message}`;
-        if (Object.keys(meta).length > 0) {
-          msg += ` ${JSON.stringify(meta)}`;
-        }
-        return msg;
-      })
-    ),
-  })
-);
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.printf(({ timestamp, level, message, ...meta }) => {
+          let msg = `${timestamp} [${level}]: ${message}`;
+          if (Object.keys(meta).length > 0) {
+            msg += ` ${JSON.stringify(meta)}`;
+          }
+          return msg;
+        })
+      ),
+    })
+  );
 
 
 
