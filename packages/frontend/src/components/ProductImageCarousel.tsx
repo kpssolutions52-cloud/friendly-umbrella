@@ -12,11 +12,7 @@ export function ProductImageCarousel({ images, productName }: ProductImageCarous
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!images || images.length === 0) {
-    return (
-      <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-        <p className="text-gray-400 text-sm">No images available</p>
-      </div>
-    );
+    return null;
   }
 
   const goToPrevious = () => {

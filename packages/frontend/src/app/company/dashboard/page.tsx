@@ -829,20 +829,22 @@ function DashboardContent() {
                               <td colSpan={6} className="px-6 py-4 bg-gray-50">
                                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
                                   {/* Product Images Section */}
-                                  <div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
-                                    {isLoadingImages.get(product.id) ? (
-                                      <div className="text-center py-8">
-                                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                                        <p className="mt-2 text-gray-500">Loading images...</p>
-                                      </div>
-                                    ) : (
-                                      <ProductImageCarousel
-                                        images={productImages.get(product.id) || []}
-                                        productName={product.name}
-                                      />
-                                    )}
-                                  </div>
+                                  {(isLoadingImages.get(product.id) || (productImages.get(product.id) || []).length > 0) && (
+                                    <div>
+                                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
+                                      {isLoadingImages.get(product.id) ? (
+                                        <div className="text-center py-8">
+                                          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                                          <p className="mt-2 text-gray-500">Loading images...</p>
+                                        </div>
+                                      ) : (
+                                        <ProductImageCarousel
+                                          images={productImages.get(product.id) || []}
+                                          productName={product.name}
+                                        />
+                                      )}
+                                    </div>
+                                  )}
 
                                   {/* Product Details Section */}
                                   <div className="border-t pt-6">
@@ -1052,20 +1054,22 @@ function DashboardContent() {
                 </div>
                 <div className="p-6 space-y-6">
                   {/* Product Images Section */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
-                    {isLoadingImgs ? (
-                      <div className="text-center py-8">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                        <p className="mt-2 text-gray-500">Loading images...</p>
-                      </div>
-                    ) : (
-                      <ProductImageCarousel
-                        images={images}
-                        productName={selectedProductForDetails.name}
-                      />
-                    )}
-                  </div>
+                  {(isLoadingImgs || images.length > 0) && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
+                      {isLoadingImgs ? (
+                        <div className="text-center py-8">
+                          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                          <p className="mt-2 text-gray-500">Loading images...</p>
+                        </div>
+                      ) : (
+                        <ProductImageCarousel
+                          images={images}
+                          productName={selectedProductForDetails.name}
+                        />
+                      )}
+                    </div>
+                  )}
 
                   {/* Product Details Section */}
                   <div className="border-t pt-6">
