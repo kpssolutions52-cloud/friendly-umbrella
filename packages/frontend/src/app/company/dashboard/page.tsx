@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
+import { ProductImageCarousel } from '@/components/ProductImageCarousel';
 
 interface SearchProduct {
   id: string;
@@ -42,6 +43,12 @@ interface SupplierInfo {
   logoUrl: string | null;
 }
 
+interface ProductImage {
+  id: string;
+  imageUrl: string;
+  displayOrder: number;
+}
+
 export default function CompanyDashboardPage() {
   return (
     <ProtectedRoute requireTenantType="company">
@@ -55,6 +62,8 @@ function DashboardContent() {
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [supplierInfo, setSupplierInfo] = useState<Map<string, SupplierInfo>>(new Map());
   const [isLoadingSupplier, setIsLoadingSupplier] = useState<Map<string, boolean>>(new Map());
+  const [productImages, setProductImages] = useState<Map<string, ProductImage[]>>(new Map());
+  const [isLoadingImages, setIsLoadingImages] = useState<Map<string, boolean>>(new Map());
   
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
@@ -240,6 +249,36 @@ function DashboardContent() {
     }
   };
 
+  // Fetch product images
+  const fetchProductImages = async (productId: string) => {
+    setIsLoadingImages((prev) => new Map(prev).set(productId, true));
+    try {
+      const response = await apiGet<{ images: ProductImage[] }>(
+        `/api/v1/products/${productId}/images`
+      );
+      
+      setProductImages((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(productId, response.images);
+        return newMap;
+      });
+    } catch (error) {
+      console.error('Failed to fetch product images:', error);
+      // Set empty array if fetch fails (product might not have images)
+      setProductImages((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(productId, []);
+        return newMap;
+      });
+    } finally {
+      setIsLoadingImages((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(productId, false);
+        return newMap;
+      });
+    }
+  };
+
   const handleProductSelect = (product: SearchProduct) => {
     const productKey = `${product.id}-${product.supplierId}`;
     
@@ -254,6 +293,11 @@ function DashboardContent() {
       // Fetch supplier info if not already loaded
       if (!supplierInfo.has(productKey)) {
         fetchSupplierInfo(product);
+      }
+      
+      // Fetch product images if not already loaded
+      if (!productImages.has(product.id)) {
+        fetchProductImages(product.id);
       }
     }
   };
@@ -694,75 +738,92 @@ function DashboardContent() {
                           {isExpanded && (
                             <tr key={`${product.id}-${product.supplierId}-expanded`}>
                               <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                  <div className="mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900">Supplier Information</h3>
-                                    <p className="text-sm text-gray-500">
-                                      Contact details for {product.supplierName}
-                                    </p>
+                                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+                                  {/* Product Images Section */}
+                                  <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Product Images</h3>
+                                    {isLoadingImages.get(product.id) ? (
+                                      <div className="text-center py-8">
+                                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                                        <p className="mt-2 text-gray-500">Loading images...</p>
+                                      </div>
+                                    ) : (
+                                      <ProductImageCarousel
+                                        images={productImages.get(product.id) || []}
+                                        productName={product.name}
+                                      />
+                                    )}
                                   </div>
 
-                                  {loading ? (
-                                    <div className="text-center py-8">
-                                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                                      <p className="mt-2 text-gray-500">Loading supplier information...</p>
-                                    </div>
-                                  ) : supplier ? (
-                                    <div className="space-y-4">
-                                      {/* Supplier Logo and Name */}
-                                      <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
-                                        {supplier.logoUrl ? (
-                                          <img
-                                            src={supplier.logoUrl}
-                                            alt={product.supplierName}
-                                            className="h-16 w-16 rounded-lg object-cover border border-gray-200"
-                                            onError={(e) => {
-                                              (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
-                                            {product.supplierName.charAt(0).toUpperCase()}
+                                  {/* Supplier Information Section */}
+                                  <div className="border-t pt-6">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Supplier Information</h3>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                      Contact details for {product.supplierName}
+                                    </p>
+
+                                    {loading ? (
+                                      <div className="text-center py-8">
+                                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                                        <p className="mt-2 text-gray-500">Loading supplier information...</p>
+                                      </div>
+                                    ) : supplier ? (
+                                      <div className="space-y-4">
+                                        {/* Supplier Logo and Name */}
+                                        <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+                                          {supplier.logoUrl ? (
+                                            <img
+                                              src={supplier.logoUrl}
+                                              alt={product.supplierName}
+                                              className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                                              onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="h-16 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
+                                              {product.supplierName.charAt(0).toUpperCase()}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <h4 className="text-lg font-semibold text-gray-900">{product.supplierName}</h4>
                                           </div>
-                                        )}
-                                        <div>
-                                          <h4 className="text-lg font-semibold text-gray-900">{product.supplierName}</h4>
+                                        </div>
+                                        <div className="flex items-start">
+                                          <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                            </svg>
+                                          </div>
+                                          <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                                            <p className="text-sm text-gray-900 mt-1">
+                                              {supplier.phone || <span className="text-gray-400">Not available</span>}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-start">
+                                          <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                          </div>
+                                          <div className="ml-3">
+                                            <p className="text-sm font-medium text-gray-500">Location</p>
+                                            <p className="text-sm text-gray-900 mt-1">
+                                              {supplier.address || <span className="text-gray-400">Not available</span>}
+                                            </p>
+                                          </div>
                                         </div>
                                       </div>
-                                      <div className="flex items-start">
-                                        <div className="flex-shrink-0">
-                                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                          </svg>
-                                        </div>
-                                        <div className="ml-3">
-                                          <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                                          <p className="text-sm text-gray-900 mt-1">
-                                            {supplier.phone || <span className="text-gray-400">Not available</span>}
-                                          </p>
-                                        </div>
+                                    ) : (
+                                      <div className="text-center py-8 text-gray-500">
+                                        Supplier information not available
                                       </div>
-                                      
-                                      <div className="flex items-start">
-                                        <div className="flex-shrink-0">
-                                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                          </svg>
-                                        </div>
-                                        <div className="ml-3">
-                                          <p className="text-sm font-medium text-gray-500">Location</p>
-                                          <p className="text-sm text-gray-900 mt-1">
-                                            {supplier.address || <span className="text-gray-400">Not available</span>}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-8 text-gray-500">
-                                      Supplier information not available
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             </tr>
