@@ -691,6 +691,272 @@ function DashboardContent() {
             </>
           ) : (
             <>
+              {/* Mobile list view */}
+              <div className="md:hidden space-y-4">
+                {filteredProducts.map((product) => {
+                  const productKey = `${product.id}-${product.supplierId}`;
+                  const isExpanded = expandedProductId === productKey;
+                  const supplier = supplierInfo.get(productKey);
+                  const loading = isLoadingSupplier.get(productKey) || false;
+
+                  return (
+                    <div key={productKey} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="p-4">
+                        {/* Product Header */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-base font-semibold text-gray-900 mb-1">{product.name}</h3>
+                            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleProductSelect(product)}
+                            className="touch-target ml-2"
+                          >
+                            {isExpanded ? 'Hide' : 'View'}
+                          </Button>
+                        </div>
+
+                        {/* Supplier Info */}
+                        <div className="flex items-center gap-2 mb-3">
+                          {product.supplierLogoUrl ? (
+                            <img
+                              src={product.supplierLogoUrl}
+                              alt={product.supplierName}
+                              className="h-6 w-6 rounded-full object-cover border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
+                              {product.supplierName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-sm text-gray-600">{product.supplierName}</span>
+                        </div>
+
+                        {/* Category and Unit */}
+                        <div className="flex items-center gap-3 mb-3 text-xs text-gray-500">
+                          {product.category && (
+                            <span className="px-2 py-1 bg-gray-100 rounded">{product.category}</span>
+                          )}
+                          <span>{product.unit}</span>
+                        </div>
+
+                        {/* Pricing */}
+                        <div className="mb-2">
+                          {product.defaultPrice || product.privatePrice ? (
+                            <div className="space-y-1">
+                              {product.defaultPrice && (
+                                <div className="text-sm text-gray-600">
+                                  Default: {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                                </div>
+                              )}
+                              {product.privatePrice && (
+                                <div>
+                                  {product.privatePrice.discountPercentage !== null && product.privatePrice.calculatedPrice !== null ? (
+                                    <>
+                                      <div className="text-sm font-semibold text-green-600">
+                                        Your Price: {product.privatePrice.currency} {product.privatePrice.calculatedPrice.toFixed(2)}
+                                      </div>
+                                      <div className="text-xs text-green-600 font-medium">
+                                        {product.privatePrice.discountPercentage.toFixed(1)}% savings
+                                      </div>
+                                    </>
+                                  ) : product.privatePrice.price !== null ? (
+                                    <>
+                                      <div className="text-sm font-semibold text-green-600">
+                                        Your Price: {product.privatePrice.currency} {product.privatePrice.price.toFixed(2)}
+                                      </div>
+                                      {product.defaultPrice && (
+                                        <div className="text-xs text-green-600">
+                                          {(((product.defaultPrice.price - product.privatePrice.price) / product.defaultPrice.price) * 100).toFixed(1)}% savings
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : null}
+                                </div>
+                              )}
+                              {!product.privatePrice && product.defaultPrice && (
+                                <div className="text-xs text-gray-400">No special rate</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">No price</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-200 p-4 bg-gray-50 space-y-4">
+                          {/* Product Images Section */}
+                          {(isLoadingImages.get(product.id) || (productImages.get(product.id) || []).length > 0) && (
+                            <div>
+                              <h3 className="text-base font-semibold text-gray-900 mb-3">Product Images</h3>
+                              {isLoadingImages.get(product.id) ? (
+                                <div className="text-center py-4">
+                                  <div className="inline-block h-6 w-6 animate-spin rounded-full border-3 border-solid border-blue-600 border-r-transparent"></div>
+                                  <p className="mt-2 text-sm text-gray-500">Loading images...</p>
+                                </div>
+                              ) : (
+                                <ProductImageCarousel
+                                  images={productImages.get(product.id) || []}
+                                  productName={product.name}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          {/* Product Details Section */}
+                          <div className="border-t pt-4">
+                            <h3 className="text-base font-semibold text-gray-900 mb-3">Product Details</h3>
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-xs font-medium text-gray-500">Product Name</p>
+                                <p className="text-sm text-gray-900 mt-1">{product.name}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-500">SKU</p>
+                                <p className="text-sm text-gray-900 mt-1">{product.sku}</p>
+                              </div>
+                              {product.description && (
+                                <div>
+                                  <p className="text-xs font-medium text-gray-500">Description</p>
+                                  <p className="text-sm text-gray-900 mt-1">{product.description}</p>
+                                </div>
+                              )}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <p className="text-xs font-medium text-gray-500">Category</p>
+                                  <p className="text-sm text-gray-900 mt-1">{product.category || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium text-gray-500">Unit</p>
+                                  <p className="text-sm text-gray-900 mt-1">{product.unit}</p>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 mb-2">Pricing</p>
+                                <div className="space-y-2">
+                                  {product.defaultPrice && (
+                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                      <span className="text-xs text-gray-600">Default Price</span>
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {product.privatePrice && (
+                                    <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                                      <div>
+                                        <span className="text-xs font-medium text-green-700">Your Price</span>
+                                        {product.privatePrice.discountPercentage !== null && (
+                                          <span className="text-xs text-green-600 ml-1">
+                                            ({product.privatePrice.discountPercentage.toFixed(1)}% discount)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-sm font-bold text-green-700">
+                                        {product.privatePrice.currency} {
+                                          product.privatePrice.calculatedPrice !== null
+                                            ? product.privatePrice.calculatedPrice.toFixed(2)
+                                            : product.privatePrice.price !== null
+                                            ? product.privatePrice.price.toFixed(2)
+                                            : 'N/A'
+                                        }
+                                      </span>
+                                    </div>
+                                  )}
+                                  {!product.privatePrice && product.defaultPrice && (
+                                    <p className="text-xs text-gray-400">No special rate available</p>
+                                  )}
+                                  {!product.defaultPrice && !product.privatePrice && (
+                                    <p className="text-xs text-gray-400">Price not available</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Supplier Information Section */}
+                          <div className="border-t pt-4">
+                            <h3 className="text-base font-semibold text-gray-900 mb-2">Supplier Information</h3>
+                            <p className="text-xs text-gray-500 mb-3">
+                              Contact details for {product.supplierName}
+                            </p>
+
+                            {loading ? (
+                              <div className="text-center py-4">
+                                <div className="inline-block h-6 w-6 animate-spin rounded-full border-3 border-solid border-blue-600 border-r-transparent"></div>
+                                <p className="mt-2 text-xs text-gray-500">Loading supplier information...</p>
+                              </div>
+                            ) : supplier ? (
+                              <div className="space-y-3">
+                                {/* Supplier Logo and Name */}
+                                <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+                                  {supplier.logoUrl ? (
+                                    <img
+                                      src={supplier.logoUrl}
+                                      alt={product.supplierName}
+                                      className="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center text-base font-semibold text-gray-600">
+                                      {product.supplierName.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="text-base font-semibold text-gray-900">{product.supplierName}</h4>
+                                  </div>
+                                </div>
+                                <div className="flex items-start">
+                                  <div className="flex-shrink-0">
+                                    <svg className="h-4 w-4 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                  </div>
+                                  <div className="ml-3">
+                                    <p className="text-xs font-medium text-gray-500">Phone Number</p>
+                                    <p className="text-sm text-gray-900 mt-1">
+                                      {supplier.phone || <span className="text-gray-400">Not available</span>}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start">
+                                  <div className="flex-shrink-0">
+                                    <svg className="h-4 w-4 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                  </div>
+                                  <div className="ml-3">
+                                    <p className="text-xs font-medium text-gray-500">Location</p>
+                                    <p className="text-sm text-gray-900 mt-1">
+                                      {supplier.address || <span className="text-gray-400">Not available</span>}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-gray-500 text-sm">
+                                Supplier information not available
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* Desktop table view */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
