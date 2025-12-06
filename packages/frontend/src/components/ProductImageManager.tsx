@@ -170,7 +170,7 @@ export function ProductImageManager({ productId, onImagesChange, disabled }: Pro
       ) : images.length === 0 ? (
         <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
           <p className="text-sm text-gray-500">No images uploaded yet</p>
-          <p className="text-xs text-gray-400 mt-1">Click "Upload Images" to add product photos</p>
+          <p className="text-xs text-gray-400 mt-1">Click &quot;Upload Images&quot; to add product photos</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
