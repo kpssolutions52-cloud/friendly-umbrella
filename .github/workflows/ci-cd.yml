@@ -57,7 +57,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link --service ${{ secrets.RAILWAY_SERVICE_ID }}
           railway up --service ${{ secrets.RAILWAY_SERVICE_ID }} --detach
 
   deploy-frontend:
