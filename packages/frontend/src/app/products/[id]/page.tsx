@@ -116,7 +116,7 @@ export default function ProductDetailsPage() {
   }, [productId, user, authLoading, router, fetchProductDetails]);
 
   const hasSpecialPrice = product?.privatePrice !== null && 
-    (product.privatePrice?.price !== null || product.privatePrice?.calculatedPrice !== null);
+    (product?.privatePrice?.price !== null || product?.privatePrice?.calculatedPrice !== null);
   
   const displayPrice = hasSpecialPrice && product?.privatePrice && product.privatePrice.calculatedPrice !== null
     ? product.privatePrice.calculatedPrice
