@@ -1,7 +1,7 @@
 import { apiPost, apiGet } from './api';
 
 export interface RegisterInput {
-  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user';
+  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
   tenantName?: string;
   tenantType?: 'supplier' | 'company';
   tenantId?: string;

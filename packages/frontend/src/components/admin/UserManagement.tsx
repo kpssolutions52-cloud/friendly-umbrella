@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getPendingUsers, getTenantUsers, approveUser, assignRolePermissions, TenantUser } from '@/lib/tenantAdminApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,12 +24,7 @@ export function UserManagement() {
   const [totalUsers, setTotalUsers] = useState(0);
   const usersPerPage = 10;
 
-  useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filter changes
-    loadUsers(1);
-  }, [statusFilter]);
-
-  const loadUsers = async (page = 1) => {
+  const loadUsers = useCallback(async (page = 1) => {
     try {
       setLoading(true);
       const status = statusFilter === 'all' ? undefined : statusFilter;
@@ -44,7 +39,12 @@ export function UserManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filter changes
+    loadUsers(1);
+  }, [statusFilter, loadUsers]);
 
   const handleApprove = async (userId: string) => {
     try {
