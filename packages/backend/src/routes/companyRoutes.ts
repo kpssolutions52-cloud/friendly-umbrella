@@ -53,7 +53,7 @@ router.post(
       }
 
       const { requirements }: { requirements: ProductRequirement[] } = req.body;
-      const companyId = req.user!.tenantId!;
+      const companyId = req.tenantId!;
 
       if (!companyId) {
         return next(createError(403, 'Company ID not found'));
@@ -159,12 +159,12 @@ router.post(
 
           if (product.privatePrices.length > 0) {
             const privatePrice = product.privatePrices[0];
-            price = privatePrice.price;
+            price = privatePrice.price ? Number(privatePrice.price) : null;
             currency = privatePrice.currency;
             priceType = 'private';
           } else if (product.defaultPrices.length > 0) {
             const defaultPrice = product.defaultPrices[0];
-            price = defaultPrice.price;
+            price = defaultPrice.price ? Number(defaultPrice.price) : null;
             currency = defaultPrice.currency;
             priceType = 'default';
           }
