@@ -183,7 +183,7 @@ function DashboardContent() {
                 Product Catalog
               </h1>
               <p className="mt-1 text-xs sm:text-sm text-gray-500 truncate">
-                Welcome, {user.firstName} {user.lastName}
+                Welcome, {user?.firstName || ''} {user?.lastName || ''}
               </p>
             </div>
             {/* Desktop menu */}
