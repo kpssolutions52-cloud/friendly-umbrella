@@ -39,7 +39,7 @@ export function UserManagement() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, usersPerPage]);
 
   useEffect(() => {
     setCurrentPage(1); // Reset to first page when filter changes
