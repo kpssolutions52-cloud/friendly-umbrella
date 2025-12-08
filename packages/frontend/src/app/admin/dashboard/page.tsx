@@ -8,8 +8,9 @@ import { PendingTenants } from '@/components/admin/PendingTenants';
 import { Companies } from '@/components/admin/Companies';
 import { Suppliers } from '@/components/admin/Suppliers';
 import { SuperAdminManagement } from '@/components/admin/SuperAdminManagement';
+import { CategoryManagement } from '@/components/admin/CategoryManagement';
 
-type TabType = 'overview' | 'super-admins';
+type TabType = 'overview' | 'super-admins' | 'categories';
 type ViewType = 'overview' | 'pending' | 'companies' | 'suppliers';
 
 export default function AdminDashboardPage() {
@@ -78,6 +79,16 @@ export default function AdminDashboardPage() {
             >
               Super Admins
             </button>
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'categories'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Categories
+            </button>
           </div>
         </div>
       </nav>
@@ -129,6 +140,7 @@ export default function AdminDashboardPage() {
           </>
         )}
         {activeTab === 'super-admins' && <SuperAdminManagement />}
+        {activeTab === 'categories' && <CategoryManagement />}
       </main>
     </div>
   );

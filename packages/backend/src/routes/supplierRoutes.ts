@@ -155,6 +155,17 @@ router.get(
         ];
       }
 
+      // Get all categories for fallback images
+      const categories = await prisma.category.findMany({
+        select: {
+          name: true,
+          imageUrl: true,
+        },
+      });
+      const categoryImageMap = new Map(
+        categories.map((cat) => [cat.name, cat.imageUrl])
+      );
+
       // Get products with prices
       const [products, total] = await Promise.all([
         prisma.product.findMany({
@@ -238,6 +249,11 @@ router.get(
           finalCurrency = defaultPrice.currency;
         }
 
+        // Use product image if available, otherwise use category default image
+        const productImageUrl = product.images[0]?.imageUrl || null;
+        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const finalImageUrl = productImageUrl || categoryImageUrl;
+
         return {
           id: product.id,
           sku: product.sku,
@@ -248,7 +264,7 @@ router.get(
           supplierId: product.supplierId,
           supplierName: supplier.name,
           supplierLogoUrl: supplier.logoUrl,
-          productImageUrl: product.images[0]?.imageUrl || null,
+          productImageUrl: finalImageUrl,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
@@ -358,6 +374,17 @@ router.get(
         ];
       }
 
+      // Get all categories for fallback images
+      const categories = await prisma.category.findMany({
+        select: {
+          name: true,
+          imageUrl: true,
+        },
+      });
+      const categoryImageMap = new Map(
+        categories.map((cat) => [cat.name, cat.imageUrl])
+      );
+
       // Get products with suppliers and prices
       const [products, total] = await Promise.all([
         prisma.product.findMany({
@@ -423,6 +450,11 @@ router.get(
       const productsWithPrices = products.map((product) => {
         const privatePrice = privatePriceMap.get(product.id);
         const defaultPrice = product.defaultPrices[0];
+        
+        // Use product image if available, otherwise use category default image
+        const productImageUrl = product.images[0]?.imageUrl || null;
+        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const finalImageUrl = productImageUrl || categoryImageUrl;
 
         return {
           id: product.id,
@@ -434,7 +466,7 @@ router.get(
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
           supplierLogoUrl: product.supplier.logoUrl,
-          productImageUrl: product.images[0]?.imageUrl || null,
+          productImageUrl: finalImageUrl,
           // Return both prices for comparison
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),

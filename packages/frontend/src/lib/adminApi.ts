@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './api';
+import { apiGet, apiPost, apiPut, apiDelete, apiPostForm } from './api';
 
 const BASE_PATH = '/api/v1/admin';
 
@@ -112,6 +112,52 @@ export async function createSuperAdmin(input: {
 // Get statistics
 export async function getStatistics(): Promise<Statistics> {
   return apiGet<Statistics>(`${BASE_PATH}/statistics`);
+}
+
+// Category interfaces and functions
+export interface Category {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Get all categories
+export async function getCategories(): Promise<{ categories: Category[] }> {
+  return apiGet<{ categories: Category[] }>(`${BASE_PATH}/categories`);
+}
+
+// Get a single category
+export async function getCategory(id: string): Promise<{ category: Category }> {
+  return apiGet<{ category: Category }>(`${BASE_PATH}/categories/${id}`);
+}
+
+// Create a new category
+export async function createCategory(input: { name: string }): Promise<{ message: string; category: Category }> {
+  return apiPost<{ message: string; category: Category }>(`${BASE_PATH}/categories`, input);
+}
+
+// Update a category
+export async function updateCategory(id: string, input: { name?: string }): Promise<{ message: string; category: Category }> {
+  return apiPut<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}`, input);
+}
+
+// Delete a category
+export async function deleteCategory(id: string): Promise<{ message: string }> {
+  return apiDelete<{ message: string }>(`${BASE_PATH}/categories/${id}`);
+}
+
+// Upload category image
+export async function uploadCategoryImage(id: string, file: File): Promise<{ message: string; category: Category }> {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiPostForm<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}/image`, formData);
+}
+
+// Delete category image
+export async function deleteCategoryImage(id: string): Promise<{ message: string; category: Category }> {
+  return apiDelete<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}/image`);
 }
 
 

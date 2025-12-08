@@ -101,6 +101,59 @@ export async function apiDelete<T>(endpoint: string): Promise<T> {
   return apiRequest<T>(endpoint, { method: 'DELETE' });
 }
 
+export async function apiPostForm<T>(endpoint: string, formData: FormData): Promise<T> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  });
+
+  // Handle 401 Unauthorized - try to refresh token
+  if (response.status === 401 && typeof window !== 'undefined') {
+    const { refreshAccessToken, clearTokens } = await import('./auth');
+    
+    // Try to refresh the token
+    const newToken = await refreshAccessToken();
+    
+    if (newToken) {
+      // Retry the request with the new token
+      return apiPostForm<T>(endpoint, formData);
+    } else {
+      // Refresh failed - clear tokens and redirect to login
+      clearTokens();
+      if (window.location.pathname !== '/auth/login') {
+        window.location.href = '/auth/login';
+      }
+    }
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({
+      error: {
+        message: response.statusText || 'An error occurred',
+        statusCode: response.status,
+      },
+    }));
+    
+    const error: any = {
+      error: {
+        message: errorData.message || errorData.error?.message || response.statusText || 'An error occurred',
+        statusCode: response.status,
+        ...(errorData.errors && { errors: errorData.errors }),
+      },
+      ...(errorData.errors && { errors: errorData.errors }),
+    };
+    
+    throw error;
+  }
+
+  return response.json();
+}
+
 
 
 

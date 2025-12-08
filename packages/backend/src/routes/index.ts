@@ -6,6 +6,7 @@ import { supplierRoutes } from './supplierRoutes';
 import supplierProfileRoutes from './supplierProfileRoutes';
 import productImageRoutes from './productImageRoutes';
 import superAdminRoutes from './superAdminRoutes';
+import categoryRoutes from './categoryRoutes';
 import tenantAdminRoutes from './tenantAdminRoutes';
 
 export function setupRoutes(app: Express) {
@@ -14,6 +15,7 @@ export function setupRoutes(app: Express) {
   
   // Super admin routes (requires super_admin role)
   app.use('/api/v1/admin', superAdminRoutes);
+  app.use('/api/v1/admin', categoryRoutes);
   
   // Tenant admin routes (requires tenant admin role)
   app.use('/api/v1/tenant-admin', tenantAdminRoutes);
