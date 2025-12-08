@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,12 +58,7 @@ export function PrivatePriceManagement({
     notes: '',
   });
 
-  useEffect(() => {
-    loadPrivatePrices();
-    loadCompanies();
-  }, [productId]);
-
-  const loadPrivatePrices = async () => {
+  const loadPrivatePrices = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiGet<{ privatePrices: PrivatePrice[] }>(
@@ -76,9 +71,9 @@ export function PrivatePriceManagement({
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId]);
 
-  const loadCompanies = async () => {
+  const loadCompanies = useCallback(async () => {
     try {
       setLoadingCompanies(true);
       const response = await apiGet<{ companies: Company[] }>('/api/v1/companies');
@@ -88,7 +83,12 @@ export function PrivatePriceManagement({
     } finally {
       setLoadingCompanies(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPrivatePrices();
+    loadCompanies();
+  }, [loadPrivatePrices, loadCompanies]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

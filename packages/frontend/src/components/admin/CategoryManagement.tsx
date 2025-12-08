@@ -255,7 +255,9 @@ export function CategoryManagement() {
                         )}
                         <div className="flex flex-col gap-1">
                           <input
-                            ref={(el) => (fileInputRefs.current[category.id] = el)}
+                            ref={(el) => {
+                              fileInputRefs.current[category.id] = el;
+                            }}
                             type="file"
                             accept="image/*"
                             onChange={(e) => handleFileSelect(category.id, e)}
