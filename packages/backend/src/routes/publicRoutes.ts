@@ -402,5 +402,52 @@ router.get(
   }
 );
 
+// GET /api/v1/suppliers/public/:id - Get supplier details (public access)
+router.get(
+  '/suppliers/public/:id',
+  optionalAuthenticate,
+  param('id').isUUID().withMessage('Invalid supplier ID'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const supplier = await prisma.tenant.findFirst({
+        where: {
+          id: req.params.id,
+          type: 'supplier',
+          isActive: true,
+          status: 'active',
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          logoUrl: true,
+          _count: {
+            select: {
+              products: {
+                where: { isActive: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!supplier) {
+        return res.status(404).json({ error: { message: 'Supplier not found', statusCode: 404 } });
+      }
+
+      res.json({ supplier });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;
 

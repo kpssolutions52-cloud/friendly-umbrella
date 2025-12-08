@@ -40,6 +40,18 @@ interface ProductDetails {
   }>;
 }
 
+interface SupplierDetails {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  logoUrl: string | null;
+  _count: {
+    products: number;
+  };
+}
+
 export default function ProductDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -49,6 +61,9 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState<ProductDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supplierDetails, setSupplierDetails] = useState<SupplierDetails | null>(null);
+  const [loadingSupplier, setLoadingSupplier] = useState(false);
+  const [showSupplierDetails, setShowSupplierDetails] = useState(false);
 
   const fetchProductDetails = useCallback(async () => {
     try {
@@ -113,6 +128,36 @@ export default function ProductDetailsPage() {
     : product?.defaultPrice?.currency || 'USD';
 
   const discountPercentage = product?.privatePrice?.discountPercentage || null;
+
+  const fetchSupplierDetails = useCallback(async (supplierId: string) => {
+    if (supplierDetails) {
+      // Already loaded, just toggle display
+      setShowSupplierDetails(!showSupplierDetails);
+      return;
+    }
+
+    try {
+      setLoadingSupplier(true);
+      const response = await apiGet<{ supplier: SupplierDetails }>(
+        `/api/v1/suppliers/public/${supplierId}`
+      );
+      if (response.supplier) {
+        setSupplierDetails(response.supplier);
+        setShowSupplierDetails(true);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch supplier details:', err);
+      setError(err?.error?.message || 'Failed to load supplier details');
+    } finally {
+      setLoadingSupplier(false);
+    }
+  }, [supplierDetails, showSupplierDetails]);
+
+  const handleContactSupplier = () => {
+    if (product?.supplierId) {
+      fetchSupplierDetails(product.supplierId);
+    }
+  };
 
   if (authLoading || (!user && !authLoading)) {
     return (
@@ -333,12 +378,117 @@ export default function ProductDetailsPage() {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link href={user ? "#" : "/auth/register"} className="flex-1">
-                    <Button className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold shadow-lg hover:shadow-xl transition-all" size="lg">
-                      {user ? 'Contact Supplier' : 'Register for Better Prices'}
+                  {user ? (
+                    <Button 
+                      onClick={handleContactSupplier}
+                      className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold shadow-lg hover:shadow-xl transition-all" 
+                      size="lg"
+                    >
+                      Contact Supplier
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href="/auth/register" className="flex-1">
+                      <Button 
+                        className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold shadow-lg hover:shadow-xl transition-all" 
+                        size="lg"
+                      >
+                        Register for Better Prices
+                      </Button>
+                    </Link>
+                  )}
                 </div>
+
+                {/* Supplier Details Section */}
+                {showSupplierDetails && supplierDetails && (
+                  <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 sm:p-6 shadow-lg">
+                    <div className="flex items-start gap-4 mb-4">
+                      {supplierDetails.logoUrl ? (
+                        <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full overflow-hidden border-2 border-blue-300 flex-shrink-0">
+                          <Image
+                            src={supplierDetails.logoUrl}
+                            alt={supplierDetails.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-md flex-shrink-0">
+                          {supplierDetails.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{supplierDetails.name}</h3>
+                        {supplierDetails._count.products > 0 && (
+                          <p className="text-sm sm:text-base text-gray-600">
+                            {supplierDetails._count.products} {supplierDetails._count.products === 1 ? 'product' : 'products'} available
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 sm:space-y-4 pt-4 border-t border-blue-200">
+                      {supplierDetails.email && (
+                        <div className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <div>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+                            <a 
+                              href={`mailto:${supplierDetails.email}`}
+                              className="text-sm sm:text-base text-blue-700 hover:text-blue-900 font-medium break-all"
+                            >
+                              {supplierDetails.email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {supplierDetails.phone && (
+                        <div className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <div>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Phone</p>
+                            <a 
+                              href={`tel:${supplierDetails.phone}`}
+                              className="text-sm sm:text-base text-blue-700 hover:text-blue-900 font-medium"
+                            >
+                              {supplierDetails.phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {supplierDetails.address && (
+                        <div className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">Address</p>
+                            <p className="text-sm sm:text-base text-gray-700 font-medium whitespace-pre-line">
+                              {supplierDetails.address}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {loadingSupplier && (
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-5 text-center">
+                    <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-sm text-blue-700">Loading supplier details...</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
