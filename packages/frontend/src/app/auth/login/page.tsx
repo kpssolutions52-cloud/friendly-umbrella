@@ -64,6 +64,14 @@ function LoginForm() {
               create a new account
             </Link>
           </p>
+          <div className="mt-4 text-center">
+            <Link
+              href="/auth/register?type=customer"
+              className="text-sm font-medium text-blue-600 hover:text-blue-800 touch-target"
+            >
+              Sign in as Customer
+            </Link>
+          </div>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {pendingMessage && (

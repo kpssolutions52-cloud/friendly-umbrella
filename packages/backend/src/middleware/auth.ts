@@ -58,6 +58,17 @@ export async function authenticate(
       return;
     }
 
+    // Handle customer (no tenant)
+    if (user.role === 'customer') {
+      req.userId = decoded.userId;
+      req.tenantId = null;
+      req.userRole = decoded.role;
+      req.tenantType = 'customer';
+      req.userPermissions = {};
+      next();
+      return;
+    }
+
     // Regular users must have active tenant
     if (!user.tenant) {
       throw createError(403, 'User account is invalid');
@@ -183,4 +194,101 @@ export function requirePermission(resource: string, action: string) {
   };
 }
 
+/**
+ * Optional authentication - doesn't fail if no token, but populates user info if token exists
+ */
+export async function optionalAuthenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const authHeader = req.headers.authorization;
 
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // No token provided - continue without authentication
+      next();
+      return;
+    }
+
+    const token = authHeader.substring(7);
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!jwtSecret) {
+      // No secret configured - continue without authentication
+      next();
+      return;
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as {
+        userId: string;
+        tenantId: string | null;
+        role: string;
+        tenantType: string;
+      };
+
+      // Verify user still exists and is active
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: { tenant: true },
+      });
+
+      if (!user || !user.isActive || user.status !== 'active') {
+        // User is inactive - continue without authentication
+        next();
+        return;
+      }
+
+      // Handle super admin (no tenant)
+      if (user.role === 'super_admin') {
+        req.userId = decoded.userId;
+        req.tenantId = null;
+        req.userRole = decoded.role;
+        req.tenantType = 'system';
+        req.userPermissions = {};
+        next();
+        return;
+      }
+
+      // Handle customer (no tenant)
+      if (user.role === 'customer') {
+        req.userId = decoded.userId;
+        req.tenantId = null;
+        req.userRole = decoded.role;
+        req.tenantType = 'customer';
+        req.userPermissions = {};
+        next();
+        return;
+      }
+
+      // Regular users must have active tenant
+      if (!user.tenant) {
+        // Invalid user - continue without authentication
+        next();
+        return;
+      }
+
+      if (!user.tenant.isActive || user.tenant.status !== 'active') {
+        // Tenant is inactive - continue without authentication
+        next();
+        return;
+      }
+
+      // Attach user info to request
+      req.userId = decoded.userId;
+      req.tenantId = user.tenantId;
+      req.userRole = decoded.role;
+      req.tenantType = user.tenant.type;
+      req.userPermissions = (user.permissions as Record<string, any>) || {};
+
+      next();
+    } catch (error) {
+      // Invalid token - continue without authentication
+      next();
+    }
+  } catch (error) {
+    // Any error - continue without authentication
+    next();
+  }
+}

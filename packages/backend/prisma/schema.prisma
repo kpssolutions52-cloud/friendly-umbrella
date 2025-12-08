@@ -95,6 +95,7 @@ enum UserRole {
   supplier_staff
   company_admin
   company_staff
+  customer
 }
 
 enum UserStatus {

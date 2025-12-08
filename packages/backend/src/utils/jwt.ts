@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 
 interface TokenPayload {
   userId: string;
-  tenantId: string;
+  tenantId: string | null;
   role: string;
   tenantType: string;
 }

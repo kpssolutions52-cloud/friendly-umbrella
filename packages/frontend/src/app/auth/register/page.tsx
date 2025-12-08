@@ -11,7 +11,7 @@ import { getActiveTenants, Tenant } from '@/lib/tenantApi';
 import { apiPost } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-type RegistrationType = 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user';
+type RegistrationType = 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
 
 interface RegisterFormData {
   registrationType: RegistrationType;
@@ -29,6 +29,7 @@ interface RegisterFormData {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -126,6 +127,9 @@ export default function RegisterPage() {
         payload.phone = data.phone;
         payload.address = data.address;
         payload.postalCode = data.postalCode;
+      } else if (data.registrationType === 'customer') {
+        // Customer registration - no tenant required
+        // No additional fields needed
       } else {
         if (!data.tenantId) {
           setError('Please select a company or supplier');
@@ -139,12 +143,42 @@ export default function RegisterPage() {
 
       const response = await apiPost<any>('/api/v1/auth/register', payload);
 
-      setSuccess(response.message || 'Registration successful! Your account is pending approval.');
+      setSuccess(response.message || 'Registration successful!');
       
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        router.push('/auth/login?pending=true');
-      }, 3000);
+      // For customers, auto-login and redirect to home page
+      if (data.registrationType === 'customer') {
+        // Auto-login customer
+        try {
+          const loginResponse = await apiPost<any>('/api/v1/auth/login', {
+            email: data.email,
+            password: data.password,
+          });
+          
+          // Store tokens
+          if (loginResponse.tokens) {
+            localStorage.setItem('accessToken', loginResponse.tokens.accessToken);
+            localStorage.setItem('refreshToken', loginResponse.tokens.refreshToken);
+          }
+          
+          // Refresh user context
+          await refreshUser();
+          
+          // Redirect to home page
+          setTimeout(() => {
+            router.push('/');
+          }, 1500);
+        } catch (loginErr) {
+          // If auto-login fails, redirect to login page
+          setTimeout(() => {
+            router.push('/auth/login');
+          }, 2000);
+        }
+      } else {
+        // For other registration types, redirect to login after 3 seconds
+        setTimeout(() => {
+          router.push('/auth/login?pending=true');
+        }, 3000);
+      }
     } catch (err: any) {
       console.error('Registration error:', err);
       
@@ -203,7 +237,7 @@ export default function RegisterPage() {
                 {...register('registrationType', { 
                   required: 'Registration type is required',
                   validate: (value) => {
-                    const validTypes = ['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user'];
+                    const validTypes = ['customer', 'new_company', 'new_supplier', 'new_company_user', 'new_supplier_user'];
                     if (!validTypes.includes(value)) {
                       return 'Please select a valid registration type';
                     }
@@ -216,7 +250,7 @@ export default function RegisterPage() {
                   setValue('registrationType', value);
                   setRegistrationType(value);
                   // Clear phone, address, and postal code when switching registration types
-                  if (value !== 'new_company' && value !== 'new_supplier') {
+                  if (value !== 'new_company' && value !== 'new_supplier' && value !== 'customer') {
                     setValue('phone', '');
                     setValue('address', '');
                     setValue('postalCode', '');
@@ -224,6 +258,7 @@ export default function RegisterPage() {
                 }}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
+                <option value="customer">Sign up as Customer</option>
                 <option value="new_company">New Company Registration</option>
                 <option value="new_supplier">New Supplier Registration</option>
                 <option value="new_company_user">New User for a Company</option>

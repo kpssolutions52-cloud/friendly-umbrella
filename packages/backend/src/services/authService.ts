@@ -4,7 +4,7 @@ import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import createError from 'http-errors';
 
 export interface RegisterInput {
-  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user';
+  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
   tenantName?: string; // Required for new_company and new_supplier
   tenantType?: 'supplier' | 'company'; // Required for new_company and new_supplier
   tenantId?: string; // Required for new_company_user and new_supplier_user
@@ -40,6 +40,8 @@ export class AuthService {
       return this.registerNewTenant(input);
     } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user') {
       return this.registerNewUser(input);
+    } else if (input.registrationType === 'customer') {
+      return this.registerCustomer(input);
     } else {
       throw createError(400, 'Invalid registration type');
     }
@@ -117,6 +119,44 @@ export class AuthService {
         tenantId: result.user.tenantId,
         tenantType: result.tenant.type,
         tenantStatus: result.tenant.status,
+      },
+    };
+  }
+
+  /**
+   * Register a new customer (individual user, no tenant)
+   */
+  private async registerCustomer(input: RegisterInput) {
+    // Hash password
+    const passwordHash = await hashPassword(input.password);
+
+    // Create customer user - customers are auto-approved and active
+    const user = await prisma.user.create({
+      data: {
+        tenantId: null, // Customers don't have tenants
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: 'customer',
+        status: 'active', // Customers are auto-approved
+        isActive: true,
+        permissions: {}, // Customers have no special permissions
+      },
+    });
+
+    return {
+      message: 'Registration successful. You can now browse products and see special prices.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        tenantId: null,
+        tenantType: 'customer',
+        tenantStatus: null,
       },
     };
   }
@@ -253,6 +293,50 @@ export class AuthService {
       };
     }
 
+    // Handle customer (no tenant)
+    if (user.role === 'customer') {
+      if (user.status !== 'active' || !user.isActive) {
+        throw createError(403, 'Your account is inactive');
+      }
+
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      // Generate tokens for customer (tenantId is null)
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        tenantId: null,
+        role: user.role,
+        tenantType: 'customer',
+      });
+
+      const refreshToken = generateRefreshToken({
+        userId: user.id,
+        tenantId: null,
+        role: user.role,
+        tenantType: 'customer',
+      });
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          tenantId: null,
+          tenantType: 'customer',
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      };
+    }
+
     // Regular user - must have tenant
     if (!user.tenant) {
       throw createError(403, 'User account is invalid');
@@ -330,6 +414,17 @@ export class AuthService {
           tenantId: user.tenantId || '',
           role: user.role,
           tenantType: 'system',
+        });
+        return { accessToken };
+      }
+
+      // Handle customer refresh
+      if (user.role === 'customer') {
+        const accessToken = generateToken({
+          userId: user.id,
+          tenantId: null,
+          role: user.role,
+          tenantType: 'customer',
         });
         return { accessToken };
       }

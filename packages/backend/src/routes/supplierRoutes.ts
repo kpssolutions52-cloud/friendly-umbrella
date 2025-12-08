@@ -1,7 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma';
 import { priceService } from '../services/priceService';
-import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
+import { authenticate, optionalAuthenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { param, query, validationResult } from 'express-validator';
 import createError from 'http-errors';
 

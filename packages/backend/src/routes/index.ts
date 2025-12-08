@@ -8,8 +8,12 @@ import productImageRoutes from './productImageRoutes';
 import superAdminRoutes from './superAdminRoutes';
 import categoryRoutes from './categoryRoutes';
 import tenantAdminRoutes from './tenantAdminRoutes';
+import publicRoutes from './publicRoutes';
 
 export function setupRoutes(app: Express) {
+  // Public routes (no authentication required, but optional auth for customer prices)
+  app.use('/api/v1', publicRoutes);
+  
   // API version prefix
   app.use('/api/v1', authRoutes);
   

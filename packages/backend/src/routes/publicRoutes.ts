@@ -1,0 +1,277 @@
+import { Router, Response, NextFunction } from 'express';
+import { optionalAuthenticate, AuthRequest } from '../middleware/auth';
+import { query, validationResult } from 'express-validator';
+import { prisma } from '../utils/prisma';
+
+const router = Router();
+
+// Public products endpoint - shows default prices for guests, special prices for logged-in customers
+router.get(
+  '/products/public',
+  optionalAuthenticate,
+  [
+    query('q').optional().isString().withMessage('Query must be a string'),
+    query('category').optional().isString(),
+    query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const query = (req.query.q as string) || '';
+      const category = req.query.category as string | undefined;
+      const supplierId = req.query.supplierId as string | undefined;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const skip = (page - 1) * limit;
+
+      // Build where clause
+      const where: any = {
+        isActive: true,
+      };
+
+      if (supplierId) {
+        where.supplierId = supplierId;
+      }
+
+      if (category) {
+        where.category = category;
+      }
+
+      if (query) {
+        where.OR = [
+          { name: { contains: query, mode: 'insensitive' } },
+          { sku: { contains: query, mode: 'insensitive' } },
+          { description: { contains: query, mode: 'insensitive' } },
+        ];
+      }
+
+      // Get all categories for fallback images
+      const categories = await prisma.category.findMany({
+        select: {
+          name: true,
+          imageUrl: true,
+        },
+      });
+      const categoryImageMap = new Map(
+        categories.map((cat) => [cat.name, cat.imageUrl])
+      );
+
+      // Get products with suppliers and prices
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            supplier: {
+              select: {
+                id: true,
+                name: true,
+                logoUrl: true,
+              },
+            },
+            images: {
+              orderBy: { displayOrder: 'asc' },
+              take: 1, // Only get first image for list view
+              select: {
+                id: true,
+                imageUrl: true,
+              },
+            },
+            defaultPrices: {
+              where: {
+                isActive: true,
+                OR: [
+                  { effectiveUntil: null },
+                  { effectiveUntil: { gte: new Date() } },
+                ],
+              },
+              orderBy: { effectiveFrom: 'desc' },
+              take: 1,
+            },
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            name: 'asc',
+          },
+        }),
+        prisma.product.count({ where }),
+      ]);
+
+      // Get private prices for customers if logged in
+      let privatePriceMap = new Map();
+      if (req.userRole === 'customer' && req.userId) {
+        const productIds = products.map((p) => p.id);
+        const privatePrices = await prisma.privatePrice.findMany({
+          where: {
+            productId: { in: productIds },
+            // For customers, we need to find prices that are available to them
+            // Since customers don't have a tenant, we'll look for prices that might be customer-specific
+            // For now, we'll check if there's a way to link customer to company prices
+            // This might need adjustment based on business logic
+            isActive: true,
+            OR: [
+              { effectiveUntil: null },
+              { effectiveUntil: { gte: new Date() } },
+            ],
+          },
+          orderBy: { effectiveFrom: 'desc' },
+        });
+
+        // For customers, we might want to show special customer prices
+        // This is a placeholder - you may need to adjust based on your business logic
+        privatePriceMap = new Map(
+          privatePrices.map((pp) => [pp.productId, pp])
+        );
+      }
+
+      // Combine products with prices
+      const productsWithPrices = products.map((product) => {
+        const privatePrice = privatePriceMap.get(product.id);
+        const defaultPrice = product.defaultPrices[0];
+        
+        // Use product image if available, otherwise use category default image
+        const productImageUrl = product.images[0]?.imageUrl || null;
+        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const finalImageUrl = productImageUrl || categoryImageUrl;
+
+        // Calculate prices
+        let finalPrice: number | null = null;
+        let finalCurrency: string | null = null;
+        let discountPercentage: number | null = null;
+        let calculatedPrice: number | null = null;
+
+        // For customers, show private prices if available
+        if (req.userRole === 'customer' && privatePrice) {
+          if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
+            discountPercentage = Number(privatePrice.discountPercentage);
+            const defaultPriceValue = Number(defaultPrice.price);
+            calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
+            calculatedPrice = Math.round(calculatedPrice * 100) / 100;
+            finalPrice = calculatedPrice;
+            finalCurrency = privatePrice.currency || defaultPrice.currency;
+          } else if (privatePrice.price !== null) {
+            finalPrice = Number(privatePrice.price);
+            finalCurrency = privatePrice.currency;
+          }
+        } else if (defaultPrice) {
+          // Show default price for guests or if no private price
+          finalPrice = Number(defaultPrice.price);
+          finalCurrency = defaultPrice.currency;
+        }
+
+        return {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          unit: product.unit,
+          supplierId: product.supplier.id,
+          supplierName: product.supplier.name,
+          supplierLogoUrl: product.supplier.logoUrl,
+          productImageUrl: finalImageUrl,
+          defaultPrice: defaultPrice ? {
+            price: Number(defaultPrice.price),
+            currency: defaultPrice.currency,
+          } : null,
+          privatePrice: (req.userRole === 'customer' && privatePrice) ? {
+            price: privatePrice.price ? Number(privatePrice.price) : null,
+            discountPercentage: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined 
+              ? Number(privatePrice.discountPercentage) 
+              : null,
+            calculatedPrice: calculatedPrice,
+            currency: privatePrice.currency,
+          } : null,
+          price: finalPrice,
+          priceType: (req.userRole === 'customer' && privatePrice) ? 'private' : defaultPrice ? 'default' : null,
+          currency: finalCurrency,
+        };
+      });
+
+      res.json({
+        products: productsWithPrices,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Public categories endpoint
+router.get(
+  '/products/public/categories',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const categories = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          category: { not: null },
+        },
+        select: {
+          category: true,
+        },
+        distinct: ['category'],
+        orderBy: {
+          category: 'asc',
+        },
+      });
+
+      const categoryList = categories
+        .map((c) => c.category)
+        .filter((c): c is string => c !== null);
+
+      res.json({ categories: categoryList });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Public suppliers endpoint
+router.get(
+  '/suppliers/public',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const suppliers = await prisma.tenant.findMany({
+        where: {
+          type: 'supplier',
+          isActive: true,
+          status: 'active',
+        },
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      res.json({ suppliers });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+export default router;
+
