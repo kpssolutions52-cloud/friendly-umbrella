@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { getActiveTenants, Tenant } from '@/lib/tenantApi';
 import { apiPost } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 type RegistrationType = 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
 
@@ -27,9 +27,11 @@ interface RegisterFormData {
   postalCode?: string;
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
-  const { refreshUser } = useAuth();
+  const searchParams = useSearchParams();
+  const { register: registerUser, refreshUser } = useAuth();
+  const returnUrl = searchParams.get('returnUrl');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,44 +143,37 @@ export default function RegisterPage() {
 
       console.log('Registration payload:', { ...payload, password: '***' });
 
-      const response = await apiPost<any>('/api/v1/auth/register', payload);
-
-      setSuccess(response.message || 'Registration successful!');
-      
-      // For customers, auto-login and redirect to home page
+      // For customers, use AuthContext register which handles auto-login and redirect
       if (data.registrationType === 'customer') {
-        // Auto-login customer
         try {
-          const loginResponse = await apiPost<any>('/api/v1/auth/login', {
+          await registerUser({
+            registrationType: 'customer',
             email: data.email,
             password: data.password,
-          });
-          
-          // Store tokens
-          if (loginResponse.tokens) {
-            localStorage.setItem('accessToken', loginResponse.tokens.accessToken);
-            localStorage.setItem('refreshToken', loginResponse.tokens.refreshToken);
-          }
-          
-          // Refresh user context
-          await refreshUser();
-          
-          // Redirect to home page
-          setTimeout(() => {
-            router.push('/');
-          }, 1500);
-        } catch (loginErr) {
-          // If auto-login fails, redirect to login page
-          setTimeout(() => {
-            router.push('/auth/login');
-          }, 2000);
+            firstName: data.firstName,
+            lastName: data.lastName,
+          }, returnUrl || undefined);
+          // registerUser will handle redirect, so we don't need to set success here
+          setSuccess('Registration successful! Redirecting...');
+        } catch (registerErr: any) {
+          // If registration fails, show error
+          setError(registerErr?.error?.message || 'Registration failed. Please try again.');
+          setLoading(false);
         }
-      } else {
-        // For other registration types, redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push('/auth/login?pending=true');
-        }, 3000);
+        return;
       }
+
+      // For other registration types, use direct API call
+      const response = await apiPost<any>('/api/v1/auth/register', payload);
+      setSuccess(response.message || 'Registration successful!');
+      
+      // For other registration types, redirect to login after 2 seconds
+      const loginUrl = returnUrl 
+        ? `/auth/login?pending=true&returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/auth/login?pending=true';
+      setTimeout(() => {
+        router.push(loginUrl);
+      }, 2000);
     } catch (err: any) {
       console.error('Registration error:', err);
       
@@ -488,5 +483,20 @@ export default function RegisterPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-2 text-gray-500">Loading...</p>
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

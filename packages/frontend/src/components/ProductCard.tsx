@@ -45,9 +45,9 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const discountPercentage = product.privatePrice?.discountPercentage || null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col">
       {/* Product Image */}
-      <div className="relative w-full h-48 bg-gray-100">
+      <div className="relative w-full h-48 sm:h-56 bg-gray-100 overflow-hidden">
         {product.productImageUrl ? (
           <img
             src={product.productImageUrl}
@@ -70,13 +70,13 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
       </div>
 
       {/* Product Details */}
-      <div className="p-4">
+      <div className="p-4 sm:p-5 flex-1 flex flex-col">
         {/* Product Name and SKU */}
-        <div className="mb-3">
-          <h3 className="text-base font-semibold text-gray-900 line-clamp-2 mb-1">
+        <div className="mb-3 flex-1">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 mb-1.5 leading-tight">
             {product.name}
           </h3>
-          <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">SKU: {product.sku}</p>
         </div>
 
         {/* Supplier Info */}
@@ -110,23 +110,26 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         <div className="mb-4">
           {displayPrice !== null ? (
             <div>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 {hasSpecialPrice && product.defaultPrice && (
-                  <span className="text-xs text-gray-400 line-through">
+                  <span className="text-xs sm:text-sm text-gray-400 line-through">
                     {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
                   </span>
                 )}
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-xl sm:text-2xl font-bold text-gray-900">
                   {priceCurrency} {displayPrice.toFixed(2)}
                 </span>
               </div>
               {hasSpecialPrice && discountPercentage !== null && (
-                <p className="text-xs text-green-600 font-medium mt-1">
+                <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
                   {discountPercentage.toFixed(1)}% savings
                 </p>
               )}
               {hasSpecialPrice && discountPercentage === null && (
-                <p className="text-xs text-green-600 font-medium mt-1">Special rate</p>
+                <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5">Special rate</p>
               )}
             </div>
           ) : (
@@ -137,8 +140,8 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         {/* View Details Button */}
         <Button
           onClick={onViewDetails}
-          className="w-full touch-target"
-          variant="outline"
+          className="w-full touch-target h-11 sm:h-12 text-sm sm:text-base font-semibold"
+          variant="default"
         >
           View Details
         </Button>

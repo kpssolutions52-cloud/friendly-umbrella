@@ -18,6 +18,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const returnUrl = searchParams.get('returnUrl');
 
   // Check for pending registration message
   useEffect(() => {
@@ -38,7 +39,7 @@ function LoginForm() {
     try {
       setLoading(true);
       setError(null);
-      await login(data);
+      await login(data, returnUrl || undefined);
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err?.error?.message || err?.message || err?.toString() || 'Login failed. Please check your credentials.';
@@ -58,7 +59,7 @@ function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link
-              href="/auth/register"
+              href={returnUrl ? `/auth/register?returnUrl=${encodeURIComponent(returnUrl)}` : '/auth/register'}
               className="font-medium text-primary hover:text-primary/80 touch-target"
             >
               create a new account

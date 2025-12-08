@@ -18,8 +18,8 @@ import {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (input: LoginInput, returnUrl?: string) => Promise<void>;
+  register: (input: RegisterInput, returnUrl?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (input: LoginInput) => {
+  const login = async (input: LoginInput, returnUrl?: string) => {
     const response = await apiLogin(input);
     
     if (!response.tokens) {
@@ -67,27 +67,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Don't fail login if refresh fails, we can still use the response data
     }
     
+    // If returnUrl is provided and user is customer, redirect to returnUrl
+    if (returnUrl && response.user.role === 'customer') {
+      router.push(returnUrl);
+      return;
+    }
+    
     // Get tenantType from refreshed user or response
     const updatedUser = await getCurrentUser().catch(() => null);
     
     // Check if super admin
     if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
-      router.push('/admin/dashboard');
+      router.push(returnUrl || '/admin/dashboard');
       return;
     }
     
     const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
-    router.push(getDashboardPath(tenantType));
+    router.push(returnUrl || getDashboardPath(tenantType));
   };
 
-  const register = async (input: RegisterInput) => {
+  const register = async (input: RegisterInput, returnUrl?: string) => {
     const response = await apiRegister(input);
     
     // Check if registration was successful but pending (no tokens)
     // Type guard: check if response has tokens property and it's defined
     if (!('tokens' in response) || !response.tokens) {
-      // Registration successful but pending approval - redirect to login with message
-      router.push('/auth/login?pending=true');
+      // Registration successful but pending approval - redirect to login with message and returnUrl
+      const loginUrl = returnUrl 
+        ? `/auth/login?pending=true&returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/auth/login?pending=true';
+      router.push(loginUrl);
       return;
     }
     
@@ -101,14 +110,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
     
+    // If returnUrl is provided and user is customer, redirect to returnUrl
+    if (returnUrl && authResponse.user.role === 'customer') {
+      router.push(returnUrl);
+      return;
+    }
+    
     // Check if super admin
     if (authResponse.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
-      router.push('/admin/dashboard');
+      router.push(returnUrl || '/admin/dashboard');
       return;
     }
     
     const tenantType = (updatedUser as any)?.tenant?.type || (authResponse.user as any)?.tenantType || 'supplier';
-    router.push(getDashboardPath(tenantType));
+    router.push(returnUrl || getDashboardPath(tenantType));
   };
 
   const logout = () => {
