@@ -8,10 +8,10 @@ import { uploadProductImage, deleteProductImage } from '../utils/supabase';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication (except GET /products/:id/images which allows customers)
 router.use(authenticate);
 
-// Require supplier tenant type
+// Require supplier tenant type (will be applied per-route, not globally)
 const requireSupplier = requireTenantType('supplier');
 
 // Configure multer for file uploads (memory storage)
