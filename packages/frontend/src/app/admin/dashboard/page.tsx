@@ -5,13 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { StatisticsOverview } from '@/components/admin/StatisticsOverview';
 import { PendingTenants } from '@/components/admin/PendingTenants';
+import { PendingCustomers } from '@/components/admin/PendingCustomers';
 import { Companies } from '@/components/admin/Companies';
 import { Suppliers } from '@/components/admin/Suppliers';
 import { SuperAdminManagement } from '@/components/admin/SuperAdminManagement';
 import { CategoryManagement } from '@/components/admin/CategoryManagement';
 
 type TabType = 'overview' | 'super-admins' | 'categories';
-type ViewType = 'overview' | 'pending' | 'companies' | 'suppliers';
+type ViewType = 'overview' | 'pending' | 'companies' | 'suppliers' | 'customers';
 
 export default function AdminDashboardPage() {
   const { user, logout } = useAuth();
@@ -109,6 +110,19 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
                 <PendingTenants />
+              </>
+            )}
+            {activeView === 'customers' && (
+              <>
+                <div className="mb-4">
+                  <button
+                    onClick={() => setActiveView('overview')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    ← Back to Overview
+                  </button>
+                </div>
+                <PendingCustomers />
               </>
             )}
             {activeView === 'companies' && (

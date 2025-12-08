@@ -199,6 +199,60 @@ router.get(
   }
 );
 
+// GET /api/v1/admin/customers/pending - Get all pending customer requests
+router.get(
+  '/customers/pending',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const customers = await superAdminService.getPendingCustomers();
+      res.json({ customers });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/admin/customers/:customerId/approve - Approve or reject a customer
+router.post(
+  '/customers/:customerId/approve',
+  [
+    param('customerId').isUUID(),
+    body('approved').isBoolean(),
+    body('reason').optional().isString(),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { customerId } = req.params;
+      const input = approveTenantSchema.parse(req.body);
+      const superAdminId = req.userId!;
+
+      const customer = await superAdminService.approveCustomer(
+        customerId,
+        input.approved,
+        superAdminId,
+        input.reason
+      );
+
+      res.json({
+        message: input.approved
+          ? 'Customer approved successfully'
+          : 'Customer rejected successfully',
+        customer,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  }
+);
+
 export default router;
 
 

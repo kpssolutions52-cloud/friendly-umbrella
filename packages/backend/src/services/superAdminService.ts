@@ -262,10 +262,74 @@ export class SuperAdminService {
   }
 
   /**
+   * Get all pending customer registration requests
+   */
+  async getPendingCustomers() {
+    const customers = await prisma.user.findMany({
+      where: {
+        role: 'customer',
+        status: 'pending',
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return customers;
+  }
+
+  /**
+   * Approve or reject a customer registration request
+   */
+  async approveCustomer(
+    customerId: string,
+    approved: boolean,
+    superAdminId: string,
+    reason?: string
+  ) {
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      throw createError(404, 'Customer not found');
+    }
+
+    if (customer.role !== 'customer') {
+      throw createError(400, 'User is not a customer');
+    }
+
+    if (customer.status !== 'pending') {
+      throw createError(400, `Customer is already ${customer.status}`);
+    }
+
+    return prisma.user.update({
+      where: { id: customerId },
+      data: {
+        status: approved ? 'active' : 'rejected',
+        isActive: approved,
+        approvedBy: approved ? superAdminId : null,
+        approvedAt: approved ? new Date() : null,
+        rejectedBy: approved ? null : superAdminId,
+        rejectedAt: approved ? null : new Date(),
+        rejectionReason: approved ? null : reason,
+      },
+    });
+  }
+
+  /**
    * Get tenant statistics
    */
   async getStatistics() {
-    const [pendingTenants, activeTenants, rejectedTenants, totalUsers, companies, suppliers] =
+    const [pendingTenants, activeTenants, rejectedTenants, totalUsers, companies, suppliers, pendingCustomers] =
       await Promise.all([
         prisma.tenant.count({ where: { status: 'pending' } }),
         prisma.tenant.count({ where: { status: 'active' } }),
@@ -273,6 +337,7 @@ export class SuperAdminService {
         prisma.user.count({ where: { role: { not: 'super_admin' } } }),
         prisma.tenant.count({ where: { type: 'company' } }),
         prisma.tenant.count({ where: { type: 'supplier' } }),
+        prisma.user.count({ where: { role: 'customer', status: 'pending' } }),
       ]);
 
     return {
@@ -285,6 +350,7 @@ export class SuperAdminService {
       },
       users: {
         total: totalUsers,
+        pending: pendingCustomers,
       },
     };
   }

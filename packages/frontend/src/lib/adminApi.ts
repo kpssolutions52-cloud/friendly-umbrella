@@ -41,6 +41,15 @@ export interface SuperAdmin {
   createdAt: string;
 }
 
+export interface Customer {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  status: 'pending' | 'active' | 'rejected';
+  createdAt: string;
+}
+
 export interface Statistics {
   tenants: {
     pending: number;
@@ -51,6 +60,7 @@ export interface Statistics {
   };
   users: {
     total: number;
+    pending?: number;
   };
 }
 
@@ -158,6 +168,23 @@ export async function uploadCategoryImage(id: string, file: File): Promise<{ mes
 // Delete category image
 export async function deleteCategoryImage(id: string): Promise<{ message: string; category: Category }> {
   return apiDelete<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}/image`);
+}
+
+// Get pending customers
+export async function getPendingCustomers(): Promise<{ customers: Customer[] }> {
+  return apiGet<{ customers: Customer[] }>(`${BASE_PATH}/customers/pending`);
+}
+
+// Approve or reject a customer
+export async function approveCustomer(
+  customerId: string,
+  approved: boolean,
+  reason?: string
+): Promise<{ message: string; customer: Customer }> {
+  return apiPost<{ message: string; customer: Customer }>(`${BASE_PATH}/customers/${customerId}/approve`, {
+    approved,
+    reason,
+  });
 }
 
 

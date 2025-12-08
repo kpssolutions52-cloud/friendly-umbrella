@@ -130,7 +130,7 @@ export class AuthService {
     // Hash password
     const passwordHash = await hashPassword(input.password);
 
-    // Create customer user - customers are auto-approved and active
+    // Create customer user - customers require admin approval
     const user = await prisma.user.create({
       data: {
         tenantId: null, // Customers don't have tenants
@@ -139,14 +139,14 @@ export class AuthService {
         firstName: input.firstName,
         lastName: input.lastName,
         role: 'customer',
-        status: 'active', // Customers are auto-approved
-        isActive: true,
+        status: 'pending', // Customers require admin approval
+        isActive: false,
         permissions: {}, // Customers have no special permissions
       },
     });
 
     return {
-      message: 'Registration successful. You can now browse products and see special prices.',
+      message: 'Registration submitted successfully. Your account is pending admin approval.',
       user: {
         id: user.id,
         email: user.email,
