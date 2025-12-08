@@ -30,7 +30,7 @@ export function ProductImageCarousel({ images, productName = 'Product' }: Produc
 
   const goToNext = () => {
     setCurrentIndex((prev) => (prev === normalizedImages.length - 1 ? 0 : prev + 1));
-  });
+  };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
