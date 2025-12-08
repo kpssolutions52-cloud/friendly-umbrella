@@ -49,6 +49,7 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('default');
   const productsPerPage = 20;
 
   useEffect(() => {
@@ -136,6 +137,38 @@ export default function Home() {
   const handleSupplierChange = (supplierId: string) => {
     setSelectedSupplier(supplierId);
     setCurrentPage(1);
+  };
+
+  const getEffectivePrice = (product: PublicProduct): number => {
+    // Priority: price > privatePrice.calculatedPrice > defaultPrice.price
+    if (product.price !== null) {
+      return product.price;
+    }
+    if (product.privatePrice?.calculatedPrice !== null && product.privatePrice?.calculatedPrice !== undefined) {
+      return product.privatePrice.calculatedPrice;
+    }
+    if (product.defaultPrice?.price) {
+      return product.defaultPrice.price;
+    }
+    return 0; // Fallback for products without price
+  };
+
+  const sortProducts = (productsToSort: PublicProduct[]): PublicProduct[] => {
+    const sorted = [...productsToSort];
+    
+    switch (sortBy) {
+      case 'price-low-high':
+        return sorted.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
+      case 'price-high-low':
+        return sorted.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
+      case 'name-a-z':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name-z-a':
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      case 'default':
+      default:
+        return sorted; // Keep original order
+    }
   };
 
   if (authLoading) {
@@ -322,7 +355,7 @@ export default function Home() {
 
         {/* Products Section */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               Products
               {products.length > 0 && (
@@ -331,6 +364,23 @@ export default function Home() {
                 </span>
               )}
             </h2>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Sort by:
+              </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 sm:flex-initial rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              >
+                <option value="default">Default</option>
+                <option value="price-low-high">Price: Low to High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="name-a-z">Name: A to Z</option>
+                <option value="name-z-a">Name: Z to A</option>
+              </select>
+            </div>
           </div>
 
           {isLoadingProducts ? (
@@ -348,7 +398,7 @@ export default function Home() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
-                {products.map((product) => (
+                {sortProducts(products).map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}

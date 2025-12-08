@@ -9,6 +9,7 @@ import superAdminRoutes from './superAdminRoutes';
 import categoryRoutes from './categoryRoutes';
 import tenantAdminRoutes from './tenantAdminRoutes';
 import publicRoutes from './publicRoutes';
+import companyRoutes from './companyRoutes';
 
 export function setupRoutes(app: Express) {
   // Public routes (no authentication required, but optional auth for customer prices)
