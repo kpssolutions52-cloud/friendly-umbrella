@@ -195,6 +195,18 @@ function RegisterForm() {
   return (
     <div className="flex min-h-screen items-start sm:items-center justify-center bg-gray-50 px-4 py-6 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-8">
+        {/* Back to Home Button */}
+        <div className="flex justify-start">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors touch-target"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </Link>
+        </div>
         <div>
           <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
             Create your account
