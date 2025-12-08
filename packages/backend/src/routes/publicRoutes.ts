@@ -9,19 +9,17 @@ const router = Router();
 router.get(
   '/products/public',
   optionalAuthenticate,
-  [
-    query('q').optional().isString().withMessage('Query must be a string'),
-    query('category').optional().isString(),
-    query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
-    query('page')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Page must be a positive integer'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-  ],
+  query('q').optional().isString().withMessage('Query must be a string'),
+  query('category').optional().isString(),
+  query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
+  query('page')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -58,15 +56,21 @@ router.get(
       }
 
       // Get all categories for fallback images
-      const categories = await prisma.category.findMany({
-        select: {
-          name: true,
-          imageUrl: true,
-        },
-      });
-      const categoryImageMap = new Map(
-        categories.map((cat) => [cat.name, cat.imageUrl])
-      );
+      let categoryImageMap = new Map<string, string | null>();
+      try {
+        const categories = await prisma.category.findMany({
+          select: {
+            name: true,
+            imageUrl: true,
+          },
+        });
+        categoryImageMap = new Map(
+          categories.map((cat) => [cat.name, cat.imageUrl])
+        );
+      } catch (categoryError) {
+        // Categories table might not exist yet - continue without category images
+        console.warn('Failed to load categories for images:', categoryError);
+      }
 
       // Get products with suppliers and prices
       const [products, total] = await Promise.all([
@@ -105,36 +109,22 @@ router.get(
           orderBy: {
             name: 'asc',
           },
+        }).catch((error) => {
+          console.error('Error fetching products:', error);
+          throw error;
         }),
-        prisma.product.count({ where }),
+        prisma.product.count({ where }).catch((error) => {
+          console.error('Error counting products:', error);
+          throw error;
+        }),
       ]);
 
       // Get private prices for customers if logged in
+      // Note: Private prices are company-specific, so customers won't see them
+      // This is a placeholder for future customer-specific pricing logic
       let privatePriceMap = new Map();
-      if (req.userRole === 'customer' && req.userId) {
-        const productIds = products.map((p) => p.id);
-        const privatePrices = await prisma.privatePrice.findMany({
-          where: {
-            productId: { in: productIds },
-            // For customers, we need to find prices that are available to them
-            // Since customers don't have a tenant, we'll look for prices that might be customer-specific
-            // For now, we'll check if there's a way to link customer to company prices
-            // This might need adjustment based on business logic
-            isActive: true,
-            OR: [
-              { effectiveUntil: null },
-              { effectiveUntil: { gte: new Date() } },
-            ],
-          },
-          orderBy: { effectiveFrom: 'desc' },
-        });
-
-        // For customers, we might want to show special customer prices
-        // This is a placeholder - you may need to adjust based on your business logic
-        privatePriceMap = new Map(
-          privatePrices.map((pp) => [pp.productId, pp])
-        );
-      }
+      // For now, customers see default prices only
+      // Future: Implement customer-specific pricing if needed
 
       // Combine products with prices
       const productsWithPrices = products.map((product) => {
