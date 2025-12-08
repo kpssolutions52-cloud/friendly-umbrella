@@ -51,7 +51,7 @@ router.get('/suppliers', requireCompany, async (req: AuthRequest, res: Response,
 router.get(
   '/suppliers/:id',
   requireCompany,
-  [param('id').isUUID().withMessage('Invalid supplier ID')],
+  param('id').isUUID().withMessage('Invalid supplier ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -302,7 +302,7 @@ router.get(
 router.get(
   '/products/:id/price',
   requireCompany,
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);

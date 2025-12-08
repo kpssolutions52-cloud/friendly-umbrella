@@ -190,7 +190,7 @@ router.post(
 router.get(
   '/products/:id/private-prices',
   requireTenantType('supplier'),
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -265,7 +265,7 @@ router.put(
 router.delete(
   '/private-prices/:id',
   requireTenantType('supplier'),
-  [param('id').isUUID().withMessage('Invalid private price ID')],
+  param('id').isUUID().withMessage('Invalid private price ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -285,7 +285,7 @@ router.delete(
 router.get(
   '/products/:id/price-history',
   requireTenantType('supplier'),
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);

@@ -57,7 +57,7 @@ router.get(
 // GET /api/v1/admin/categories/:id - Get a single category
 router.get(
   '/categories/:id',
-  [param('id').isUUID()],
+  param('id').isUUID(),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -84,7 +84,7 @@ router.get(
 // POST /api/v1/admin/categories - Create a new category
 router.post(
   '/categories',
-  [body('name').isString().trim().isLength({ min: 1, max: 100 })],
+  body('name').isString().trim().isLength({ min: 1, max: 100 }),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -125,10 +125,8 @@ router.post(
 // PUT /api/v1/admin/categories/:id - Update a category
 router.put(
   '/categories/:id',
-  [
-    param('id').isUUID(),
-    body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
-  ],
+  param('id').isUUID(),
+  body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -182,10 +180,8 @@ router.put(
 // POST /api/v1/admin/categories/:id/image - Upload category image
 router.post(
   '/categories/:id/image',
-  [
-    param('id').isUUID(),
-    upload.single('image'),
-  ],
+  param('id').isUUID(),
+  upload.single('image'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -258,7 +254,7 @@ router.post(
 // DELETE /api/v1/admin/categories/:id/image - Delete category image
 router.delete(
   '/categories/:id/image',
-  [param('id').isUUID()],
+  param('id').isUUID(),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -308,7 +304,7 @@ router.delete(
 // DELETE /api/v1/admin/categories/:id - Delete a category
 router.delete(
   '/categories/:id',
-  [param('id').isUUID()],
+  param('id').isUUID(),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);

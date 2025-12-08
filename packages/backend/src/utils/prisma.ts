@@ -22,6 +22,13 @@ const getDatabaseUrl = () => {
   return dbUrl;
 };
 
+// Override DATABASE_URL environment variable before creating PrismaClient
+// This ensures the computed database URL is used by Prisma
+const computedDatabaseUrl = getDatabaseUrl();
+if (computedDatabaseUrl && computedDatabaseUrl !== process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = computedDatabaseUrl;
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
@@ -29,11 +36,6 @@ export const prisma =
       process.env.NODE_ENV === 'development'
         ? ['query', 'error', 'warn']
         : ['error'],
-    datasources: {
-      db: {
-        url: getDatabaseUrl(),
-      },
-    },
   });
 
 if (process.env.NODE_ENV !== 'production') {

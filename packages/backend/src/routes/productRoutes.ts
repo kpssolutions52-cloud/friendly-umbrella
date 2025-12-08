@@ -104,7 +104,7 @@ router.get('/products/stats', async (req: AuthRequest, res, next) => {
 // GET /api/v1/products/:id - Get single product
 router.get(
   '/products/:id',
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -191,7 +191,7 @@ router.put(
 router.delete(
   '/products/:id',
   requireTenantAdmin(), // Only supplier admin can delete products
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);

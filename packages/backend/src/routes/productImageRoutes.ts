@@ -33,7 +33,7 @@ const upload = multer({
 // GET /api/v1/products/:id/images - Get all images for a product
 router.get(
   '/products/:id/images',
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -84,7 +84,7 @@ router.post(
   '/products/:id/images',
   requireSupplier,
   upload.single('image'),
-  [param('id').isUUID().withMessage('Invalid product ID')],
+  param('id').isUUID().withMessage('Invalid product ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -183,10 +183,8 @@ router.post(
 router.delete(
   '/products/:id/images/:imageId',
   requireSupplier,
-  [
-    param('id').isUUID().withMessage('Invalid product ID'),
-    param('imageId').isUUID().withMessage('Invalid image ID'),
-  ],
+  param('id').isUUID().withMessage('Invalid product ID'),
+  param('imageId').isUUID().withMessage('Invalid image ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -248,10 +246,8 @@ router.delete(
 router.put(
   '/products/:id/images/:imageId/order',
   requireSupplier,
-  [
-    param('id').isUUID().withMessage('Invalid product ID'),
-    param('imageId').isUUID().withMessage('Invalid image ID'),
-  ],
+  param('id').isUUID().withMessage('Invalid product ID'),
+  param('imageId').isUUID().withMessage('Invalid image ID'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
