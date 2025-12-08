@@ -55,37 +55,21 @@ export default function ProductDetailsPage() {
       setLoading(true);
       setError(null);
       
-      // Search for product by ID (using the ID as search query)
-      const response = await apiGet<{ products: ProductDetails[] }>(
-        `/api/v1/products/public?q=${productId}&limit=100`
+      // Fetch product directly by ID using public endpoint
+      const response = await apiGet<{ product: ProductDetails }>(
+        `/api/v1/products/public/${productId}`
       );
       
-      // Find the exact product by ID
-      const foundProduct = response.products.find(p => p.id === productId);
-      
-      if (foundProduct) {
-        // Try to fetch full product images
-        let productImages: Array<{ id: string; imageUrl: string; displayOrder: number }> = [];
-        
-        try {
-          const imagesResponse = await apiGet<{ images: Array<{ id: string; imageUrl: string; displayOrder: number }> }>(
-            `/api/v1/products/${productId}/images`
-          );
-          productImages = imagesResponse.images || [];
-        } catch (imageError) {
-          // Images endpoint might require auth, that's okay
-          console.log('Could not fetch product images:', imageError);
-        }
-        
-        // Use fetched images, or fallback to productImageUrl, or empty array
+      if (response.product) {
+        // Use product images from response, or fallback to productImageUrl
         const productWithImages: ProductDetails = {
-          ...foundProduct,
-          images: productImages.length > 0
-            ? productImages
-            : foundProduct.productImageUrl
+          ...response.product,
+          images: response.product.images && response.product.images.length > 0
+            ? response.product.images
+            : response.product.productImageUrl
             ? [{
                 id: 'main',
-                imageUrl: foundProduct.productImageUrl,
+                imageUrl: response.product.productImageUrl,
                 displayOrder: 0,
               }]
             : [],

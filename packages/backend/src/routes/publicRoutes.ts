@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { optionalAuthenticate, AuthRequest } from '../middleware/auth';
-import { query, validationResult } from 'express-validator';
+import { query, param, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
 
 const router = Router();
@@ -199,6 +199,150 @@ router.get(
           totalPages: Math.ceil(total / limit),
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/v1/products/public/:id - Get single product by ID (public access)
+router.get(
+  '/products/public/:id',
+  optionalAuthenticate,
+  param('id').isUUID().withMessage('Invalid product ID'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const productId = req.params.id;
+
+      // Get product with supplier and prices
+      const product = await prisma.product.findFirst({
+        where: {
+          id: productId,
+          isActive: true,
+        },
+        include: {
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true,
+            },
+          },
+          images: {
+            orderBy: { displayOrder: 'asc' },
+            select: {
+              id: true,
+              imageUrl: true,
+              displayOrder: true,
+            },
+          },
+          defaultPrices: {
+            where: {
+              isActive: true,
+              OR: [
+                { effectiveUntil: null },
+                { effectiveUntil: { gte: new Date() } },
+              ],
+            },
+            orderBy: { effectiveFrom: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (!product) {
+        return res.status(404).json({ error: { message: 'Product not found', statusCode: 404 } });
+      }
+
+      // Get category image if available
+      let categoryImageUrl: string | null = null;
+      if (product.category) {
+        try {
+          const category = await prisma.category.findFirst({
+            where: { name: product.category },
+            select: { imageUrl: true },
+          });
+          categoryImageUrl = category?.imageUrl || null;
+        } catch (categoryError) {
+          // Category might not exist, that's okay
+        }
+      }
+
+      // Use product image if available, otherwise use category default image
+      const productImageUrl = product.images[0]?.imageUrl || categoryImageUrl;
+
+      // Get private prices for customers if logged in (future: customer-specific pricing)
+      let privatePriceMap = new Map();
+      // For now, customers see default prices only
+      // Future: Implement customer-specific pricing if needed
+
+      const privatePrice = privatePriceMap.get(product.id);
+      const defaultPrice = product.defaultPrices[0];
+
+      // Calculate prices
+      let finalPrice: number | null = null;
+      let finalCurrency: string | null = null;
+      let discountPercentage: number | null = null;
+      let calculatedPrice: number | null = null;
+
+      // For customers, show private prices if available
+      if (req.userRole === 'customer' && privatePrice) {
+        if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
+          discountPercentage = Number(privatePrice.discountPercentage);
+          const defaultPriceValue = Number(defaultPrice.price);
+          calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
+          calculatedPrice = Math.round(calculatedPrice * 100) / 100;
+          finalPrice = calculatedPrice;
+          finalCurrency = privatePrice.currency || defaultPrice.currency;
+        } else if (privatePrice.price !== null) {
+          finalPrice = Number(privatePrice.price);
+          finalCurrency = privatePrice.currency;
+        }
+      } else if (defaultPrice) {
+        // Show default price for guests or if no private price
+        finalPrice = Number(defaultPrice.price);
+        finalCurrency = defaultPrice.currency;
+      }
+
+      const productWithPrices = {
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        unit: product.unit,
+        supplierId: product.supplier.id,
+        supplierName: product.supplier.name,
+        supplierLogoUrl: product.supplier.logoUrl,
+        productImageUrl: productImageUrl,
+        defaultPrice: defaultPrice ? {
+          price: Number(defaultPrice.price),
+          currency: defaultPrice.currency,
+        } : null,
+        privatePrice: (req.userRole === 'customer' && privatePrice) ? {
+          price: privatePrice.price ? Number(privatePrice.price) : null,
+          discountPercentage: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined 
+            ? Number(privatePrice.discountPercentage) 
+            : null,
+          calculatedPrice: calculatedPrice,
+          currency: privatePrice.currency,
+        } : null,
+        price: finalPrice,
+        priceType: (req.userRole === 'customer' && privatePrice) ? 'private' : defaultPrice ? 'default' : null,
+        currency: finalCurrency,
+        images: product.images.map(img => ({
+          id: img.id,
+          imageUrl: img.imageUrl,
+          displayOrder: img.displayOrder,
+        })),
+      };
+
+      res.json({ product: productWithPrices });
     } catch (error) {
       next(error);
     }
