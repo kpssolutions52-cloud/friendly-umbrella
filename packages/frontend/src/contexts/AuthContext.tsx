@@ -67,12 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Don't fail login if refresh fails, we can still use the response data
     }
     
-    // If returnUrl is provided and user is customer, redirect to returnUrl
-    if (returnUrl && response.user.role === 'customer') {
-      router.push(returnUrl);
-      return;
-    }
-    
     // Get tenantType from refreshed user or response
     const updatedUser = await getCurrentUser().catch(() => null);
     
@@ -82,6 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
+    // Handle customer - redirect to customer dashboard or returnUrl
+    if (response.user.role === 'customer' || updatedUser?.role === 'customer') {
+      router.push(returnUrl || '/customer/dashboard');
+      return;
+    }
+    
+    // Handle other users with tenants
     const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
     router.push(returnUrl || getDashboardPath(tenantType));
   };
@@ -110,15 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
     
-    // If returnUrl is provided and user is customer, redirect to returnUrl
-    if (returnUrl && authResponse.user.role === 'customer') {
-      router.push(returnUrl);
-      return;
-    }
-    
     // Check if super admin
     if (authResponse.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
       router.push(returnUrl || '/admin/dashboard');
+      return;
+    }
+    
+    // Handle customer - redirect to customer dashboard or returnUrl
+    if (authResponse.user.role === 'customer' || updatedUser?.role === 'customer') {
+      router.push(returnUrl || '/customer/dashboard');
       return;
     }
     

@@ -130,7 +130,7 @@ export class AuthService {
     // Hash password
     const passwordHash = await hashPassword(input.password);
 
-    // Create customer user - customers require admin approval
+    // Create customer user - customers are auto-approved and active
     const user = await prisma.user.create({
       data: {
         tenantId: null, // Customers don't have tenants
@@ -139,14 +139,30 @@ export class AuthService {
         firstName: input.firstName,
         lastName: input.lastName,
         role: 'customer',
-        status: 'pending', // Customers require admin approval
-        isActive: false,
+        status: 'active', // Customers are auto-approved
+        isActive: true,
         permissions: {}, // Customers have no special permissions
       },
     });
 
+    // Generate tokens for customer (similar to login flow)
+    const { generateAccessToken, generateRefreshToken } = await import('../utils/jwt');
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      tenantId: null,
+      role: user.role,
+      tenantType: 'customer',
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      tenantId: null,
+      role: user.role,
+      tenantType: 'customer',
+    });
+
     return {
-      message: 'Registration submitted successfully. Your account is pending admin approval.',
+      message: 'Registration successful. You can now browse products and see special prices.',
       user: {
         id: user.id,
         email: user.email,
@@ -157,6 +173,10 @@ export class AuthService {
         tenantId: null,
         tenantType: 'customer',
         tenantStatus: null,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
       },
     };
   }

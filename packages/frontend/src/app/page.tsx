@@ -54,12 +54,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      // Redirect to appropriate dashboard (except customers who stay on landing page)
+      // Redirect to appropriate dashboard
       if (user.role === 'super_admin') {
         router.push('/admin/dashboard');
         return;
       }
-      if (user.role !== 'customer' && user.tenant) {
+      if (user.role === 'customer') {
+        router.push('/customer/dashboard');
+        return;
+      }
+      if (user.tenant) {
         const dashboardPath =
           user.tenant.type === 'supplier'
             ? '/supplier/dashboard'
@@ -68,7 +72,7 @@ export default function Home() {
         return;
       }
     }
-    // Customers and guests stay on landing page
+    // Guests stay on landing page
     loadProducts();
     loadCategories();
     loadSuppliers();

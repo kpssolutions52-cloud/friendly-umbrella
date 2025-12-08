@@ -143,7 +143,7 @@ function RegisterForm() {
 
       console.log('Registration payload:', { ...payload, password: '***' });
 
-      // For customers, use AuthContext register which handles redirect
+      // For customers, use AuthContext register which handles auto-login and redirect
       if (data.registrationType === 'customer') {
         try {
           await registerUser({
@@ -153,8 +153,8 @@ function RegisterForm() {
             firstName: data.firstName,
             lastName: data.lastName,
           }, returnUrl || undefined);
-          // registerUser will handle redirect to login with pending message
-          setSuccess('Registration submitted successfully! Your account is pending admin approval. Redirecting to login...');
+          // registerUser will handle auto-login and redirect to dashboard
+          setSuccess('Registration successful! Redirecting to dashboard...');
         } catch (registerErr: any) {
           // If registration fails, show error
           setError(registerErr?.error?.message || 'Registration failed. Please try again.');
