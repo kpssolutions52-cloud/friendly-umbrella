@@ -96,6 +96,8 @@ function DashboardContent() {
   
   const [companies, setCompanies] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
@@ -230,8 +232,22 @@ function DashboardContent() {
   useEffect(() => {
     if (showAddProductModal || showEditProductModal) {
       loadCompanies();
+      loadCategories();
     }
   }, [showAddProductModal, showEditProductModal]);
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const data = await apiGet<{ categories: string[] }>('/api/v1/products/public/categories');
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error('Failed to fetch categories:', err);
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const loadCompanies = async () => {
     try {
@@ -1327,14 +1343,21 @@ function DashboardContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Input
+                    <select
                       id="category"
                       name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      placeholder="Steel, Cement, etc."
-                    />
+                      disabled={isSubmitting || loadingCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select a category (optional)</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="currency">Currency</Label>
@@ -1745,14 +1768,21 @@ function DashboardContent() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="edit-category">Category</Label>
-                    <Input
+                    <select
                       id="edit-category"
                       name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      placeholder="Steel, Cement, etc."
-                    />
+                      disabled={isSubmitting || loadingCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select a category (optional)</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="edit-currency">Currency</Label>

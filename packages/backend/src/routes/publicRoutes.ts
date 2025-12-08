@@ -205,28 +205,22 @@ router.get(
   }
 );
 
-// Public categories endpoint
+// Public categories endpoint - fetch from categories table managed by super admin
 router.get(
   '/products/public/categories',
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const categories = await prisma.product.findMany({
-        where: {
-          isActive: true,
-          category: { not: null },
+      // Fetch categories from the categories table (managed by super admin)
+      const categories = await prisma.category.findMany({
+        orderBy: {
+          name: 'asc',
         },
         select: {
-          category: true,
-        },
-        distinct: ['category'],
-        orderBy: {
-          category: 'asc',
+          name: true,
         },
       });
 
-      const categoryList = categories
-        .map((c) => c.category)
-        .filter((c): c is string => c !== null);
+      const categoryList = categories.map((c) => c.name);
 
       res.json({ categories: categoryList });
     } catch (error) {
