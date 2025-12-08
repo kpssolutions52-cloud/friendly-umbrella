@@ -8,7 +8,7 @@ import { prisma } from '../utils/prisma';
 const router = Router();
 
 const registerSchema = z.object({
-  registrationType: z.enum(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user']),
+  registrationType: z.enum(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user', 'customer']),
   tenantName: z.string().min(1).optional(),
   tenantType: z.enum(['supplier', 'company']).optional(),
   tenantId: z.string().uuid().optional(),
@@ -66,7 +66,7 @@ router.post(
   '/auth/register',
   [
     body('registrationType')
-      .isIn(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user'])
+      .isIn(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user', 'customer'])
       .withMessage('Invalid registration type'),
     body('email').isEmail().withMessage('Valid email is required'),
     body('password')
@@ -99,11 +99,12 @@ router.post(
         if (!input.postalCode) {
           return res.status(400).json({ errors: [{ msg: 'Postal code is required' }] });
         }
-      } else {
+      } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user') {
         if (!input.tenantId) {
           return res.status(400).json({ errors: [{ msg: 'Tenant selection is required' }] });
         }
       }
+      // Customer registration doesn't require tenantId or other tenant-specific fields
 
       const result = await authService.register(input);
 
