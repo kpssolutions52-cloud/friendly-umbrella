@@ -295,6 +295,9 @@ export class AuthService {
 
     // Handle customer (no tenant)
     if (user.role === 'customer') {
+      if (user.status === 'pending') {
+        throw createError(403, 'Your account is pending admin approval. Please wait for approval before logging in.');
+      }
       if (user.status !== 'active' || !user.isActive) {
         throw createError(403, 'Your account is inactive');
       }
