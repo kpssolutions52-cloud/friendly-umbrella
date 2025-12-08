@@ -48,8 +48,16 @@ router.get(
         },
       });
       res.json({ categories });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error('Error fetching categories:', error);
+      // Provide more detailed error information
+      if (error.code === 'P2001' || error.message?.includes('does not exist')) {
+        return next(createError(500, 'Categories table does not exist. Please run database migrations.'));
+      }
+      if (error.code === 'P2025') {
+        return next(createError(404, 'Category not found'));
+      }
+      next(createError(500, `Failed to fetch categories: ${error.message || 'Unknown error'}`));
     }
   }
 );
