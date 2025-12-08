@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
+import { BottomNavigation } from '@/components/BottomNavigation';
 
 interface PublicProduct {
   id: string;
@@ -47,6 +48,7 @@ export default function Home() {
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 20;
 
   useEffect(() => {
@@ -147,9 +149,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0">
       {/* Modern Header */}
-      <header className="bg-white shadow-md sticky top-0 z-50 border-b border-gray-200">
+      <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center">
@@ -210,66 +212,112 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Search and Filters - Modern Card Design */}
-        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 border border-gray-100">
-          <form onSubmit={handleSearch} className="space-y-4">
-            {/* Search Bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 relative">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <Input
-                  type="text"
-                  placeholder="Search products by name, SKU, or description..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 h-11 sm:h-12 text-sm sm:text-base"
-                />
-              </div>
-              <Button type="submit" size="lg" className="w-full sm:w-auto h-11 sm:h-12 px-6 sm:px-8">
-                Search
-              </Button>
-            </div>
-            
-            {/* Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2 border-t border-gray-100">
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        {/* Mobile-First Modern Search - Sticky on Mobile */}
+        <div id="mobile-search-trigger" className="sticky top-16 sm:top-0 sm:relative z-30 mb-6">
+          <div className="bg-white rounded-xl shadow-lg sm:shadow-lg border border-gray-100 overflow-hidden">
+            <form onSubmit={handleSearch} className="space-y-0">
+              {/* Mobile Search Bar - Always Visible */}
+              <div className="flex items-center gap-2 p-3 sm:p-4">
+                <div className="flex-1 relative">
+                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <Input
+                    id="mobile-search-input"
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 h-12 sm:h-12 text-base sm:text-base border-0 focus-visible:ring-2 focus-visible:ring-blue-500 bg-gray-50 sm:bg-white"
+                  />
+                </div>
+                {/* Filter Toggle Button - Mobile Only */}
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`sm:hidden relative p-2.5 rounded-lg transition-colors ${
+                    showFilters || selectedCategory || selectedSupplier
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  aria-label="Toggle filters"
                 >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                  Supplier
-                </label>
-                <select
-                  value={selectedSupplier}
-                  onChange={(e) => handleSupplierChange(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  {(selectedCategory || selectedSupplier) && !showFilters && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
+                </button>
+                {/* Search Button - Mobile */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="sm:hidden h-12 px-4 flex-shrink-0"
                 >
-                  <option value="">All Suppliers</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </select>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </Button>
               </div>
-            </div>
-          </form>
+              
+              {/* Filters - Collapsible on Mobile, Always Visible on Desktop */}
+              <div
+                className={`${
+                  showFilters ? 'block' : 'hidden'
+                } sm:block border-t border-gray-100 bg-gray-50 sm:bg-white p-4 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4`}
+              >
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                    Supplier
+                  </label>
+                  <select
+                    value={selectedSupplier}
+                    onChange={(e) => handleSupplierChange(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    <option value="">All Suppliers</option>
+                    {suppliers.map((supplier) => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Clear Filters Button - Mobile Only */}
+                {(selectedCategory || selectedSupplier) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('');
+                      setSelectedSupplier('');
+                      setCurrentPage(1);
+                    }}
+                    className="sm:hidden w-full mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
         </div>
 
         {/* Products Section */}
@@ -351,6 +399,9 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation />
     </div>
   );
 }
