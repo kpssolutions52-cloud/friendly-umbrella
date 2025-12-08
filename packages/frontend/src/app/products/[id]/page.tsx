@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface ProductDetails {
@@ -49,20 +50,7 @@ export default function ProductDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      const returnUrl = `/products/${productId}`;
-      router.push(`/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-      return;
-    }
-    
-    if (productId && user) {
-      fetchProductDetails();
-    }
-  }, [productId, user, authLoading, router]);
-
-  const fetchProductDetails = async () => {
+  const fetchProductDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -112,7 +100,20 @@ export default function ProductDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const returnUrl = `/products/${productId}`;
+      router.push(`/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    
+    if (productId && user) {
+      fetchProductDetails();
+    }
+  }, [productId, user, authLoading, router, fetchProductDetails]);
 
   const hasSpecialPrice = product?.privatePrice !== null && 
     (product.privatePrice?.price !== null || product.privatePrice?.calculatedPrice !== null);
@@ -206,14 +207,16 @@ export default function ProductDetailsPage() {
             <div className="lg:sticky lg:top-24">
               {product.images && product.images.length > 0 ? (
                 <div className="rounded-xl overflow-hidden shadow-lg">
-                  <ProductImageCarousel images={product.images.map(img => img.imageUrl)} />
+                  <ProductImageCarousel images={product.images.map(img => img.imageUrl)} productName={product.name} />
                 </div>
               ) : product.productImageUrl ? (
                 <div className="relative w-full aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-lg">
-                  <img
+                  <Image
                     src={product.productImageUrl}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
                     }}
@@ -242,14 +245,18 @@ export default function ProductDetailsPage() {
               {/* Supplier Info */}
               <div className="flex items-center gap-3 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
                 {product.supplierLogoUrl ? (
-                  <img
-                    src={product.supplierLogoUrl}
-                    alt={product.supplierName}
-                    className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                  <div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full overflow-hidden border-2 border-gray-200">
+                    <Image
+                      src={product.supplierLogoUrl}
+                      alt={product.supplierName}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md">
                     {product.supplierName.charAt(0).toUpperCase()}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -244,14 +245,18 @@ function ProfileContent() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="flex-shrink-0">
                   {previewUrl ? (
-                    <img
-                      src={previewUrl}
-                      alt="Company logo"
-                      className="h-24 w-24 rounded-lg object-cover border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                    <div className="relative h-24 w-24 rounded-lg overflow-hidden border border-gray-200">
+                      <Image
+                        src={previewUrl}
+                        alt="Company logo"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="h-24 w-24 rounded-lg bg-gray-200 flex items-center justify-center text-2xl font-semibold text-gray-600">
                       {profile?.name?.charAt(0).toUpperCase() || '?'}

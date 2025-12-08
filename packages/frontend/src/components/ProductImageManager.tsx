@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { apiGet, apiDelete } from '@/lib/api';
@@ -176,11 +177,13 @@ export function ProductImageManager({ productId, onImagesChange, disabled }: Pro
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {images.map((image, index) => (
             <div key={image.id} className="relative group">
-              <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
-                <img
+              <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 relative">
+                <Image
                   src={image.imageUrl}
                   alt={`Product image ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage%3C/text%3E%3C/svg%3E';
                   }}

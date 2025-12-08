@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
 interface ProductCardProps {
@@ -49,10 +50,12 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
       {/* Product Image */}
       <div className="relative w-full h-48 sm:h-56 bg-gray-100 overflow-hidden">
         {product.productImageUrl ? (
-          <img
+          <Image
             src={product.productImageUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
             onError={(e) => {
               (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}
@@ -82,14 +85,18 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         {/* Supplier Info */}
         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
           {product.supplierLogoUrl ? (
-            <img
-              src={product.supplierLogoUrl}
-              alt={product.supplierName}
-              className="h-6 w-6 rounded-full object-cover border border-gray-200"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
+            <div className="relative h-6 w-6 rounded-full overflow-hidden border border-gray-200">
+              <Image
+                src={product.supplierLogoUrl}
+                alt={product.supplierName}
+                fill
+                className="object-cover"
+                unoptimized
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
           ) : (
             <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
               {product.supplierName.charAt(0).toUpperCase()}
