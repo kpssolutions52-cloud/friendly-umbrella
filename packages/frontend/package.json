@@ -4,6 +4,7 @@
   "description": "Frontend web application for Construction Pricing Platform",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/copy-docs.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
