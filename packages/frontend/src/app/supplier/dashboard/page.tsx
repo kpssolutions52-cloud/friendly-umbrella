@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,34 @@ interface Product {
 type FilterType = 'all' | 'active' | 'withPrices' | 'withPrivatePrices' | null;
 
 function DashboardContent() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
+
+  // Redirect to landing page if user is not authorized (wrong tenant type or not a supplier)
+  useEffect(() => {
+    if (!loading) {
+      if (!user || user.tenant?.type !== 'supplier') {
+        router.push('/');
+      }
+    }
+  }, [user, loading, router]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if user is not authorized (redirecting)
+  if (!user || user.tenant?.type !== 'supplier') {
+    return null;
+  }
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);

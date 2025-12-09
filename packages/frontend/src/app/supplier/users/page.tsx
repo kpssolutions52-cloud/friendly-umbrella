@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,23 +17,33 @@ export default function SupplierUsersPage() {
 }
 
 function UsersPageContent() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'supplier_admin';
+  // Redirect to landing page if user is not an admin
+  useEffect(() => {
+    if (!loading) {
+      if (!user || user.role !== 'supplier_admin') {
+        router.push('/');
+      }
+    }
+  }, [user, loading, router]);
 
-  if (!isAdmin) {
+  // Show loading while checking auth
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You must be an administrator to access user management.</p>
-          <Link href="/supplier/dashboard">
-            <Button className="mt-4">Go to Dashboard</Button>
-          </Link>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
     );
+  }
+
+  // Don't render anything if user is not authorized (redirecting)
+  if (!user || user.role !== 'supplier_admin') {
+    return null;
   }
 
   return (

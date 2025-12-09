@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { StatisticsOverview } from '@/components/admin/StatisticsOverview';
@@ -15,20 +16,35 @@ type TabType = 'overview' | 'super-admins' | 'categories';
 type ViewType = 'overview' | 'pending' | 'companies' | 'suppliers' | 'customers';
 
 export default function AdminDashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [activeView, setActiveView] = useState<ViewType>('overview');
 
-  // Check if user is super admin
-  if (user?.role !== 'super_admin') {
+  // Redirect to landing page if user is not a super admin
+  useEffect(() => {
+    if (!loading) {
+      if (!user || user.role !== 'super_admin') {
+        router.push('/');
+      }
+    }
+  }, [user, loading, router]);
+
+  // Show loading while checking auth
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You must be a super admin to access this page.</p>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-sm text-gray-600">Loading...</p>
         </div>
       </div>
     );
+  }
+
+  // Don't render anything if user is not authorized (redirecting)
+  if (!user || user.role !== 'super_admin') {
+    return null;
   }
 
   return (
