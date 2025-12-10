@@ -246,7 +246,8 @@ router.get(
           // Test if product_categories table exists
           await prisma.$queryRaw`SELECT id FROM product_categories LIMIT 1`;
           
-          const categoryObj = await (prisma as any).productCategory.findUnique({
+          // Use proper Prisma model (regenerate Prisma Client if this fails)
+          const categoryObj = await prisma.productCategory.findUnique({
             where: { id: category },
             include: {
               children: {
@@ -259,7 +260,7 @@ router.get(
           if (categoryObj) {
             // If it's a main category (has no parent), include products from main category and all subcategories
             if (!categoryObj.parentId) {
-              const subcategoryIds = categoryObj.children.map((child: any) => child.id);
+              const subcategoryIds = categoryObj.children.map((child) => child.id);
               // Include products assigned to the main category OR any of its subcategories
               where.categoryId = {
                 in: [category, ...subcategoryIds],
@@ -273,11 +274,22 @@ router.get(
             where.categoryId = category;
           }
         } catch (categoryError: any) {
-          // If category lookup fails (table doesn't exist or column missing), skip category filtering
-          console.warn('Category filtering not available:', categoryError.message);
-          // Remove categoryId from where clause if it was set
-          if (where.categoryId) {
-            delete where.categoryId;
+          // If category lookup fails (table doesn't exist, Prisma Client not regenerated, or other error)
+          console.error('Category filtering error:', categoryError.message);
+          console.error('Error code:', categoryError.code);
+          console.error('Error stack:', categoryError.stack);
+          
+          // Fall back to simple category ID filter
+          // This will still work if categoryId column exists but table query fails
+          try {
+            where.categoryId = category;
+          } catch (fallbackError: any) {
+            // If even that fails, skip category filtering entirely
+            console.warn('Category filtering completely unavailable, skipping category filter');
+            // Remove categoryId from where clause if it was set
+            if (where.categoryId) {
+              delete where.categoryId;
+            }
           }
         }
       }
@@ -295,7 +307,7 @@ router.get(
       let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
       if (includeCategory) {
         try {
-          const categories = await (prisma as any).productCategory.findMany({
+          const categories = await prisma.productCategory.findMany({
             where: { isActive: true },
             include: {
               parent: {
@@ -528,7 +540,7 @@ router.get(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       // Fetch categories from the product_categories table (managed by super admin)
-      const categories = await (prisma as any).productCategory.findMany({
+      const categories = await prisma.productCategory.findMany({
         where: { isActive: true },
         include: {
           parent: {
