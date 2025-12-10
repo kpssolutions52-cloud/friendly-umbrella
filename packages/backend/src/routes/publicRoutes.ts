@@ -20,6 +20,16 @@ router.get(
 
       const productId = req.params.id;
 
+      // Check if category_id column exists
+      let includeCategory = true;
+      try {
+        await prisma.$queryRaw`SELECT category_id FROM products LIMIT 1`;
+      } catch (testError: any) {
+        if (testError.code === 'P2022' || testError.message?.includes('category_id')) {
+          includeCategory = false;
+        }
+      }
+
       // Get product with supplier and prices
       const product = await prisma.product.findFirst({
         where: {
@@ -27,16 +37,18 @@ router.get(
           isActive: true,
         },
         include: {
-          category: {
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  name: true,
+          ...(includeCategory && {
+            category: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
-          },
+          }),
           supplier: {
             select: {
               id: true,
@@ -71,7 +83,7 @@ router.get(
       }
 
       // Use product image if available, otherwise use category default image
-      const categoryImageUrl = product.category?.iconUrl || null;
+      const categoryImageUrl = includeCategory && product.category ? product.category.iconUrl : null;
       const productImageUrl = product.images[0]?.imageUrl || categoryImageUrl;
 
       // Get private prices for customers if logged in (future: customer-specific pricing)
@@ -112,7 +124,9 @@ router.get(
         sku: product.sku,
         name: product.name,
         description: product.description,
-        category: product.category,
+        category: includeCategory && product.category 
+          ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name)
+          : (product as any).category || null, // Fallback to old category field if available
         unit: product.unit,
         supplierId: product.supplier.id,
         supplierName: product.supplier.name,
@@ -188,8 +202,13 @@ router.get(
       }
 
       // Handle category filtering: if main category, include all subcategories
+      // Only apply if category_id column exists
+      let canFilterByCategory = true;
       if (category) {
         try {
+          // Test if product_categories table exists
+          await prisma.$queryRaw`SELECT id FROM product_categories LIMIT 1`;
+          
           const categoryObj = await prisma.productCategory.findUnique({
             where: { id: category },
             include: {
@@ -216,10 +235,14 @@ router.get(
             // Category not found, filter by exact ID (will return no results)
             where.categoryId = category;
           }
-        } catch (categoryError) {
-          // If category lookup fails, fall back to exact match
-          console.warn('Failed to lookup category:', categoryError);
-          where.categoryId = category;
+        } catch (categoryError: any) {
+          // If category lookup fails (table doesn't exist or column missing), skip category filtering
+          console.warn('Category filtering not available:', categoryError.message);
+          canFilterByCategory = false;
+          // Remove categoryId from where clause if it was set
+          if (where.categoryId) {
+            delete where.categoryId;
+          }
         }
       }
 
@@ -231,40 +254,53 @@ router.get(
         ];
       }
 
-      // Get all categories for fallback images
+      // Get all categories for fallback images (only if product_categories table exists)
       let categoryImageMap = new Map<string, string | null>();
-      try {
-        const categories = await prisma.productCategory.findMany({
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            iconUrl: true,
-          },
-        });
-        categoryImageMap = new Map(
-          categories.map((cat) => [cat.id, cat.iconUrl])
-        );
-      } catch (categoryError) {
-        // Categories table might not exist yet - continue without category images
-        console.warn('Failed to load categories for images:', categoryError);
+      if (includeCategory) {
+        try {
+          const categories = await prisma.productCategory.findMany({
+            where: { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              iconUrl: true,
+            },
+          });
+          categoryImageMap = new Map(
+            categories.map((cat) => [cat.id, cat.iconUrl])
+          );
+        } catch (categoryError) {
+          // Categories table might not exist yet - continue without category images
+          console.warn('Failed to load categories for images:', categoryError);
+        }
       }
 
       // Get products with suppliers and prices
+      // Handle case where category_id column doesn't exist yet (graceful degradation)
+      let includeCategory = canFilterByCategory;
+      
+      // Remove categoryId from where if we can't filter by it
+      const finalWhere = { ...where };
+      if (!canFilterByCategory && finalWhere.categoryId) {
+        delete finalWhere.categoryId;
+      }
+
       const [products, total] = await Promise.all([
         prisma.product.findMany({
-          where,
+          where: finalWhere,
           include: {
-            category: {
-              include: {
-                parent: {
-                  select: {
-                    id: true,
-                    name: true,
+            ...(includeCategory && {
+              category: {
+                include: {
+                  parent: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
                   },
                 },
               },
-            },
+            }),
             supplier: {
               select: {
                 id: true,
@@ -298,7 +334,7 @@ router.get(
             name: 'asc',
           },
         }),
-        prisma.product.count({ where }),
+        prisma.product.count({ where: finalWhere }),
       ]);
 
       // Get private prices for customers if logged in
@@ -348,7 +384,9 @@ router.get(
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : null,
+          category: includeCategory && product.category 
+            ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) 
+            : (product as any).category || null, // Fallback to old category field if available
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
@@ -383,12 +421,26 @@ router.get(
       });
     } catch (error: any) {
       console.error('Error in /products/public endpoint:', error);
+      console.error('Error stack:', error.stack);
       // Log more details for debugging
       if (error.code) {
         console.error('Prisma error code:', error.code);
       }
       if (error.meta) {
-        console.error('Prisma error meta:', error.meta);
+        console.error('Prisma error meta:', JSON.stringify(error.meta, null, 2));
+      }
+      if (error.message) {
+        console.error('Error message:', error.message);
+      }
+      // Return a more user-friendly error response
+      if (error.code === 'P2021' || error.code === '42P01') {
+        // Table doesn't exist
+        return res.status(500).json({ 
+          error: { 
+            message: 'Database schema not initialized. Please run migrations.',
+            statusCode: 500 
+          } 
+        });
       }
       next(error);
     }
