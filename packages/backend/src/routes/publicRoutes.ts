@@ -345,6 +345,8 @@ router.get(
       }
 
       // Try to detect if Prisma Client supports productCategory model
+      // This only affects whether we can include category relation in results
+      // We can still filter by categoryId even if the model isn't available
       let canIncludeCategory = includeCategory;
       if (includeCategory) {
         try {
@@ -353,11 +355,10 @@ router.get(
         } catch (prismaClientError: any) {
           console.warn('Prisma Client does not support productCategory model:', prismaClientError.message);
           console.warn('Please regenerate Prisma Client: npm run db:generate');
+          console.warn('Category filtering will still work, but category details will not be included in results');
           canIncludeCategory = false;
-          // Remove categoryId from where clause to avoid errors
-          if (finalWhere.categoryId) {
-            delete finalWhere.categoryId;
-          }
+          // DO NOT remove categoryId from where clause - filtering should still work
+          // We just can't include the category relation in the query results
         }
       }
 
@@ -432,15 +433,20 @@ router.get(
           prisma.product.count({ where: finalWhere }),
         ]);
       } catch (queryError: any) {
-        // If query fails (e.g., Prisma Client doesn't have productCategory model), retry without category
+        // If query fails (e.g., Prisma Client doesn't have productCategory model), retry without category relation
         console.error('Product query failed, retrying without category relation:', queryError.message);
         console.error('Error code:', queryError.code);
         
-        // Remove categoryId from where clause if present
+        // Keep categoryId in where clause for filtering - we just can't include category relation in results
+        // Only remove it if the error is specifically about categoryId column not existing
         const fallbackWhere = { ...finalWhere };
-        if (fallbackWhere.categoryId) {
-          delete fallbackWhere.categoryId;
+        if (queryError.code === 'P2022' || (queryError.message && queryError.message.includes('category_id'))) {
+          // Column doesn't exist, remove filter
+          if (fallbackWhere.categoryId) {
+            delete fallbackWhere.categoryId;
+          }
         }
+        // Otherwise, keep categoryId filter even if we can't include category relation
         
         [products, total] = await Promise.all([
           prisma.product.findMany({
