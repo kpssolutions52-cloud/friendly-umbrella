@@ -125,32 +125,75 @@ export async function getStatistics(): Promise<Statistics> {
 }
 
 // Category interfaces and functions
-export interface Category {
+export interface ProductCategory {
   id: string;
   name: string;
-  imageUrl: string | null;
+  description: string | null;
+  iconUrl: string | null;
+  parentId: string | null;
+  isActive: boolean;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
+  children?: ProductCategory[];
+  parent?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
-// Get all categories
-export async function getCategories(): Promise<{ categories: Category[] }> {
-  return apiGet<{ categories: Category[] }>(`${BASE_PATH}/categories`);
+// Get all categories (hierarchical)
+export async function getAllCategories(includeInactive = false): Promise<{ categories: ProductCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ProductCategory[] }>(`${BASE_PATH}/categories${query}`);
+}
+
+// Get flat list of categories (for dropdowns)
+export async function getFlatCategories(includeInactive = false): Promise<{ categories: Array<{ id: string; name: string; parentName?: string }> }> {
+  const query = includeInactive ? '?flat=true&includeInactive=true' : '?flat=true';
+  return apiGet<{ categories: Array<{ id: string; name: string; parentName?: string }> }>(`${BASE_PATH}/categories${query}`);
+}
+
+// Get only main categories
+export async function getMainCategories(includeInactive = false): Promise<{ categories: ProductCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ProductCategory[] }>(`${BASE_PATH}/categories/main${query}`);
+}
+
+// Get subcategories for a main category
+export async function getSubcategories(parentId: string, includeInactive = false): Promise<{ categories: ProductCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ProductCategory[] }>(`${BASE_PATH}/categories/${parentId}/subcategories${query}`);
 }
 
 // Get a single category
-export async function getCategory(id: string): Promise<{ category: Category }> {
-  return apiGet<{ category: Category }>(`${BASE_PATH}/categories/${id}`);
+export async function getCategory(id: string): Promise<{ category: ProductCategory }> {
+  return apiGet<{ category: ProductCategory }>(`${BASE_PATH}/categories/${id}`);
 }
 
-// Create a new category
-export async function createCategory(input: { name: string }): Promise<{ message: string; category: Category }> {
-  return apiPost<{ message: string; category: Category }>(`${BASE_PATH}/categories`, input);
+// Create a new category (main or subcategory)
+export async function createCategory(input: {
+  name: string;
+  description?: string;
+  parentId?: string | null;
+  displayOrder?: number;
+}): Promise<{ message: string; category: ProductCategory }> {
+  return apiPost<{ message: string; category: ProductCategory }>(`${BASE_PATH}/categories`, input);
 }
 
 // Update a category
-export async function updateCategory(id: string, input: { name?: string }): Promise<{ message: string; category: Category }> {
-  return apiPut<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}`, input);
+export async function updateCategory(
+  id: string,
+  input: {
+    name?: string;
+    description?: string;
+    parentId?: string | null;
+    isActive?: boolean;
+    displayOrder?: number;
+    iconUrl?: string | null;
+  }
+): Promise<{ message: string; category: ProductCategory }> {
+  return apiPut<{ message: string; category: ProductCategory }>(`${BASE_PATH}/categories/${id}`, input);
 }
 
 // Delete a category
@@ -158,17 +201,20 @@ export async function deleteCategory(id: string): Promise<{ message: string }> {
   return apiDelete<{ message: string }>(`${BASE_PATH}/categories/${id}`);
 }
 
-// Upload category image
-export async function uploadCategoryImage(id: string, file: File): Promise<{ message: string; category: Category }> {
+// Upload category icon
+export async function uploadCategoryIcon(id: string, file: File): Promise<{ message: string; category: ProductCategory }> {
   const formData = new FormData();
-  formData.append('image', file);
-  return apiPostForm<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}/image`, formData);
+  formData.append('icon', file);
+  return apiPostForm<{ message: string; category: ProductCategory }>(`${BASE_PATH}/categories/${id}/icon`, formData);
 }
 
-// Delete category image
-export async function deleteCategoryImage(id: string): Promise<{ message: string; category: Category }> {
-  return apiDelete<{ message: string; category: Category }>(`${BASE_PATH}/categories/${id}/image`);
+// Delete category icon
+export async function deleteCategoryIcon(id: string): Promise<{ message: string; category: ProductCategory }> {
+  return apiDelete<{ message: string; category: ProductCategory }>(`${BASE_PATH}/categories/${id}/icon`);
 }
+
+// Legacy interface for backward compatibility
+export interface Category extends ProductCategory {}
 
 // Get pending customers
 export async function getPendingCustomers(): Promise<{ customers: Customer[] }> {

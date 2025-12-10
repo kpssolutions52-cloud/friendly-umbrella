@@ -27,6 +27,16 @@ router.get(
           isActive: true,
         },
         include: {
+          category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
           supplier: {
             select: {
               id: true,
@@ -60,21 +70,8 @@ router.get(
         return res.status(404).json({ error: { message: 'Product not found', statusCode: 404 } });
       }
 
-      // Get category image if available
-      let categoryImageUrl: string | null = null;
-      if (product.category) {
-        try {
-          const category = await prisma.category.findFirst({
-            where: { name: product.category },
-            select: { imageUrl: true },
-          });
-          categoryImageUrl = category?.imageUrl || null;
-        } catch (categoryError) {
-          // Category might not exist, that's okay
-        }
-      }
-
       // Use product image if available, otherwise use category default image
+      const categoryImageUrl = product.category?.iconUrl || null;
       const productImageUrl = product.images[0]?.imageUrl || categoryImageUrl;
 
       // Get private prices for customers if logged in (future: customer-specific pricing)
@@ -188,8 +185,40 @@ router.get(
         where.supplierId = supplierId;
       }
 
+      // Handle category filtering: if main category, include all subcategories
       if (category) {
-        where.category = category;
+        try {
+          const categoryObj = await prisma.productCategory.findUnique({
+            where: { id: category },
+            include: {
+              children: {
+                where: { isActive: true },
+                select: { id: true },
+              },
+            },
+          });
+
+          if (categoryObj) {
+            // If it's a main category (has no parent), include products from main category and all subcategories
+            if (!categoryObj.parentId) {
+              const subcategoryIds = categoryObj.children.map((child) => child.id);
+              // Include products assigned to the main category OR any of its subcategories
+              where.categoryId = {
+                in: [category, ...subcategoryIds],
+              };
+            } else {
+              // It's a subcategory, filter by exact match
+              where.categoryId = category;
+            }
+          } else {
+            // Category not found, filter by exact ID (will return no results)
+            where.categoryId = category;
+          }
+        } catch (categoryError) {
+          // If category lookup fails, fall back to exact match
+          console.warn('Failed to lookup category:', categoryError);
+          where.categoryId = category;
+        }
       }
 
       if (query) {
@@ -203,14 +232,16 @@ router.get(
       // Get all categories for fallback images
       let categoryImageMap = new Map<string, string | null>();
       try {
-        const categories = await prisma.category.findMany({
+        const categories = await prisma.productCategory.findMany({
+          where: { isActive: true },
           select: {
+            id: true,
             name: true,
-            imageUrl: true,
+            iconUrl: true,
           },
         });
         categoryImageMap = new Map(
-          categories.map((cat) => [cat.name, cat.imageUrl])
+          categories.map((cat) => [cat.id, cat.iconUrl])
         );
       } catch (categoryError) {
         // Categories table might not exist yet - continue without category images
@@ -222,6 +253,16 @@ router.get(
         prisma.product.findMany({
           where,
           include: {
+            category: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
             supplier: {
               select: {
                 id: true,
@@ -278,7 +319,7 @@ router.get(
         
         // Use product image if available, otherwise use category default image
         const productImageUrl = product.images[0]?.imageUrl || null;
-        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const categoryImageUrl = product.categoryId ? categoryImageMap.get(product.categoryId) || null : null;
         const finalImageUrl = productImageUrl || categoryImageUrl;
 
         // Calculate prices
@@ -311,7 +352,7 @@ router.get(
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: product.category,
+          category: product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : null,
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
@@ -355,17 +396,28 @@ router.get(
   '/products/public/categories',
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      // Fetch categories from the categories table (managed by super admin)
-      const categories = await prisma.category.findMany({
-        orderBy: {
-          name: 'asc',
+      // Fetch categories from the product_categories table (managed by super admin)
+      const categories = await prisma.productCategory.findMany({
+        where: { isActive: true },
+        include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
-        select: {
-          name: true,
-        },
+        orderBy: [
+          { parentId: 'asc' },
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
       });
 
-      const categoryList = categories.map((c) => c.name);
+      // Format as flat list with hierarchical names
+      const categoryList = categories.map((cat) => 
+        cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name
+      );
 
       res.json({ categories: categoryList });
     } catch (error) {

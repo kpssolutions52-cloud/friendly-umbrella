@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { apiGet } from '@/lib/api';
+import { apiGet, getMainCategories, getSubcategories, ProductCategory } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 
@@ -42,9 +42,12 @@ export default function Home() {
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState('');
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -74,9 +77,19 @@ export default function Home() {
     }
     // Guests stay on landing page
     loadProducts();
-    loadCategories();
+    loadMainCategories();
     loadSuppliers();
-  }, [authLoading, user, router, currentPage, searchQuery, selectedCategory, selectedSupplier]);
+  }, [authLoading, user, router, currentPage, searchQuery, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier]);
+
+  // Reload subcategories when main category changes (backup mechanism)
+  useEffect(() => {
+    if (selectedMainCategoryId) {
+      loadSubCategories(selectedMainCategoryId);
+    } else {
+      setSubCategories([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMainCategoryId]);
 
   const loadProducts = async () => {
     setIsLoadingProducts(true);
@@ -85,8 +98,10 @@ export default function Home() {
       if (searchQuery) {
         params.append('q', searchQuery);
       }
-      if (selectedCategory) {
-        params.append('category', selectedCategory);
+      // Use subcategory if selected, otherwise use main category
+      const categoryId = selectedSubCategoryId || selectedMainCategoryId;
+      if (categoryId) {
+        params.append('category', categoryId);
       }
       if (selectedSupplier) {
         params.append('supplierId', selectedSupplier);
@@ -109,12 +124,31 @@ export default function Home() {
     }
   };
 
-  const loadCategories = async () => {
+  const loadMainCategories = async () => {
     try {
-      const response = await apiGet<{ categories: string[] }>('/api/v1/products/public/categories');
-      setCategories(response.categories);
+      const response = await getMainCategories();
+      setMainCategories(response.categories || []);
     } catch (error) {
-      console.error('Failed to load categories:', error);
+      console.error('Failed to load main categories:', error);
+      setMainCategories([]);
+    }
+  };
+
+  const loadSubCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubCategories([]);
+      return;
+    }
+
+    try {
+      setLoadingSubCategories(true);
+      const response = await getSubcategories(parentId);
+      setSubCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load subcategories:', error);
+      setSubCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
     }
   };
 
@@ -133,8 +167,22 @@ export default function Home() {
     loadProducts();
   };
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
+  const handleMainCategoryChange = async (mainCategoryId: string) => {
+    setSelectedMainCategoryId(mainCategoryId);
+    // Reset subcategory when main category changes
+    setSelectedSubCategoryId('');
+    setCurrentPage(1);
+    
+    // Load subcategories for the selected main category
+    if (mainCategoryId) {
+      await loadSubCategories(mainCategoryId);
+    } else {
+      setSubCategories([]);
+    }
+  };
+
+  const handleSubCategoryChange = (subCategoryId: string) => {
+    setSelectedSubCategoryId(subCategoryId);
     setCurrentPage(1);
   };
 
@@ -273,7 +321,7 @@ export default function Home() {
                   type="button"
                   onClick={() => setShowFilters(!showFilters)}
                   className={`sm:hidden relative p-2.5 rounded-lg transition-colors ${
-                    showFilters || selectedCategory || selectedSupplier
+                    showFilters || selectedMainCategoryId || selectedSubCategoryId || selectedSupplier
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -282,7 +330,7 @@ export default function Home() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  {(selectedCategory || selectedSupplier) && !showFilters && (
+                  {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && !showFilters && (
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                   )}
                 </button>
@@ -302,21 +350,48 @@ export default function Home() {
               <div
                 className={`${
                   showFilters ? 'block' : 'hidden'
-                } sm:block border-t border-gray-100 bg-gray-50 sm:bg-white p-4 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4`}
+                } sm:block border-t border-gray-100 bg-gray-50 sm:bg-white p-4 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4`}
               >
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                    Category
+                    Main Category
                   </label>
                   <select
-                    value={selectedCategory}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    value={selectedMainCategoryId}
+                    onChange={(e) => handleMainCategoryChange(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="">All Categories</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
+                    {mainCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                    Sub Category
+                  </label>
+                  <select
+                    value={selectedSubCategoryId}
+                    onChange={(e) => handleSubCategoryChange(e.target.value)}
+                    disabled={!selectedMainCategoryId || loadingSubCategories}
+                    required={selectedMainCategoryId && subCategories.length > 0}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+                  >
+                    <option value="">
+                      {loadingSubCategories 
+                        ? 'Loading...' 
+                        : !selectedMainCategoryId 
+                          ? 'Select main category first' 
+                          : subCategories.length === 0 
+                            ? 'No subcategories' 
+                            : 'All Subcategories'}
+                    </option>
+                    {subCategories.map((subCat) => (
+                      <option key={subCat.id} value={subCat.id}>
+                        {subCat.name}
                       </option>
                     ))}
                   </select>
@@ -339,12 +414,14 @@ export default function Home() {
                   </select>
                 </div>
                 {/* Clear Filters Button - Mobile Only */}
-                {(selectedCategory || selectedSupplier) && (
+                {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && (
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedCategory('');
+                      setSelectedMainCategoryId('');
+                      setSelectedSubCategoryId('');
                       setSelectedSupplier('');
+                      setSubCategories([]);
                       setCurrentPage(1);
                     }}
                     className="sm:hidden w-full mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

@@ -9,7 +9,7 @@ const productSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   name: z.string().min(1, 'Product name is required'),
   description: z.string().optional(),
-  category: z.string().optional(),
+  categoryId: z.string().uuid('Invalid category ID').optional().nullable(),
   unit: z.string().min(1, 'Unit is required'),
   defaultPrice: z.number().min(0, 'Price must be positive').optional(),
 });
@@ -143,7 +143,12 @@ router.post(
       }
 
       const input = createProductSchema.parse(req.body);
-      const product = await productService.createProduct(req.tenantId!, input);
+      // Convert null categoryId to undefined
+      const productInput = {
+        ...input,
+        categoryId: input.categoryId || undefined,
+      };
+      const product = await productService.createProduct(req.tenantId!, productInput);
 
       res.status(201).json({ product });
     } catch (error) {

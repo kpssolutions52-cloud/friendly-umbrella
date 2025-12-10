@@ -42,9 +42,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const userData = await getCurrentUser();
+      // Add timeout to prevent hanging
+      const userData = await Promise.race([
+        getCurrentUser(),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+        )
+      ]);
       setUser(userData);
     } catch (error) {
+      console.error('Failed to refresh user:', error);
       clearTokens();
       setUser(null);
     }

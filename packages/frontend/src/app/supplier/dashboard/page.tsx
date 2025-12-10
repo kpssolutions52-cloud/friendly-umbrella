@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
+import { apiPost, apiGet, apiPut, apiDelete, getCategories, getSubcategories, ProductCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import Link from 'next/link';
@@ -32,7 +32,15 @@ interface Product {
   sku: string;
   name: string;
   description: string | null;
-  category: string | null;
+  categoryId: string | null;
+  category: {
+    id: string;
+    name: string;
+    parent?: {
+      id: string;
+      name: string;
+    } | null;
+  } | null;
   unit: string;
   isActive: boolean;
   defaultPrices: Array<{
@@ -100,7 +108,8 @@ function DashboardContent() {
     sku: '',
     name: '',
     description: '',
-    category: '',
+    categoryId: '',
+    mainCategoryId: '',
     unit: '',
     defaultPrice: '',
     currency: 'USD',
@@ -124,8 +133,11 @@ function DashboardContent() {
   
   const [companies, setCompanies] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<string>('');
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
@@ -250,8 +262,26 @@ function DashboardContent() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // If main category is selected, load subcategories
+    if (name === 'mainCategoryId') {
+      setSelectedMainCategoryId(value);
+      // Reset subcategory when main category changes
+      setFormData((prev) => ({ ...prev, mainCategoryId: value, categoryId: '' }));
+      // Load subcategories for the selected main category
+      if (value) {
+        await loadSubCategories(value);
+      } else {
+        // If main category is cleared, clear subcategories
+        setSubCategories([]);
+      }
+      setError(null);
+      return;
+    }
+    
+    // For all other fields, update normally
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError(null);
   };
@@ -264,16 +294,45 @@ function DashboardContent() {
     }
   }, [showAddProductModal, showEditProductModal]);
 
+  // Reload subcategories when main category changes (backup mechanism)
+  useEffect(() => {
+    if (selectedMainCategoryId && (showAddProductModal || showEditProductModal)) {
+      loadSubCategories(selectedMainCategoryId);
+    } else if (!selectedMainCategoryId && (showAddProductModal || showEditProductModal)) {
+      setSubCategories([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMainCategoryId, showAddProductModal, showEditProductModal]);
+
   const loadCategories = async () => {
     try {
       setLoadingCategories(true);
-      const data = await apiGet<{ categories: string[] }>('/api/v1/products/public/categories');
-      setCategories(data.categories || []);
+      // Get only main categories using the dedicated endpoint
+      const data = await apiGet<{ categories: ProductCategory[] }>('/api/v1/categories/main');
+      setMainCategories(data.categories || []);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
-      setCategories([]);
+      setMainCategories([]);
     } finally {
       setLoadingCategories(false);
+    }
+  };
+
+  const loadSubCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubCategories([]);
+      return;
+    }
+
+    try {
+      setLoadingSubCategories(true);
+      const data = await getSubcategories(parentId);
+      setSubCategories(data.categories || []);
+    } catch (err) {
+      console.error('Failed to fetch subcategories:', err);
+      setSubCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
     }
   };
 
@@ -382,6 +441,20 @@ function DashboardContent() {
     setIsSubmitting(true);
 
     try {
+      // Validate: if main category is selected, subcategory is required
+      if (formData.mainCategoryId && !formData.categoryId) {
+        setError('Please select a subcategory. Subcategory is required when a main category is selected.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate: if subcategories exist for selected main category, one must be selected
+      if (formData.mainCategoryId && subCategories.length > 0 && !formData.categoryId) {
+        setError('Please select a subcategory. Subcategory is required when a main category is selected.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Validate and prepare special prices (only included ones)
       const validSpecialPrices = includedSpecialPrices
         .map(sp => {
@@ -406,11 +479,14 @@ function DashboardContent() {
           }
         });
 
+      // Use subcategory (required if main category selected), otherwise use main category or undefined
+      const finalCategoryId = formData.categoryId || (formData.mainCategoryId && subCategories.length === 0 ? formData.mainCategoryId : undefined);
+      
       const payload = {
         sku: formData.sku,
         name: formData.name,
         description: formData.description || undefined,
-        category: formData.category || undefined,
+        categoryId: finalCategoryId,
         unit: formData.unit,
         defaultPrice: formData.defaultPrice ? parseFloat(formData.defaultPrice) : undefined,
         currency: formData.currency,
@@ -423,64 +499,35 @@ function DashboardContent() {
       // Refresh stats after product creation
       await fetchStats();
       
-      // Refresh product list if a filter is active
-      if (activeFilter) {
-        await fetchProducts(activeFilter, currentPage);
-      }
+      // Reset form
+      setFormData({
+        sku: '',
+        name: '',
+        description: '',
+        categoryId: '',
+        mainCategoryId: '',
+        unit: '',
+        defaultPrice: '',
+        currency: 'USD',
+      });
+      setSelectedMainCategoryId('');
+      setSubCategories([]);
+      setIncludedSpecialPrices([]);
+      setDraftSpecialPrice(null);
+      setEditingSpecialPriceId(null);
       
-      // If product was created successfully, switch to edit mode to allow image upload
-      if (response.product?.id) {
-        // Fetch the full product and switch to edit mode
-        const fullProduct = await apiGet<{ product: any }>(`/api/v1/products/${response.product.id}`);
-        setEditingProduct(fullProduct.product);
-        setFormData({
-          sku: formData.sku,
-          name: formData.name,
-          description: formData.description,
-          category: formData.category,
-          unit: formData.unit,
-          defaultPrice: formData.defaultPrice,
-          currency: formData.currency,
-        });
-        // Load existing private prices into edit included special prices state
-        if (fullProduct.product.privatePrices && Array.isArray(fullProduct.product.privatePrices) && fullProduct.product.privatePrices.length > 0) {
-          const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.product.privatePrices.map((pp: any) => {
-            const companyInfo = companies.find(c => c.id === pp.companyId);
-            return {
-              id: pp.id,
-              companyId: pp.companyId,
-              companyName: companyInfo?.name,
-              priceType: pp.discountPercentage !== null && pp.discountPercentage !== undefined ? 'discount' : 'price',
-              price: pp.price ? pp.price.toString() : '',
-              discountPercentage: pp.discountPercentage ? pp.discountPercentage.toString() : '',
-              currency: pp.currency || formData.currency,
-              notes: pp.notes || '',
-            };
-          });
-          setEditIncludedSpecialPrices(existingSpecialPrices);
-        }
-        setShowAddProductModal(false);
-        setShowEditProductModal(true);
+      // Close the add product modal
+      setShowAddProductModal(false);
+      
+      // Show success message briefly, then refresh product list
+      setTimeout(async () => {
         setSuccess(false);
-      } else {
-        // Fallback: close modal after 1 second
-        setFormData({
-          sku: '',
-          name: '',
-          description: '',
-          category: '',
-          unit: '',
-          defaultPrice: '',
-          currency: 'USD',
-        });
-        setIncludedSpecialPrices([]);
-        setDraftSpecialPrice(null);
-        setEditingSpecialPriceId(null);
-        setTimeout(() => {
-          setShowAddProductModal(false);
-          setSuccess(false);
-        }, 1000);
-      }
+        
+        // Automatically show "All Products" list to display the newly created product
+        setActiveFilter('all');
+        setCurrentPage(1);
+        await fetchProducts('all', 1);
+      }, 1000);
     } catch (err: any) {
       setError(err?.error?.message || 'Failed to create product');
     } finally {
@@ -499,11 +546,14 @@ function DashboardContent() {
         sku: '',
         name: '',
         description: '',
-        category: '',
+        categoryId: '',
+        mainCategoryId: '',
         unit: '',
         defaultPrice: '',
         currency: 'USD',
       });
+      setSelectedMainCategoryId('');
+      setSubCategories([]);
       setIncludedSpecialPrices([]);
       setDraftSpecialPrice(null);
       setEditingSpecialPriceId(null);
@@ -613,12 +663,35 @@ function DashboardContent() {
       const response = await apiGet<{ product: any }>(`/api/v1/products/${product.id}`);
       const fullProduct = response.product;
       
+      // Determine main category and subcategory from product
+      let mainCategoryId = '';
+      let subCategoryId = '';
+      
+      if (fullProduct.category) {
+        if (fullProduct.category.parent) {
+          // Product has a subcategory
+          mainCategoryId = fullProduct.category.parent.id;
+          subCategoryId = fullProduct.categoryId || '';
+          // Load subcategories for the main category
+          await loadSubCategories(mainCategoryId);
+        } else {
+          // Product only has a main category (no parent)
+          mainCategoryId = fullProduct.categoryId || '';
+          subCategoryId = '';
+          // Load subcategories to check if any exist
+          if (mainCategoryId) {
+            await loadSubCategories(mainCategoryId);
+          }
+        }
+      }
+      
       setEditingProduct(fullProduct);
       setFormData({
         sku: fullProduct.sku,
         name: fullProduct.name,
         description: fullProduct.description || '',
-        category: fullProduct.category || '',
+        categoryId: subCategoryId,
+        mainCategoryId: mainCategoryId,
         unit: fullProduct.unit,
         defaultPrice: fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0 
           ? fullProduct.defaultPrices[0].price.toString() 
@@ -627,6 +700,8 @@ function DashboardContent() {
           ? fullProduct.defaultPrices[0].currency
           : 'USD',
       });
+      
+      setSelectedMainCategoryId(mainCategoryId);
       
       // Load existing private prices into edit included special prices state
       if (fullProduct.privatePrices && fullProduct.privatePrices.length > 0) {
@@ -678,6 +753,13 @@ function DashboardContent() {
     setIsSubmitting(true);
 
     try {
+      // Validate: if main category is selected, subcategory is required
+      if (formData.mainCategoryId && !formData.categoryId && subCategories.length > 0) {
+        setError('Please select a subcategory. Subcategory is required when a main category is selected.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Validate and prepare special prices for edit (only included ones)
       const validSpecialPrices = editIncludedSpecialPrices
         .map(sp => {
@@ -701,11 +783,14 @@ function DashboardContent() {
           }
         });
 
+      // Use subcategory (required if main category selected), otherwise use main category or undefined
+      const finalCategoryId = formData.categoryId || (formData.mainCategoryId && subCategories.length === 0 ? formData.mainCategoryId : undefined);
+      
       const payload: any = {
         sku: formData.sku,
         name: formData.name,
         description: formData.description || undefined,
-        category: formData.category || undefined,
+        categoryId: finalCategoryId,
         unit: formData.unit,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
@@ -734,11 +819,14 @@ function DashboardContent() {
           sku: '',
           name: '',
           description: '',
-          category: '',
+          categoryId: '',
+          mainCategoryId: '',
           unit: '',
           defaultPrice: '',
           currency: 'USD',
         });
+        setSelectedMainCategoryId('');
+        setSubCategories([]);
       }, 1000);
     } catch (err: any) {
       setError(err?.error?.message || 'Failed to update product');
@@ -1058,7 +1146,7 @@ function DashboardContent() {
                           {product.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.category || '-'}
+                          {product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {product.unit}
@@ -1148,7 +1236,7 @@ function DashboardContent() {
                       <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                         <div>
                           <span className="text-gray-500">Category:</span>
-                          <span className="ml-1 text-gray-900">{product.category || '-'}</span>
+                          <span className="ml-1 text-gray-900">{product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : '-'}</span>
                         </div>
                         <div>
                           <span className="text-gray-500">Unit:</span>
@@ -1314,6 +1402,63 @@ function DashboardContent() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Category Selection - Moved to Top */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="mainCategoryId">Main Category</Label>
+                    <select
+                      id="mainCategoryId"
+                      name="mainCategoryId"
+                      value={formData.mainCategoryId}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting || loadingCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select a main category (optional)</option>
+                      {mainCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="categoryId">Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
+                    <select
+                      id="categoryId"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleInputChange}
+                      required={formData.mainCategoryId && subCategories.length > 0}
+                      disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {loadingSubCategories 
+                          ? 'Loading subcategories...' 
+                          : subCategories.length === 0 && formData.mainCategoryId
+                          ? 'No subcategories available'
+                          : 'Select a subcategory' + (formData.mainCategoryId && subCategories.length > 0 ? ' *' : '')
+                        }
+                      </option>
+                      {subCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {!formData.mainCategoryId && (
+                      <p className="text-xs text-gray-500 mt-1">Please select a main category first</p>
+                    )}
+                    {formData.mainCategoryId && subCategories.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">Subcategory is required when a main category is selected</p>
+                    )}
+                    {formData.mainCategoryId && subCategories.length === 0 && !loadingSubCategories && (
+                      <p className="text-xs text-amber-600 mt-1">No subcategories available for this main category</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="sku">SKU *</Label>
@@ -1370,24 +1515,6 @@ function DashboardContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="category">Category</Label>
-                    <select
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting || loadingCategories}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Select a category (optional)</option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
                     <Label htmlFor="currency">Currency</Label>
                     <select
                       id="currency"
@@ -1403,21 +1530,20 @@ function DashboardContent() {
                       <option value="SGD">SGD</option>
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="defaultPrice">Default Price</Label>
-                  <Input
-                    id="defaultPrice"
-                    name="defaultPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.defaultPrice}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    placeholder="150.00"
-                  />
+                  <div>
+                    <Label htmlFor="defaultPrice">Default Price</Label>
+                    <Input
+                      id="defaultPrice"
+                      name="defaultPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.defaultPrice}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      placeholder="150.00"
+                    />
+                  </div>
                 </div>
 
                 {/* Special Prices Section */}
@@ -1739,6 +1865,63 @@ function DashboardContent() {
               )}
 
               <form onSubmit={handleUpdateProduct} className="space-y-4">
+                {/* Category Selection - Moved to Top */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-mainCategoryId">Main Category</Label>
+                    <select
+                      id="edit-mainCategoryId"
+                      name="mainCategoryId"
+                      value={formData.mainCategoryId}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting || loadingCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select a main category (optional)</option>
+                      {mainCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-categoryId">Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
+                    <select
+                      id="edit-categoryId"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleInputChange}
+                      required={formData.mainCategoryId && subCategories.length > 0}
+                      disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {loadingSubCategories 
+                          ? 'Loading subcategories...' 
+                          : subCategories.length === 0 && formData.mainCategoryId
+                          ? 'No subcategories available'
+                          : 'Select a subcategory' + (formData.mainCategoryId && subCategories.length > 0 ? ' *' : '')
+                        }
+                      </option>
+                      {subCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {!formData.mainCategoryId && (
+                      <p className="text-xs text-gray-500 mt-1">Please select a main category first</p>
+                    )}
+                    {formData.mainCategoryId && subCategories.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">Subcategory is required when a main category is selected</p>
+                    )}
+                    {formData.mainCategoryId && subCategories.length === 0 && !loadingSubCategories && (
+                      <p className="text-xs text-amber-600 mt-1">No subcategories available for this main category</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="edit-sku">SKU *</Label>
@@ -1795,24 +1978,6 @@ function DashboardContent() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="edit-category">Category</Label>
-                    <select
-                      id="edit-category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting || loadingCategories}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Select a category (optional)</option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
                     <Label htmlFor="edit-currency">Currency</Label>
                     <select
                       id="edit-currency"
@@ -1828,21 +1993,20 @@ function DashboardContent() {
                       <option value="SGD">SGD</option>
                     </select>
                   </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="edit-defaultPrice">Default Price</Label>
-                  <Input
-                    id="edit-defaultPrice"
-                    name="defaultPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.defaultPrice}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    placeholder="150.00"
-                  />
+                  <div>
+                    <Label htmlFor="edit-defaultPrice">Default Price</Label>
+                    <Input
+                      id="edit-defaultPrice"
+                      name="defaultPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.defaultPrice}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      placeholder="150.00"
+                    />
+                  </div>
                 </div>
 
                 {/* Special Prices Section for Edit */}

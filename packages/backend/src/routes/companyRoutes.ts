@@ -104,6 +104,16 @@ router.post(
             OR: searchConditions,
           },
           include: {
+            category: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
             supplier: {
               select: {
                 id: true,
@@ -188,7 +198,7 @@ router.post(
             priceType,
             totalPrice,
             productImageUrl,
-            category: product.category,
+            category: product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : null,
           });
         }
 

@@ -1,14 +1,13 @@
 import { Router, Response, NextFunction } from 'express';
 import { authenticate, AuthRequest, requireSuperAdmin } from '../middleware/auth';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import createError from 'http-errors';
 import multer from 'multer';
 import { uploadCategoryImage, deleteCategoryImage } from '../utils/supabase';
+import { categoryService } from '../services/categoryService';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // Configure multer for file uploads (memory storage)
 const upload = multer({
@@ -28,44 +27,27 @@ const upload = multer({
 
 const createCategorySchema = z.object({
   name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  parentId: z.string().uuid().nullable().optional(),
+  displayOrder: z.number().int().optional(),
 });
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  description: z.string().optional(),
+  parentId: z.string().uuid().nullable().optional(),
+  isActive: z.boolean().optional(),
+  displayOrder: z.number().int().optional(),
 });
 
 // Apply authentication and super admin check to all routes
 router.use(authenticate, requireSuperAdmin());
 
-// GET /api/v1/admin/categories - Get all categories
+// GET /api/v1/admin/categories - Get all categories (hierarchical)
 router.get(
   '/categories',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const categories = await prisma.category.findMany({
-        orderBy: {
-          name: 'asc',
-        },
-      });
-      res.json({ categories });
-    } catch (error: any) {
-      console.error('Error fetching categories:', error);
-      // Provide more detailed error information
-      if (error.code === 'P2001' || error.message?.includes('does not exist')) {
-        return next(createError(500, 'Categories table does not exist. Please run database migrations.'));
-      }
-      if (error.code === 'P2025') {
-        return next(createError(404, 'Category not found'));
-      }
-      next(createError(500, `Failed to fetch categories: ${error.message || 'Unknown error'}`));
-    }
-  }
-);
-
-// GET /api/v1/admin/categories/:id - Get a single category
-router.get(
-  '/categories/:id',
-  param('id').isUUID(),
+  query('includeInactive').optional().isBoolean(),
+  query('flat').optional().isBoolean(), // Return flat list for dropdowns
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -73,15 +55,70 @@ router.get(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.params;
-      const category = await prisma.category.findUnique({
-        where: { id },
-      });
+      const includeInactive = req.query.includeInactive === 'true';
+      const flat = req.query.flat === 'true';
 
-      if (!category) {
-        throw createError(404, 'Category not found');
+      if (flat) {
+        const categories = await categoryService.getFlatCategories(includeInactive);
+        return res.json({ categories });
       }
 
+      const categories = await categoryService.getAllCategories(includeInactive);
+      res.json({ categories });
+    } catch (error: any) {
+      console.error('Error fetching categories:', error);
+      next(createError(500, `Failed to fetch categories: ${error.message || 'Unknown error'}`));
+    }
+  }
+);
+
+// GET /api/v1/admin/categories/main - Get only main categories
+router.get(
+  '/categories/main',
+  query('includeInactive').optional().isBoolean(),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const includeInactive = req.query.includeInactive === 'true';
+      const categories = await categoryService.getMainCategories(includeInactive);
+      res.json({ categories });
+    } catch (error: any) {
+      next(createError(500, `Failed to fetch main categories: ${error.message || 'Unknown error'}`));
+    }
+  }
+);
+
+// GET /api/v1/admin/categories/:parentId/subcategories - Get subcategories for a main category
+router.get(
+  '/categories/:parentId/subcategories',
+  [param('parentId').isUUID(), query('includeInactive').optional().isBoolean()],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const includeInactive = req.query.includeInactive === 'true';
+      const subcategories = await categoryService.getSubcategories(req.params.parentId, includeInactive);
+      res.json({ categories: subcategories });
+    } catch (error: any) {
+      next(createError(500, `Failed to fetch subcategories: ${error.message || 'Unknown error'}`));
+    }
+  }
+);
+
+// GET /api/v1/admin/categories/:id - Get a single category
+router.get(
+  '/categories/:id',
+  [param('id').isUUID()],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const category = await categoryService.getCategoryById(req.params.id);
       res.json({ category });
     } catch (error) {
       next(error);
@@ -89,10 +126,15 @@ router.get(
   }
 );
 
-// POST /api/v1/admin/categories - Create a new category
+// POST /api/v1/admin/categories - Create a new category (main or subcategory)
 router.post(
   '/categories',
-  body('name').isString().trim().isLength({ min: 1, max: 100 }),
+  [
+    body('name').isString().trim().isLength({ min: 1, max: 100 }),
+    body('description').optional().isString(),
+    body('parentId').optional().isUUID().withMessage('Parent ID must be a valid UUID'),
+    body('displayOrder').optional().isInt(),
+  ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -101,21 +143,7 @@ router.post(
       }
 
       const input = createCategorySchema.parse(req.body);
-
-      // Check if category with same name already exists
-      const existing = await prisma.category.findUnique({
-        where: { name: input.name },
-      });
-
-      if (existing) {
-        throw createError(409, 'Category with this name already exists');
-      }
-
-      const category = await prisma.category.create({
-        data: {
-          name: input.name,
-        },
-      });
+      const category = await categoryService.createCategory(input);
 
       res.status(201).json({
         message: 'Category created successfully',
@@ -133,8 +161,17 @@ router.post(
 // PUT /api/v1/admin/categories/:id - Update a category
 router.put(
   '/categories/:id',
-  param('id').isUUID(),
-  body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
+  [
+    param('id').isUUID(),
+    body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
+    body('description').optional().isString(),
+    body('parentId').optional().custom((value) => {
+      if (value === null || value === undefined || value === '') return true;
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    }),
+    body('isActive').optional().isBoolean(),
+    body('displayOrder').optional().isInt(),
+  ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -142,35 +179,8 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.params;
       const input = updateCategorySchema.parse(req.body);
-
-      // Check if category exists
-      const existing = await prisma.category.findUnique({
-        where: { id },
-      });
-
-      if (!existing) {
-        throw createError(404, 'Category not found');
-      }
-
-      // If name is being updated, check for duplicates
-      if (input.name && input.name !== existing.name) {
-        const duplicate = await prisma.category.findUnique({
-          where: { name: input.name },
-        });
-
-        if (duplicate) {
-          throw createError(409, 'Category with this name already exists');
-        }
-      }
-
-      const category = await prisma.category.update({
-        where: { id },
-        data: {
-          ...(input.name && { name: input.name }),
-        },
-      });
+      const category = await categoryService.updateCategory(req.params.id, input);
 
       res.json({
         message: 'Category updated successfully',
@@ -185,11 +195,10 @@ router.put(
   }
 );
 
-// POST /api/v1/admin/categories/:id/image - Upload category image
+// POST /api/v1/admin/categories/:id/icon - Upload category icon
 router.post(
-  '/categories/:id/image',
-  param('id').isUUID(),
-  upload.single('image'),
+  '/categories/:id/icon',
+  [param('id').isUUID(), upload.single('icon')],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -197,57 +206,44 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.params;
-
-      // Check if category exists
-      const category = await prisma.category.findUnique({
-        where: { id },
-      });
-
-      if (!category) {
-        throw createError(404, 'Category not found');
-      }
-
-      // Check if file was uploaded
       if (!req.file) {
         throw createError(400, 'No file uploaded');
       }
 
-      let imageUrl: string;
+      const category = await categoryService.getCategoryById(req.params.id);
+
+      let iconUrl: string;
 
       try {
-        // Delete old image if exists
-        if (category.imageUrl) {
-          await deleteCategoryImage(category.imageUrl);
+        // Delete old icon if exists
+        if (category.iconUrl) {
+          await deleteCategoryImage(category.iconUrl);
         }
 
-        // Upload new image
-        imageUrl = await uploadCategoryImage(
-          id,
+        // Upload new icon
+        iconUrl = await uploadCategoryImage(
+          req.params.id,
           req.file.buffer,
           req.file.originalname,
           req.file.mimetype
         );
       } catch (uploadError: any) {
-        console.error('Image upload error:', uploadError);
-        throw createError(500, `Failed to upload image: ${uploadError.message || 'Unknown error'}`);
+        console.error('Icon upload error:', uploadError);
+        throw createError(500, `Failed to upload icon: ${uploadError.message || 'Unknown error'}`);
       }
 
-      // Update category with new image URL
+      // Update category with new icon URL
       try {
-        const updatedCategory = await prisma.category.update({
-          where: { id },
-          data: { imageUrl },
-        });
+        const updatedCategory = await categoryService.updateCategory(req.params.id, { iconUrl });
 
         res.json({
-          message: 'Category image uploaded successfully',
+          message: 'Category icon uploaded successfully',
           category: updatedCategory,
         });
       } catch (dbError: any) {
         // Try to delete uploaded file if database save fails
         try {
-          await deleteCategoryImage(imageUrl);
+          await deleteCategoryImage(iconUrl);
         } catch (deleteError) {
           console.error('Failed to cleanup uploaded file:', deleteError);
         }
@@ -259,10 +255,10 @@ router.post(
   }
 );
 
-// DELETE /api/v1/admin/categories/:id/image - Delete category image
+// DELETE /api/v1/admin/categories/:id/icon - Delete category icon
 router.delete(
-  '/categories/:id/image',
-  param('id').isUUID(),
+  '/categories/:id/icon',
+  [param('id').isUUID()],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -270,37 +266,25 @@ router.delete(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.params;
+      const category = await categoryService.getCategoryById(req.params.id);
 
-      // Check if category exists
-      const category = await prisma.category.findUnique({
-        where: { id },
-      });
-
-      if (!category) {
-        throw createError(404, 'Category not found');
+      if (!category.iconUrl) {
+        throw createError(400, 'Category has no icon to delete');
       }
 
-      if (!category.imageUrl) {
-        throw createError(400, 'Category has no image to delete');
-      }
-
-      // Delete image from storage
+      // Delete icon from storage
       try {
-        await deleteCategoryImage(category.imageUrl);
+        await deleteCategoryImage(category.iconUrl);
       } catch (deleteError) {
-        console.error('Failed to delete image from storage:', deleteError);
+        console.error('Failed to delete icon from storage:', deleteError);
         // Continue with database update even if storage deletion fails
       }
 
-      // Update category to remove image URL
-      const updatedCategory = await prisma.category.update({
-        where: { id },
-        data: { imageUrl: null },
-      });
+      // Update category to remove icon URL
+      const updatedCategory = await categoryService.updateCategory(req.params.id, { iconUrl: null });
 
       res.json({
-        message: 'Category image deleted successfully',
+        message: 'Category icon deleted successfully',
         category: updatedCategory,
       });
     } catch (error) {
@@ -312,7 +296,7 @@ router.delete(
 // DELETE /api/v1/admin/categories/:id - Delete a category
 router.delete(
   '/categories/:id',
-  param('id').isUUID(),
+  [param('id').isUUID()],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
@@ -320,42 +304,19 @@ router.delete(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.params;
+      const category = await categoryService.getCategoryById(req.params.id);
 
-      // Check if category exists
-      const category = await prisma.category.findUnique({
-        where: { id },
-      });
-
-      if (!category) {
-        throw createError(404, 'Category not found');
-      }
-
-      // Check if category is used by any products
-      const productCount = await prisma.product.count({
-        where: {
-          category: category.name,
-        },
-      });
-
-      if (productCount > 0) {
-        throw createError(400, `Cannot delete category. It is used by ${productCount} product(s).`);
-      }
-
-      // Delete image from storage if exists
-      if (category.imageUrl) {
+      // Delete icon from storage if exists
+      if (category.iconUrl) {
         try {
-          await deleteCategoryImage(category.imageUrl);
+          await deleteCategoryImage(category.iconUrl);
         } catch (deleteError) {
-          console.error('Failed to delete image from storage:', deleteError);
-          // Continue with category deletion even if image deletion fails
+          console.error('Failed to delete icon from storage:', deleteError);
+          // Continue with category deletion even if icon deletion fails
         }
       }
 
-      // Delete category
-      await prisma.category.delete({
-        where: { id },
-      });
+      await categoryService.deleteCategory(req.params.id);
 
       res.json({
         message: 'Category deleted successfully',
@@ -367,4 +328,3 @@ router.delete(
 );
 
 export default router;
-

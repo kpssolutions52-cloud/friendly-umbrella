@@ -21,6 +21,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-categories": "tsx prisma/seed-categories.ts",
     "db:clear": "tsx clear-database.ts",
     "db:migrate-categories": "tsx migrate-product-categories.ts"
   },

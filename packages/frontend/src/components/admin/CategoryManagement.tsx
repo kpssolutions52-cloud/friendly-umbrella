@@ -1,22 +1,37 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { getCategories, createCategory, updateCategory, deleteCategory, uploadCategoryImage, deleteCategoryImage, Category } from '@/lib/adminApi';
+import {
+  getAllCategories,
+  getMainCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  uploadCategoryIcon,
+  deleteCategoryIcon,
+  ProductCategory,
+} from '@/lib/adminApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function CategoryManagement() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [uploadingIcon, setUploadingIcon] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
+    parentId: null as string | null,
   });
+  const [addingSubcategoryTo, setAddingSubcategoryTo] = useState<string | null>(null);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   useEffect(() => {
@@ -26,14 +41,28 @@ export function CategoryManagement() {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const data = await getCategories();
-      setCategories(data.categories);
       setError(null);
+      const data = await getAllCategories(true); // Include inactive for admin view
+      setCategories(data.categories || []);
+      
+      // Also load main categories for parent selection
+      const mainData = await getMainCategories(true);
+      setMainCategories(mainData.categories || []);
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to load categories');
+      setError(String(err?.error?.message || err?.message || 'Failed to load categories'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleExpand = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,35 +70,75 @@ export function CategoryManagement() {
     try {
       setIsSubmitting(true);
       setError(null);
-      
+      setSuccess(null);
+
       if (editingCategory) {
-        await updateCategory(editingCategory.id, { name: formData.name });
+        // For main categories, don't allow changing parentId
+        const updateData: any = {
+          name: formData.name,
+          description: formData.description || undefined,
+        };
+        // Only include parentId if it's a subcategory (can be changed)
+        if (editingCategory.parentId) {
+          updateData.parentId = formData.parentId;
+        }
+        await updateCategory(editingCategory.id, updateData);
+        setSuccess('Category updated successfully');
       } else {
-        await createCategory({ name: formData.name });
+        await createCategory({
+          name: formData.name,
+          description: formData.description || undefined,
+          parentId: formData.parentId || undefined,
+        });
+        setSuccess('Category created successfully');
       }
-      
+
       // Reset form
-      setFormData({ name: '' });
+      setFormData({ name: '', description: '', parentId: null });
       setShowCreateForm(false);
       setEditingCategory(null);
-      await loadCategories(); // Refresh list
+      setAddingSubcategoryTo(null);
+      await loadCategories();
     } catch (err: any) {
-      setError(err.error?.message || `Failed to ${editingCategory ? 'update' : 'create'} category`);
+      setError(String(err?.error?.message || err?.message || `Failed to ${editingCategory ? 'update' : 'create'} category`));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleEdit = (category: Category) => {
+  const handleEdit = (category: ProductCategory) => {
     setEditingCategory(category);
-    setFormData({ name: category.name });
+    setFormData({
+      name: category.name,
+      description: category.description || '',
+      parentId: category.parentId, // Keep original parentId, but disable editing for main categories
+    });
+    setAddingSubcategoryTo(null);
     setShowCreateForm(true);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleAddSubcategory = (parentCategory: ProductCategory) => {
+    setAddingSubcategoryTo(parentCategory.id);
+    setEditingCategory(null);
+    setFormData({
+      name: '',
+      description: '',
+      parentId: parentCategory.id,
+    });
+    setShowCreateForm(true);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleCancel = () => {
-    setFormData({ name: '' });
+    setFormData({ name: '', description: '', parentId: null });
     setShowCreateForm(false);
     setEditingCategory(null);
+    setAddingSubcategoryTo(null);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -79,37 +148,55 @@ export function CategoryManagement() {
 
     try {
       setError(null);
+      setSuccess(null);
       await deleteCategory(id);
-      await loadCategories(); // Refresh list
+      setSuccess('Category deleted successfully');
+      await loadCategories();
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to delete category');
+      setError(String(err?.error?.message || err?.message || 'Failed to delete category'));
     }
   };
 
-  const handleImageUpload = async (categoryId: string, file: File) => {
+  const handleToggleActive = async (category: ProductCategory) => {
     try {
-      setUploadingImage(categoryId);
       setError(null);
-      await uploadCategoryImage(categoryId, file);
-      await loadCategories(); // Refresh list
+      setSuccess(null);
+      await updateCategory(category.id, { isActive: !category.isActive });
+      setSuccess(`Category ${!category.isActive ? 'activated' : 'deactivated'} successfully`);
+      await loadCategories();
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to upload image');
-    } finally {
-      setUploadingImage(null);
+      setError(String(err?.error?.message || err?.message || 'Failed to update category'));
     }
   };
 
-  const handleImageDelete = async (categoryId: string) => {
-    if (!confirm('Are you sure you want to delete this category image?')) {
+  const handleIconUpload = async (categoryId: string, file: File) => {
+    try {
+      setUploadingIcon(categoryId);
+      setError(null);
+      setSuccess(null);
+      await uploadCategoryIcon(categoryId, file);
+      setSuccess('Icon uploaded successfully');
+      await loadCategories();
+    } catch (err: any) {
+      setError(String(err?.error?.message || err?.message || 'Failed to upload icon'));
+    } finally {
+      setUploadingIcon(null);
+    }
+  };
+
+  const handleIconDelete = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category icon?')) {
       return;
     }
 
     try {
       setError(null);
-      await deleteCategoryImage(categoryId);
-      await loadCategories(); // Refresh list
+      setSuccess(null);
+      await deleteCategoryIcon(categoryId);
+      setSuccess('Icon deleted successfully');
+      await loadCategories();
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to delete image');
+      setError(String(err?.error?.message || err?.message || 'Failed to delete icon'));
     }
   };
 
@@ -128,13 +215,157 @@ export function CategoryManagement() {
         return;
       }
 
-      handleImageUpload(categoryId, file);
+      handleIconUpload(categoryId, file);
     }
-    
+
     // Reset input
     if (fileInputRefs.current[categoryId]) {
       fileInputRefs.current[categoryId]!.value = '';
     }
+  };
+
+  const renderCategoryRow = (category: ProductCategory, level = 0): JSX.Element => {
+    const isExpanded = expandedCategories.has(category.id);
+    const hasChildren = category.children && category.children.length > 0;
+
+    return (
+      <>
+        <tr key={category.id} className={`hover:bg-gray-50 ${!category.isActive ? 'opacity-60' : ''}`}>
+          <td className="px-6 py-4 whitespace-nowrap" style={{ paddingLeft: `${20 + level * 24}px` }}>
+            <div className="flex items-center gap-3">
+              {hasChildren && (
+                <button
+                  onClick={() => toggleExpand(category.id)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  {isExpanded ? '▼' : '▶'}
+                </button>
+              )}
+              {!hasChildren && <span className="w-4" />}
+              {/* Only show icon for subcategories */}
+              {category.parentId ? (
+                category.iconUrl ? (
+                  <div className="relative group">
+                    <img
+                      src={category.iconUrl}
+                      alt={category.name}
+                      className="h-12 w-12 object-cover rounded-lg border border-gray-200"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                    <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )
+              ) : (
+                // Main categories don't show icons
+                <div className="w-12" />
+              )}
+            </div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-medium text-gray-900">{category.name}</div>
+              {category.parent && (
+                <span className="text-xs text-gray-500">({category.parent.name})</span>
+              )}
+            </div>
+            {category.description && (
+              <div className="text-sm text-gray-500 mt-1">{category.description}</div>
+            )}
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap">
+            <span className={`px-2 py-1 text-xs rounded-full ${category.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {category.isActive ? 'Active' : 'Inactive'}
+            </span>
+          </td>
+          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <div className="flex justify-end gap-2">
+              {/* Icon upload/delete - only for subcategories */}
+              {category.parentId && (
+                <>
+                  <input
+                    ref={(el) => {
+                      fileInputRefs.current[category.id] = el;
+                    }}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileSelect(category.id, e)}
+                    className="hidden"
+                    disabled={uploadingIcon === category.id}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRefs.current[category.id]?.click()}
+                    disabled={uploadingIcon === category.id}
+                  >
+                    {uploadingIcon === category.id ? 'Uploading...' : category.iconUrl ? 'Change Icon' : 'Upload Icon'}
+                  </Button>
+                  {category.iconUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleIconDelete(category.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      Remove Icon
+                    </Button>
+                  )}
+                </>
+              )}
+              {/* Add Subcategory button - only for main categories */}
+              {!category.parentId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAddSubcategory(category)}
+                  disabled={!!editingCategory || !!addingSubcategoryTo}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Add Subcategory
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit(category)}
+                disabled={!!editingCategory || !!addingSubcategoryTo}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleToggleActive(category)}
+                disabled={!!editingCategory || !!addingSubcategoryTo}
+                className={category.isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+              >
+                {category.isActive ? 'Deactivate' : 'Activate'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDelete(category.id)}
+                disabled={!!editingCategory || !!addingSubcategoryTo}
+                className="text-red-600 hover:text-red-700"
+              >
+                Delete
+              </Button>
+            </div>
+          </td>
+        </tr>
+        {hasChildren && isExpanded && category.children?.map((child) => renderCategoryRow(child, level + 1))}
+      </>
+    );
   };
 
   if (loading) {
@@ -153,8 +384,8 @@ export function CategoryManagement() {
           <Button onClick={loadCategories} variant="outline">
             Refresh
           </Button>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)} disabled={!!editingCategory}>
-            {showCreateForm ? 'Cancel' : 'Create Category'}
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} disabled={!!editingCategory || !!addingSubcategoryTo}>
+            {showCreateForm ? 'Cancel' : editingCategory || addingSubcategoryTo ? 'Cancel' : 'Create Main Category'}
           </Button>
         </div>
       </div>
@@ -165,13 +396,53 @@ export function CategoryManagement() {
         </div>
       )}
 
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <p className="text-green-800">{success}</p>
+        </div>
+      )}
+
       {/* Create/Edit Form */}
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {editingCategory ? 'Edit Category' : 'Create New Category'}
+            {addingSubcategoryTo
+              ? `Add Subcategory to "${mainCategories.find(c => c.id === addingSubcategoryTo)?.name || 'Category'}"`
+              : editingCategory
+              ? editingCategory.parentId
+                ? 'Edit Subcategory'
+                : 'Edit Main Category'
+              : 'Create New Category'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="parentId">
+                Parent Category {addingSubcategoryTo ? '(Pre-selected)' : editingCategory && !editingCategory.parentId ? '(Cannot change for main categories)' : '(Optional)'}
+              </Label>
+              <select
+                id="parentId"
+                value={formData.parentId || ''}
+                onChange={(e) => setFormData({ ...formData, parentId: e.target.value || null })}
+                disabled={!!addingSubcategoryTo || (!!editingCategory && !editingCategory.parentId)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">None (Main Category)</option>
+                {mainCategories
+                  .filter((cat) => !editingCategory || cat.id !== editingCategory.id)
+                  .map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {addingSubcategoryTo
+                  ? 'This will be created as a subcategory under the selected parent.'
+                  : editingCategory && !editingCategory.parentId
+                  ? 'Main categories cannot be moved to become subcategories. Only name and description can be edited.'
+                  : 'Leave empty to create a main category, or select a parent to create a subcategory'}
+              </p>
+            </div>
             <div>
               <Label htmlFor="name">Category Name *</Label>
               <Input
@@ -182,6 +453,17 @@ export function CategoryManagement() {
                 placeholder="Enter category name"
                 required
                 maxLength={100}
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter category description (optional)"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                maxLength={500}
               />
             </div>
             <div className="flex gap-2">
@@ -208,13 +490,13 @@ export function CategoryManagement() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Image
+                    Icon (Subcategories Only)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    Status
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -222,91 +504,7 @@ export function CategoryManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        {category.imageUrl ? (
-                          <div className="relative group">
-                            <img
-                              src={category.imageUrl}
-                              alt={category.name}
-                              className="h-16 w-16 object-cover rounded-lg border border-gray-200"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                            <button
-                              onClick={() => handleImageDelete(category.id)}
-                              className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete image"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
-                            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-1">
-                          <input
-                            ref={(el) => {
-                              fileInputRefs.current[category.id] = el;
-                            }}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleFileSelect(category.id, e)}
-                            className="hidden"
-                            disabled={uploadingImage === category.id}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRefs.current[category.id]?.click()}
-                            disabled={uploadingImage === category.id}
-                          >
-                            {uploadingImage === category.id ? 'Uploading...' : category.imageUrl ? 'Change' : 'Upload'}
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{category.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(category.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(category)}
-                          disabled={!!editingCategory}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(category.id)}
-                          disabled={!!editingCategory}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {categories.map((category) => renderCategoryRow(category))}
               </tbody>
             </table>
           </div>
@@ -315,4 +513,3 @@ export function CategoryManagement() {
     </div>
   );
 }
-

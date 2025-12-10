@@ -14,7 +14,7 @@ export interface CreateProductInput {
   sku: string;
   name: string;
   description?: string;
-  category?: string;
+  categoryId?: string; // Reference to ProductCategory (can be main or subcategory)
   unit: string;
   defaultPrice?: number;
   currency?: string;
@@ -26,7 +26,7 @@ export interface UpdateProductInput {
   sku?: string;
   name?: string;
   description?: string;
-  category?: string;
+  categoryId?: string | null; // Reference to ProductCategory (can be main or subcategory)
   unit?: string;
   isActive?: boolean;
   metadata?: Record<string, any>;
@@ -49,6 +49,16 @@ export class ProductService {
       prisma.product.findMany({
         where,
         include: {
+          category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
           defaultPrices: {
             where: { isActive: true },
             orderBy: { effectiveFrom: 'desc' },
@@ -92,6 +102,16 @@ export class ProductService {
         supplierId,
       },
       include: {
+        category: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         defaultPrices: {
           where: { isActive: true },
           orderBy: { effectiveFrom: 'desc' },
@@ -137,6 +157,16 @@ export class ProductService {
       throw createError(409, `Product with SKU "${input.sku}" already exists`);
     }
 
+    // Validate category exists if provided
+    if (input.categoryId) {
+      const category = await prisma.productCategory.findUnique({
+        where: { id: input.categoryId },
+      });
+      if (!category || !category.isActive) {
+        throw createError(400, 'Invalid or inactive category');
+      }
+    }
+
     // Create product with optional default price in transaction
     return prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -145,10 +175,22 @@ export class ProductService {
           sku: input.sku,
           name: input.name,
           description: input.description,
-          category: input.category,
+          categoryId: input.categoryId || null,
           unit: input.unit,
           metadata: input.metadata || {},
           isActive: true,
+        },
+        include: {
+          category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -230,10 +272,20 @@ export class ProductService {
         }
       }
 
-      // Return product with default price
+      // Return product with default price and category
       return tx.product.findUnique({
         where: { id: product.id },
         include: {
+          category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
           defaultPrices: {
             where: { isActive: true },
             orderBy: { effectiveFrom: 'desc' },
@@ -283,6 +335,18 @@ export class ProductService {
       }
     }
 
+    // Validate category exists if provided
+    if (input.categoryId !== undefined) {
+      if (input.categoryId) {
+        const category = await prisma.productCategory.findUnique({
+          where: { id: input.categoryId },
+        });
+        if (!category || !category.isActive) {
+          throw createError(400, 'Invalid or inactive category');
+        }
+      }
+    }
+
     // Get default price currency for discount percentage calculations
     const defaultPriceCurrency = existing.defaultPrices[0]?.currency || 'USD';
 
@@ -295,7 +359,7 @@ export class ProductService {
           ...(input.sku && { sku: input.sku }),
           ...(input.name && { name: input.name }),
           ...(input.description !== undefined && { description: input.description }),
-          ...(input.category !== undefined && { category: input.category }),
+          ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
           ...(input.unit && { unit: input.unit }),
           ...(input.isActive !== undefined && { isActive: input.isActive }),
           ...(input.metadata !== undefined && { metadata: input.metadata }),
@@ -380,10 +444,20 @@ export class ProductService {
         }
       }
 
-      // Return updated product with default price
+      // Return updated product with default price and category
       return tx.product.findUnique({
         where: { id: product.id },
         include: {
+          category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
           defaultPrices: {
             where: { isActive: true },
             orderBy: { effectiveFrom: 'desc' },

@@ -144,7 +144,7 @@ router.get(
       };
 
       if (category) {
-        where.category = category;
+        where.categoryId = category;
       }
 
       if (search) {
@@ -156,14 +156,16 @@ router.get(
       }
 
       // Get all categories for fallback images
-      const categories = await prisma.category.findMany({
+      const categories = await prisma.productCategory.findMany({
+        where: { isActive: true },
         select: {
+          id: true,
           name: true,
-          imageUrl: true,
+          iconUrl: true,
         },
       });
       const categoryImageMap = new Map(
-        categories.map((cat) => [cat.name, cat.imageUrl])
+        categories.map((cat) => [cat.id, cat.iconUrl])
       );
 
       // Get products with prices
@@ -171,6 +173,16 @@ router.get(
         prisma.product.findMany({
           where,
           include: {
+            category: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
             images: {
               orderBy: { displayOrder: 'asc' },
               take: 1, // Only get first image for list view
@@ -251,7 +263,7 @@ router.get(
 
         // Use product image if available, otherwise use category default image
         const productImageUrl = product.images[0]?.imageUrl || null;
-        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const categoryImageUrl = product.categoryId ? categoryImageMap.get(product.categoryId) || null : null;
         const finalImageUrl = productImageUrl || categoryImageUrl;
 
         return {
@@ -363,7 +375,7 @@ router.get(
       }
 
       if (category) {
-        where.category = category;
+        where.categoryId = category;
       }
 
       if (query) {
@@ -375,14 +387,16 @@ router.get(
       }
 
       // Get all categories for fallback images
-      const categories = await prisma.category.findMany({
+      const categories = await prisma.productCategory.findMany({
+        where: { isActive: true },
         select: {
+          id: true,
           name: true,
-          imageUrl: true,
+          iconUrl: true,
         },
       });
       const categoryImageMap = new Map(
-        categories.map((cat) => [cat.name, cat.imageUrl])
+        categories.map((cat) => [cat.id, cat.iconUrl])
       );
 
       // Get products with suppliers and prices
@@ -390,6 +404,16 @@ router.get(
         prisma.product.findMany({
           where,
           include: {
+            category: {
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
             supplier: {
               select: {
                 id: true,
@@ -453,7 +477,7 @@ router.get(
         
         // Use product image if available, otherwise use category default image
         const productImageUrl = product.images[0]?.imageUrl || null;
-        const categoryImageUrl = product.category ? categoryImageMap.get(product.category) || null : null;
+        const categoryImageUrl = product.categoryId ? categoryImageMap.get(product.categoryId) || null : null;
         const finalImageUrl = productImageUrl || categoryImageUrl;
 
         return {
@@ -461,7 +485,7 @@ router.get(
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: product.category,
+          category: product.category ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) : null,
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
@@ -519,23 +543,30 @@ router.get(
 // GET /api/v1/products/categories - Get all product categories
 router.get('/products/categories', requireCompany, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const categories = await prisma.product.findMany({
+    // Return all active categories (hierarchical)
+    const categories = await prisma.productCategory.findMany({
       where: {
         isActive: true,
-        category: { not: null },
       },
-      select: {
-        category: true,
+      include: {
+        parent: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
-      distinct: ['category'],
-      orderBy: {
-        category: 'asc',
-      },
+      orderBy: [
+        { parentId: 'asc' },
+        { displayOrder: 'asc' },
+        { name: 'asc' },
+      ],
     });
 
-    const categoryList = categories
-      .map((c) => c.category)
-      .filter((c): c is string => c !== null);
+    // Format as flat list with hierarchical names
+    const categoryList = categories.map((cat) => 
+      cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name
+    );
 
     res.json({ categories: categoryList });
   } catch (error) {
