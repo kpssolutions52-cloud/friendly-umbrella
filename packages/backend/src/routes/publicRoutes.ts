@@ -307,6 +307,8 @@ router.get(
       let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
       if (includeCategory) {
         try {
+          // Test if Prisma Client supports productCategory before querying
+          await prisma.productCategory.findFirst({ take: 1 });
           const categories = await prisma.productCategory.findMany({
             where: { isActive: true },
             include: {
@@ -328,9 +330,10 @@ router.get(
               }
             ])
           );
-        } catch (categoryError) {
-          // Categories table might not exist yet - continue without category images
-          console.warn('Failed to load categories for images:', categoryError);
+        } catch (categoryError: any) {
+          // Categories table might not exist yet or Prisma Client not regenerated - continue without category images
+          console.warn('Failed to load categories for images:', categoryError.message);
+          console.warn('Error code:', categoryError.code);
         }
       }
 
@@ -341,71 +344,148 @@ router.get(
         delete finalWhere.categoryId;
       }
 
-      const [products, total] = await Promise.all([
-        prisma.product.findMany({
-          where: finalWhere,
-          include: {
-            ...(includeCategory && {
-              category: {
-                include: {
-                  parent: {
-                    select: {
-                      id: true,
-                      name: true,
-                      iconUrl: true,
+      // Try to detect if Prisma Client supports productCategory model
+      let canIncludeCategory = includeCategory;
+      if (includeCategory) {
+        try {
+          // Test if we can query productCategory (Prisma Client must be regenerated)
+          await prisma.productCategory.findFirst({ take: 1 });
+        } catch (prismaClientError: any) {
+          console.warn('Prisma Client does not support productCategory model:', prismaClientError.message);
+          console.warn('Please regenerate Prisma Client: npm run db:generate');
+          canIncludeCategory = false;
+          // Remove categoryId from where clause to avoid errors
+          if (finalWhere.categoryId) {
+            delete finalWhere.categoryId;
+          }
+        }
+      }
+
+      // Try to fetch products with category relation, fallback to without if Prisma Client issue
+      let products: any[];
+      let total: number;
+      
+      try {
+        [products, total] = await Promise.all([
+          prisma.product.findMany({
+            where: finalWhere,
+            include: {
+              ...(canIncludeCategory && {
+                category: {
+                  include: {
+                    parent: {
+                      select: {
+                        id: true,
+                        name: true,
+                        iconUrl: true,
+                      },
+                    },
+                  },
+                  select: {
+                    id: true,
+                    name: true,
+                    iconUrl: true,
+                    parentId: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        name: true,
+                        iconUrl: true,
+                      },
                     },
                   },
                 },
+              }),
+              supplier: {
                 select: {
                   id: true,
                   name: true,
-                  iconUrl: true,
-                  parentId: true,
-                  parent: {
-                    select: {
-                      id: true,
-                      name: true,
-                      iconUrl: true,
-                    },
-                  },
+                  logoUrl: true,
                 },
               },
-            }),
-            supplier: {
-              select: {
-                id: true,
-                name: true,
-                logoUrl: true,
+              images: {
+                orderBy: { displayOrder: 'asc' },
+                take: 1, // Only get first image for list view
+                select: {
+                  id: true,
+                  imageUrl: true,
+                },
+              },
+              defaultPrices: {
+                where: {
+                  isActive: true,
+                  OR: [
+                    { effectiveUntil: null },
+                    { effectiveUntil: { gte: new Date() } },
+                  ],
+                },
+                orderBy: { effectiveFrom: 'desc' },
+                take: 1,
               },
             },
-            images: {
-              orderBy: { displayOrder: 'asc' },
-              take: 1, // Only get first image for list view
-              select: {
-                id: true,
-                imageUrl: true,
+            skip,
+            take: limit,
+            orderBy: {
+              name: 'asc',
+            },
+          }),
+          prisma.product.count({ where: finalWhere }),
+        ]);
+      } catch (queryError: any) {
+        // If query fails (e.g., Prisma Client doesn't have productCategory model), retry without category
+        console.error('Product query failed, retrying without category relation:', queryError.message);
+        console.error('Error code:', queryError.code);
+        
+        // Remove categoryId from where clause if present
+        const fallbackWhere = { ...finalWhere };
+        if (fallbackWhere.categoryId) {
+          delete fallbackWhere.categoryId;
+        }
+        
+        [products, total] = await Promise.all([
+          prisma.product.findMany({
+            where: fallbackWhere,
+            include: {
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                  logoUrl: true,
+                },
+              },
+              images: {
+                orderBy: { displayOrder: 'asc' },
+                take: 1,
+                select: {
+                  id: true,
+                  imageUrl: true,
+                },
+              },
+              defaultPrices: {
+                where: {
+                  isActive: true,
+                  OR: [
+                    { effectiveUntil: null },
+                    { effectiveUntil: { gte: new Date() } },
+                  ],
+                },
+                orderBy: { effectiveFrom: 'desc' },
+                take: 1,
               },
             },
-            defaultPrices: {
-              where: {
-                isActive: true,
-                OR: [
-                  { effectiveUntil: null },
-                  { effectiveUntil: { gte: new Date() } },
-                ],
-              },
-              orderBy: { effectiveFrom: 'desc' },
-              take: 1,
+            skip,
+            take: limit,
+            orderBy: {
+              name: 'asc',
             },
-          },
-          skip,
-          take: limit,
-          orderBy: {
-            name: 'asc',
-          },
-        }),
-        prisma.product.count({ where: finalWhere }),
-      ]);
+          }),
+          prisma.product.count({ where: fallbackWhere }),
+        ]);
+        
+        // Set canIncludeCategory to false to skip category-related code below
+        canIncludeCategory = false;
+        includeCategory = false;
+      }
 
       // Get private prices for customers if logged in
       // Note: Private prices are company-specific, so customers won't see them
@@ -424,7 +504,7 @@ router.get(
         const productImageUrl = product.images[0]?.imageUrl || null;
         let finalImageUrl = productImageUrl;
         
-        if (!finalImageUrl && includeCategory && (product as any).categoryId) {
+        if (!finalImageUrl && canIncludeCategory && includeCategory && (product as any).categoryId) {
           const categoryId = (product as any).categoryId;
           const categoryInfo = categoryImageMap.get(categoryId);
           
@@ -469,7 +549,7 @@ router.get(
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: includeCategory && product.category && typeof product.category !== 'string'
+          category: canIncludeCategory && includeCategory && product.category && typeof product.category !== 'string'
             ? (('parent' in product.category && (product.category as any).parent) 
                 ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
                 : (product.category as any).name)
