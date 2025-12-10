@@ -30,6 +30,39 @@ router.get(
         }
       }
 
+      // Load category image map for fallback images (if category system is available)
+      let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
+      if (includeCategory) {
+        try {
+          // Test if Prisma Client supports productCategory
+          await prisma.productCategory.findFirst({ take: 1 });
+          const categories = await prisma.productCategory.findMany({
+            where: { isActive: true },
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  iconUrl: true,
+                },
+              },
+            },
+          });
+          categoryImageMap = new Map(
+            categories.map((cat: any) => [
+              cat.id, 
+              { 
+                iconUrl: cat.iconUrl, 
+                parentId: cat.parentId,
+                parentIconUrl: cat.parent?.iconUrl || null
+              }
+            ])
+          );
+        } catch (categoryError: any) {
+          // Categories table might not exist yet or Prisma Client not regenerated
+          console.debug('Could not load categories for images:', categoryError.message);
+        }
+      }
+
       // Get product with supplier and prices
       const product = await prisma.product.findFirst({
         where: {
@@ -39,15 +72,6 @@ router.get(
         include: {
           ...(includeCategory && {
             category: {
-              include: {
-                parent: {
-                  select: {
-                    id: true,
-                    name: true,
-                    iconUrl: true,
-                  },
-                },
-              },
               select: {
                 id: true,
                 name: true,
@@ -96,19 +120,39 @@ router.get(
         return res.status(404).json({ error: { message: 'Product not found', statusCode: 404 } });
       }
 
-      // Use product image if available, otherwise use category default image
-      // Fallback chain: product image → subcategory image → main category image
+      // Use product image if available, otherwise use category icon as fallback
+      // Fallback chain: product image → subcategory icon → main category icon
       const productImageUrl = product.images[0]?.imageUrl || null;
       let finalImageUrl = productImageUrl;
       
-      if (!finalImageUrl && includeCategory && product.category && typeof product.category !== 'string') {
-        const category = product.category as any;
-        // First try subcategory image (if product is in a subcategory)
-        if (category.iconUrl) {
-          finalImageUrl = category.iconUrl;
-        } else if (category.parent && category.parent.iconUrl) {
-          // If no subcategory image, try parent (main category) image
-          finalImageUrl = category.parent.iconUrl;
+      // Try category icon fallback if no product image
+      if (!finalImageUrl) {
+        // First try using category relation if available
+        if (includeCategory && product.category && typeof product.category !== 'string') {
+          const category = product.category as any;
+          // First try subcategory icon (if product is in a subcategory)
+          if (category.iconUrl) {
+            finalImageUrl = category.iconUrl;
+          } else if (category.parent && category.parent.iconUrl) {
+            // If no subcategory icon, try parent (main category) icon
+            finalImageUrl = category.parent.iconUrl;
+          }
+        }
+        
+        // If still no image, try categoryImageMap (works even when category relation isn't included)
+        if (!finalImageUrl && (product as any).categoryId) {
+          const categoryId = (product as any).categoryId;
+          const categoryInfo = categoryImageMap.get(categoryId);
+          
+          if (categoryInfo) {
+            // First try subcategory icon
+            if (categoryInfo.iconUrl) {
+              finalImageUrl = categoryInfo.iconUrl;
+            } else if (categoryInfo.parentIconUrl) {
+              // If no subcategory icon, try parent (main category) icon
+              finalImageUrl = categoryInfo.parentIconUrl;
+            }
+          }
         }
       }
 
@@ -376,15 +420,6 @@ router.get(
             include: {
               ...(canIncludeCategory && {
                 category: {
-                  include: {
-                    parent: {
-                      select: {
-                        id: true,
-                        name: true,
-                        iconUrl: true,
-                      },
-                    },
-                  },
                   select: {
                     id: true,
                     name: true,
@@ -509,21 +544,37 @@ router.get(
         const defaultPrice = product.defaultPrices[0];
         
         // Use product image if available, otherwise use category default image
-        // Fallback chain: product image → subcategory image → main category image
+        // Fallback chain: product image → subcategory icon → main category icon
         const productImageUrl = product.images[0]?.imageUrl || null;
         let finalImageUrl = productImageUrl;
         
-        if (!finalImageUrl && canIncludeCategory && includeCategory && (product as any).categoryId) {
-          const categoryId = (product as any).categoryId;
-          const categoryInfo = categoryImageMap.get(categoryId);
+        // Try category icon fallback if no product image
+        if (!finalImageUrl) {
+          // First try using category relation if available
+          if (canIncludeCategory && includeCategory && product.category && typeof product.category !== 'string') {
+            const category = product.category as any;
+            // First try subcategory icon (if product is in a subcategory)
+            if (category.iconUrl) {
+              finalImageUrl = category.iconUrl;
+            } else if (category.parent && category.parent.iconUrl) {
+              // If no subcategory icon, try parent (main category) icon
+              finalImageUrl = category.parent.iconUrl;
+            }
+          }
           
-          if (categoryInfo) {
-            // First try subcategory image (if product is in a subcategory)
-            if (categoryInfo.iconUrl) {
-              finalImageUrl = categoryInfo.iconUrl;
-            } else if (categoryInfo.parentIconUrl) {
-              // If no subcategory image, try parent (main category) image
-              finalImageUrl = categoryInfo.parentIconUrl;
+          // If still no image and we have categoryId, try categoryImageMap
+          if (!finalImageUrl && (product as any).categoryId) {
+            const categoryId = (product as any).categoryId;
+            const categoryInfo = categoryImageMap.get(categoryId);
+            
+            if (categoryInfo) {
+              // First try subcategory icon (if product is in a subcategory)
+              if (categoryInfo.iconUrl) {
+                finalImageUrl = categoryInfo.iconUrl;
+              } else if (categoryInfo.parentIconUrl) {
+                // If no subcategory icon, try parent (main category) icon
+                finalImageUrl = categoryInfo.parentIconUrl;
+              }
             }
           }
         }
