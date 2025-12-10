@@ -83,7 +83,9 @@ router.get(
       }
 
       // Use product image if available, otherwise use category default image
-      const categoryImageUrl = includeCategory && product.category ? product.category.iconUrl : null;
+      const categoryImageUrl = includeCategory && product.category && typeof product.category !== 'string' 
+        ? (product.category as any).iconUrl 
+        : null;
       const productImageUrl = product.images[0]?.imageUrl || categoryImageUrl;
 
       // Get private prices for customers if logged in (future: customer-specific pricing)
@@ -124,8 +126,10 @@ router.get(
         sku: product.sku,
         name: product.name,
         description: product.description,
-        category: includeCategory && product.category 
-          ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name)
+        category: includeCategory && product.category && typeof product.category !== 'string'
+          ? (('parent' in product.category && (product.category as any).parent) 
+              ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
+              : (product.category as any).name)
           : (product as any).category || null, // Fallback to old category field if available
         unit: product.unit,
         supplierId: product.supplier.id,
@@ -201,15 +205,24 @@ router.get(
         where.supplierId = supplierId;
       }
 
+      // Check if category_id column exists (do this early)
+      let includeCategory = true;
+      try {
+        await prisma.$queryRaw`SELECT category_id FROM products LIMIT 1`;
+      } catch (testError: any) {
+        if (testError.code === 'P2022' || testError.message?.includes('category_id')) {
+          includeCategory = false;
+        }
+      }
+
       // Handle category filtering: if main category, include all subcategories
       // Only apply if category_id column exists
-      let canFilterByCategory = true;
-      if (category) {
+      if (category && includeCategory) {
         try {
           // Test if product_categories table exists
           await prisma.$queryRaw`SELECT id FROM product_categories LIMIT 1`;
           
-          const categoryObj = await prisma.productCategory.findUnique({
+          const categoryObj = await (prisma as any).productCategory.findUnique({
             where: { id: category },
             include: {
               children: {
@@ -222,7 +235,7 @@ router.get(
           if (categoryObj) {
             // If it's a main category (has no parent), include products from main category and all subcategories
             if (!categoryObj.parentId) {
-              const subcategoryIds = categoryObj.children.map((child) => child.id);
+              const subcategoryIds = categoryObj.children.map((child: any) => child.id);
               // Include products assigned to the main category OR any of its subcategories
               where.categoryId = {
                 in: [category, ...subcategoryIds],
@@ -238,7 +251,6 @@ router.get(
         } catch (categoryError: any) {
           // If category lookup fails (table doesn't exist or column missing), skip category filtering
           console.warn('Category filtering not available:', categoryError.message);
-          canFilterByCategory = false;
           // Remove categoryId from where clause if it was set
           if (where.categoryId) {
             delete where.categoryId;
@@ -258,7 +270,7 @@ router.get(
       let categoryImageMap = new Map<string, string | null>();
       if (includeCategory) {
         try {
-          const categories = await prisma.productCategory.findMany({
+          const categories = await (prisma as any).productCategory.findMany({
             where: { isActive: true },
             select: {
               id: true,
@@ -267,7 +279,7 @@ router.get(
             },
           });
           categoryImageMap = new Map(
-            categories.map((cat) => [cat.id, cat.iconUrl])
+            categories.map((cat: any) => [cat.id, cat.iconUrl])
           );
         } catch (categoryError) {
           // Categories table might not exist yet - continue without category images
@@ -276,12 +288,9 @@ router.get(
       }
 
       // Get products with suppliers and prices
-      // Handle case where category_id column doesn't exist yet (graceful degradation)
-      let includeCategory = canFilterByCategory;
-      
       // Remove categoryId from where if we can't filter by it
       const finalWhere = { ...where };
-      if (!canFilterByCategory && finalWhere.categoryId) {
+      if (!includeCategory && finalWhere.categoryId) {
         delete finalWhere.categoryId;
       }
 
@@ -351,7 +360,7 @@ router.get(
         
         // Use product image if available, otherwise use category default image
         const productImageUrl = product.images[0]?.imageUrl || null;
-        const categoryImageUrl = product.categoryId ? categoryImageMap.get(product.categoryId) || null : null;
+        const categoryImageUrl = (product as any).categoryId ? categoryImageMap.get((product as any).categoryId) || null : null;
         const finalImageUrl = productImageUrl || categoryImageUrl;
 
         // Calculate prices
@@ -384,8 +393,10 @@ router.get(
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: includeCategory && product.category 
-            ? (product.category.parent ? `${product.category.parent.name} > ${product.category.name}` : product.category.name) 
+          category: includeCategory && product.category && typeof product.category !== 'string'
+            ? (('parent' in product.category && (product.category as any).parent) 
+                ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
+                : (product.category as any).name)
             : (product as any).category || null, // Fallback to old category field if available
           unit: product.unit,
           supplierId: product.supplier.id,
@@ -453,7 +464,7 @@ router.get(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       // Fetch categories from the product_categories table (managed by super admin)
-      const categories = await prisma.productCategory.findMany({
+      const categories = await (prisma as any).productCategory.findMany({
         where: { isActive: true },
         include: {
           parent: {
@@ -471,7 +482,7 @@ router.get(
       });
 
       // Format as flat list with hierarchical names
-      const categoryList = categories.map((cat) => 
+      const categoryList = categories.map((cat: any) => 
         cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name
       );
 
