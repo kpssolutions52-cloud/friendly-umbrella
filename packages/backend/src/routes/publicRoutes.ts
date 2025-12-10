@@ -156,10 +156,12 @@ router.get(
   query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
   query('page')
     .optional()
+    .toInt()
     .isInt({ min: 1 })
     .withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
+    .toInt()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
   async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -295,14 +297,8 @@ router.get(
           orderBy: {
             name: 'asc',
           },
-        }).catch((error) => {
-          console.error('Error fetching products:', error);
-          throw error;
         }),
-        prisma.product.count({ where }).catch((error) => {
-          console.error('Error counting products:', error);
-          throw error;
-        }),
+        prisma.product.count({ where }),
       ]);
 
       // Get private prices for customers if logged in
@@ -385,7 +381,15 @@ router.get(
           totalPages: Math.ceil(total / limit),
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error in /products/public endpoint:', error);
+      // Log more details for debugging
+      if (error.code) {
+        console.error('Prisma error code:', error.code);
+      }
+      if (error.meta) {
+        console.error('Prisma error meta:', error.meta);
+      }
       next(error);
     }
   }
@@ -420,7 +424,14 @@ router.get(
       );
 
       res.json({ categories: categoryList });
-    } catch (error) {
+    } catch (error: any) {
+      // Handle case where categories table might not exist
+      if (error.code === 'P2021' || error.code === '42P01') {
+        // Table doesn't exist - return empty array
+        console.warn('Categories table not found, returning empty array');
+        return res.json({ categories: [] });
+      }
+      console.error('Error fetching categories:', error);
       next(error);
     }
   }
