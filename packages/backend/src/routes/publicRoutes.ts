@@ -262,11 +262,13 @@ router.get(
             if (!categoryObj.parentId) {
               const subcategoryIds = categoryObj.children.map((child) => child.id);
               // Include products assigned to the main category OR any of its subcategories
+              // The 'in' operator automatically excludes null values
               where.categoryId = {
                 in: [category, ...subcategoryIds],
               };
             } else {
               // It's a subcategory, filter by exact match
+              // Setting to a value automatically excludes null
               where.categoryId = category;
             }
           } else {
@@ -281,6 +283,7 @@ router.get(
           
           // Fall back to simple category ID filter
           // This will still work if categoryId column exists but table query fails
+          // Setting to a value automatically excludes null in Prisma
           try {
             where.categoryId = category;
           } catch (fallbackError: any) {
