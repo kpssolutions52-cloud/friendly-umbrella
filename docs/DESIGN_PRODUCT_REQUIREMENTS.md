@@ -304,3 +304,5 @@ A feature for company users to create a list of required products with quantitie
 - Debounce search input
 - Cache product search results
 - Optimistic UI updates
+
+
