@@ -44,6 +44,20 @@ router.get(
                   select: {
                     id: true,
                     name: true,
+                    iconUrl: true,
+                  },
+                },
+              },
+              select: {
+                id: true,
+                name: true,
+                iconUrl: true,
+                parentId: true,
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                    iconUrl: true,
                   },
                 },
               },
@@ -83,10 +97,20 @@ router.get(
       }
 
       // Use product image if available, otherwise use category default image
-      const categoryImageUrl = includeCategory && product.category && typeof product.category !== 'string' 
-        ? (product.category as any).iconUrl 
-        : null;
-      const productImageUrl = product.images[0]?.imageUrl || categoryImageUrl;
+      // Fallback chain: product image → subcategory image → main category image
+      const productImageUrl = product.images[0]?.imageUrl || null;
+      let finalImageUrl = productImageUrl;
+      
+      if (!finalImageUrl && includeCategory && product.category && typeof product.category !== 'string') {
+        const category = product.category as any;
+        // First try subcategory image (if product is in a subcategory)
+        if (category.iconUrl) {
+          finalImageUrl = category.iconUrl;
+        } else if (category.parent && category.parent.iconUrl) {
+          // If no subcategory image, try parent (main category) image
+          finalImageUrl = category.parent.iconUrl;
+        }
+      }
 
       // Get private prices for customers if logged in (future: customer-specific pricing)
       let privatePriceMap = new Map();
@@ -135,7 +159,7 @@ router.get(
         supplierId: product.supplier.id,
         supplierName: product.supplier.name,
         supplierLogoUrl: product.supplier.logoUrl,
-        productImageUrl: productImageUrl,
+        productImageUrl: finalImageUrl,
         defaultPrice: defaultPrice ? {
           price: Number(defaultPrice.price),
           currency: defaultPrice.currency,
@@ -267,19 +291,30 @@ router.get(
       }
 
       // Get all categories for fallback images (only if product_categories table exists)
-      let categoryImageMap = new Map<string, string | null>();
+      // Map includes both category ID, parent ID, and parent iconUrl for fallback chain
+      let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
       if (includeCategory) {
         try {
           const categories = await (prisma as any).productCategory.findMany({
             where: { isActive: true },
-            select: {
-              id: true,
-              name: true,
-              iconUrl: true,
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  iconUrl: true,
+                },
+              },
             },
           });
           categoryImageMap = new Map(
-            categories.map((cat: any) => [cat.id, cat.iconUrl])
+            categories.map((cat: any) => [
+              cat.id, 
+              { 
+                iconUrl: cat.iconUrl, 
+                parentId: cat.parentId,
+                parentIconUrl: cat.parent?.iconUrl || null
+              }
+            ])
           );
         } catch (categoryError) {
           // Categories table might not exist yet - continue without category images
@@ -305,6 +340,20 @@ router.get(
                     select: {
                       id: true,
                       name: true,
+                      iconUrl: true,
+                    },
+                  },
+                },
+                select: {
+                  id: true,
+                  name: true,
+                  iconUrl: true,
+                  parentId: true,
+                  parent: {
+                    select: {
+                      id: true,
+                      name: true,
+                      iconUrl: true,
                     },
                   },
                 },
@@ -359,9 +408,24 @@ router.get(
         const defaultPrice = product.defaultPrices[0];
         
         // Use product image if available, otherwise use category default image
+        // Fallback chain: product image → subcategory image → main category image
         const productImageUrl = product.images[0]?.imageUrl || null;
-        const categoryImageUrl = (product as any).categoryId ? categoryImageMap.get((product as any).categoryId) || null : null;
-        const finalImageUrl = productImageUrl || categoryImageUrl;
+        let finalImageUrl = productImageUrl;
+        
+        if (!finalImageUrl && includeCategory && (product as any).categoryId) {
+          const categoryId = (product as any).categoryId;
+          const categoryInfo = categoryImageMap.get(categoryId);
+          
+          if (categoryInfo) {
+            // First try subcategory image (if product is in a subcategory)
+            if (categoryInfo.iconUrl) {
+              finalImageUrl = categoryInfo.iconUrl;
+            } else if (categoryInfo.parentIconUrl) {
+              // If no subcategory image, try parent (main category) image
+              finalImageUrl = categoryInfo.parentIconUrl;
+            }
+          }
+        }
 
         // Calculate prices
         let finalPrice: number | null = null;

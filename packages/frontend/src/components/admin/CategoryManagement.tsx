@@ -242,29 +242,24 @@ export function CategoryManagement() {
                 </button>
               )}
               {!hasChildren && <span className="w-4" />}
-              {/* Only show icon for subcategories */}
-              {category.parentId ? (
-                category.iconUrl ? (
-                  <div className="relative group">
-                    <img
-                      src={category.iconUrl}
-                      alt={category.name}
-                      className="h-12 w-12 object-cover rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
-                    <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )
+              {/* Show icon for both main categories and subcategories */}
+              {category.iconUrl ? (
+                <div className="relative group">
+                  <img
+                    src={category.iconUrl}
+                    alt={category.name}
+                    className="h-12 w-12 object-cover rounded-lg border border-gray-200"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
               ) : (
-                // Main categories don't show icons
-                <div className="w-12" />
+                <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                  <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
               )}
             </div>
           </td>
@@ -286,41 +281,39 @@ export function CategoryManagement() {
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div className="flex justify-end gap-2">
-              {/* Icon upload/delete - only for subcategories */}
-              {category.parentId && (
-                <>
-                  <input
-                    ref={(el) => {
-                      fileInputRefs.current[category.id] = el;
-                    }}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileSelect(category.id, e)}
-                    className="hidden"
-                    disabled={uploadingIcon === category.id}
-                  />
+              {/* Icon upload/delete - for both main categories and subcategories */}
+              <>
+                <input
+                  ref={(el) => {
+                    fileInputRefs.current[category.id] = el;
+                  }}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileSelect(category.id, e)}
+                  className="hidden"
+                  disabled={uploadingIcon === category.id}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRefs.current[category.id]?.click()}
+                  disabled={uploadingIcon === category.id}
+                >
+                  {uploadingIcon === category.id ? 'Uploading...' : category.iconUrl ? 'Change Icon' : 'Upload Icon'}
+                </Button>
+                {category.iconUrl && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => fileInputRefs.current[category.id]?.click()}
-                    disabled={uploadingIcon === category.id}
+                    onClick={() => handleIconDelete(category.id)}
+                    className="text-red-600 hover:text-red-700"
                   >
-                    {uploadingIcon === category.id ? 'Uploading...' : category.iconUrl ? 'Change Icon' : 'Upload Icon'}
+                    Remove Icon
                   </Button>
-                  {category.iconUrl && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleIconDelete(category.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Remove Icon
-                    </Button>
-                  )}
-                </>
-              )}
+                )}
+              </>
               {/* Add Subcategory button - only for main categories */}
               {!category.parentId && (
                 <Button
