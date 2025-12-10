@@ -20,6 +20,26 @@ let categoryImageMapCache: {
 } | null = null;
 const CATEGORY_MAP_TTL = 10 * 60 * 1000; // 10 minutes
 
+// Cache for category hierarchy (main category + subcategories)
+interface CategoryHierarchy {
+  id: string;
+  parentId: string | null;
+  children: Array<{ id: string }>;
+}
+
+let categoryHierarchyCache: {
+  map: Map<string, CategoryHierarchy>;
+  timestamp: number;
+} | null = null;
+const CATEGORY_HIERARCHY_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Cache for productCategory model support check
+let productCategoryModelSupportCache: {
+  supported: boolean;
+  timestamp: number;
+} | null = null;
+const MODEL_SUPPORT_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Check if category_id column exists in products table
  * Results are cached for 5 minutes to avoid repeated queries
@@ -105,12 +125,95 @@ export async function getCategoryImageMap(
 }
 
 /**
+ * Get category hierarchy (main category with subcategories)
+ * Results are cached for 10 minutes
+ */
+export async function getCategoryHierarchy(
+  prisma: any,
+  categoryId: string
+): Promise<CategoryHierarchy | null> {
+  const now = Date.now();
+
+  // Check if we need to rebuild the hierarchy cache
+  if (
+    !categoryHierarchyCache ||
+    (now - categoryHierarchyCache.timestamp) >= CATEGORY_HIERARCHY_TTL
+  ) {
+    try {
+      // Test if Prisma Client supports productCategory
+      await prisma.productCategory.findFirst({ take: 1 });
+
+      // Load all categories with their children
+      const allCategories = await prisma.productCategory.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          parentId: true,
+          children: {
+            where: { isActive: true },
+            select: { id: true },
+          },
+        },
+      });
+
+      // Build the hierarchy map
+      const hierarchyMap = new Map<string, CategoryHierarchy>();
+      allCategories.forEach((cat: any) => {
+        hierarchyMap.set(cat.id, {
+          id: cat.id,
+          parentId: cat.parentId,
+          children: cat.children,
+        });
+      });
+
+      categoryHierarchyCache = { map: hierarchyMap, timestamp: now };
+    } catch (error: any) {
+      console.warn('Failed to load category hierarchy:', error.message);
+      return null;
+    }
+  }
+
+  // Return cached hierarchy for the requested category
+  return categoryHierarchyCache.map.get(categoryId) || null;
+}
+
+/**
+ * Check if Prisma Client supports productCategory model
+ * Results are cached for 5 minutes
+ */
+export async function checkProductCategoryModelSupport(
+  prisma: any
+): Promise<boolean> {
+  const now = Date.now();
+
+  // Return cached result if still valid
+  if (
+    productCategoryModelSupportCache &&
+    (now - productCategoryModelSupportCache.timestamp) < MODEL_SUPPORT_TTL
+  ) {
+    return productCategoryModelSupportCache.supported;
+  }
+
+  // Perform the check
+  try {
+    await prisma.productCategory.findFirst({ take: 1 });
+    productCategoryModelSupportCache = { supported: true, timestamp: now };
+    return true;
+  } catch (error: any) {
+    productCategoryModelSupportCache = { supported: false, timestamp: now };
+    return false;
+  }
+}
+
+/**
  * Clear all category caches
  * Call this when categories are created, updated, or deleted
  */
 export function clearCategoryCache(): void {
   categoryCheckCache = null;
   categoryImageMapCache = null;
+  categoryHierarchyCache = null;
+  productCategoryModelSupportCache = null;
 }
 
 /**
@@ -119,18 +222,30 @@ export function clearCategoryCache(): void {
 export function getCacheStats(): {
   categoryCheckCached: boolean;
   categoryMapCached: boolean;
+  hierarchyCached: boolean;
+  modelSupportCached: boolean;
   categoryCheckAge?: number;
   categoryMapAge?: number;
+  hierarchyAge?: number;
+  modelSupportAge?: number;
 } {
   const now = Date.now();
   return {
     categoryCheckCached: categoryCheckCache !== null,
     categoryMapCached: categoryImageMapCache !== null,
+    hierarchyCached: categoryHierarchyCache !== null,
+    modelSupportCached: productCategoryModelSupportCache !== null,
     categoryCheckAge: categoryCheckCache
       ? now - categoryCheckCache.timestamp
       : undefined,
     categoryMapAge: categoryImageMapCache
       ? now - categoryImageMapCache.timestamp
+      : undefined,
+    hierarchyAge: categoryHierarchyCache
+      ? now - categoryHierarchyCache.timestamp
+      : undefined,
+    modelSupportAge: productCategoryModelSupportCache
+      ? now - productCategoryModelSupportCache.timestamp
       : undefined,
   };
 }

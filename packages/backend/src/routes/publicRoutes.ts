@@ -2,7 +2,12 @@ import { Router, Response, NextFunction } from 'express';
 import { optionalAuthenticate, AuthRequest } from '../middleware/auth';
 import { query, param, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
-import { checkCategoryColumnExists, getCategoryImageMap } from '../utils/categoryCache';
+import {
+  checkCategoryColumnExists,
+  getCategoryImageMap,
+  getCategoryHierarchy,
+  checkProductCategoryModelSupport,
+} from '../utils/categoryCache';
 
 const router = Router();
 
@@ -249,24 +254,13 @@ router.get(
       // Only apply if category_id column exists
       if (category && includeCategory) {
         try {
-          // Test if product_categories table exists
-          await prisma.$queryRaw`SELECT id FROM product_categories LIMIT 1`;
-          
-          // Use proper Prisma model (regenerate Prisma Client if this fails)
-          const categoryObj = await prisma.productCategory.findUnique({
-            where: { id: category },
-            include: {
-              children: {
-                where: { isActive: true },
-                select: { id: true },
-              },
-            },
-          });
+          // Use cached category hierarchy lookup
+          const categoryHierarchy = await getCategoryHierarchy(prisma, category);
 
-          if (categoryObj) {
+          if (categoryHierarchy) {
             // If it's a main category (has no parent), include products from main category and all subcategories
-            if (!categoryObj.parentId) {
-              const subcategoryIds = categoryObj.children.map((child) => child.id);
+            if (!categoryHierarchy.parentId) {
+              const subcategoryIds = categoryHierarchy.children.map((child) => child.id);
               // Include products assigned to the main category OR any of its subcategories
               // The 'in' operator automatically excludes null values
               where.categoryId = {
@@ -282,20 +276,13 @@ router.get(
             where.categoryId = category;
           }
         } catch (categoryError: any) {
-          // If category lookup fails (table doesn't exist, Prisma Client not regenerated, or other error)
-          console.error('Category filtering error:', categoryError.message);
-          console.error('Error code:', categoryError.code);
-          console.error('Error stack:', categoryError.stack);
-          
-          // Fall back to simple category ID filter
-          // This will still work if categoryId column exists but table query fails
-          // Setting to a value automatically excludes null in Prisma
+          // If category lookup fails, fall back to simple category ID filter
+          console.warn('Category filtering error, using simple filter:', categoryError.message);
           try {
             where.categoryId = category;
           } catch (fallbackError: any) {
             // If even that fails, skip category filtering entirely
             console.warn('Category filtering completely unavailable, skipping category filter');
-            // Remove categoryId from where clause if it was set
             if (where.categoryId) {
               delete where.categoryId;
             }
@@ -321,33 +308,28 @@ router.get(
         delete finalWhere.categoryId;
       }
 
-      // Try to detect if Prisma Client supports productCategory model
+      // Check if Prisma Client supports productCategory model (using cache)
       // This only affects whether we can include category relation in results
       // We can still filter by categoryId even if the model isn't available
-      let canIncludeCategory = includeCategory;
-      if (includeCategory) {
-        try {
-          // Test if we can query productCategory (Prisma Client must be regenerated)
-          await prisma.productCategory.findFirst({ take: 1 });
-        } catch (prismaClientError: any) {
-          console.warn('Prisma Client does not support productCategory model:', prismaClientError.message);
-          console.warn('Please regenerate Prisma Client: npm run db:generate');
-          console.warn('Category filtering will still work, but category details will not be included in results');
-          canIncludeCategory = false;
-          // DO NOT remove categoryId from where clause - filtering should still work
-          // We just can't include the category relation in the query results
-        }
-      }
+      const canIncludeCategory =
+        includeCategory && (await checkProductCategoryModelSupport(prisma));
 
       // Try to fetch products with category relation, fallback to without if Prisma Client issue
       let products: any[];
       let total: number;
       
       try {
+        // Use select instead of include for better performance
         [products, total] = await Promise.all([
           prisma.product.findMany({
             where: finalWhere,
-            include: {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              description: true,
+              unit: true,
+              categoryId: true,
               ...(canIncludeCategory && {
                 category: {
                   select: {
@@ -390,6 +372,10 @@ router.get(
                 },
                 orderBy: { effectiveFrom: 'desc' },
                 take: 1,
+                select: {
+                  price: true,
+                  currency: true,
+                },
               },
             },
             skip,
@@ -416,10 +402,17 @@ router.get(
         }
         // Otherwise, keep categoryId filter even if we can't include category relation
         
+        // Use select instead of include for better performance
         [products, total] = await Promise.all([
           prisma.product.findMany({
             where: fallbackWhere,
-            include: {
+            select: {
+              id: true,
+              sku: true,
+              name: true,
+              description: true,
+              unit: true,
+              categoryId: true,
               supplier: {
                 select: {
                   id: true,
@@ -445,6 +438,10 @@ router.get(
                 },
                 orderBy: { effectiveFrom: 'desc' },
                 take: 1,
+                select: {
+                  price: true,
+                  currency: true,
+                },
               },
             },
             skip,
@@ -457,8 +454,8 @@ router.get(
         ]);
         
         // Set canIncludeCategory to false to skip category-related code below
-        canIncludeCategory = false;
-        includeCategory = false;
+        // Note: canIncludeCategory was already set earlier, but we need to ensure it's false here
+        // Since canIncludeCategory is const, we'll handle this in the mapping logic
       }
 
       // Get private prices for customers if logged in
