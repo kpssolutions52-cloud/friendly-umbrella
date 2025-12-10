@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { optionalAuthenticate, AuthRequest } from '../middleware/auth';
 import { query, param, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
+import { checkCategoryColumnExists, getCategoryImageMap } from '../utils/categoryCache';
 
 const router = Router();
 
@@ -20,48 +21,12 @@ router.get(
 
       const productId = req.params.id;
 
-      // Check if category_id column exists
-      let includeCategory = true;
-      try {
-        await prisma.$queryRaw`SELECT category_id FROM products LIMIT 1`;
-      } catch (testError: any) {
-        if (testError.code === 'P2022' || testError.message?.includes('category_id')) {
-          includeCategory = false;
-        }
-      }
+      // Check if category_id column exists (using cache)
+      const includeCategory = await checkCategoryColumnExists(prisma);
 
-      // Load category image map for fallback images (if category system is available)
+      // Load category image map for fallback images (using cache)
+      // Only load if needed - when product doesn't have image, we'll check if category map is needed
       let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
-      if (includeCategory) {
-        try {
-          // Test if Prisma Client supports productCategory
-          await prisma.productCategory.findFirst({ take: 1 });
-          const categories = await prisma.productCategory.findMany({
-            where: { isActive: true },
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  iconUrl: true,
-                },
-              },
-            },
-          });
-          categoryImageMap = new Map(
-            categories.map((cat: any) => [
-              cat.id, 
-              { 
-                iconUrl: cat.iconUrl, 
-                parentId: cat.parentId,
-                parentIconUrl: cat.parent?.iconUrl || null
-              }
-            ])
-          );
-        } catch (categoryError: any) {
-          // Categories table might not exist yet or Prisma Client not regenerated
-          console.debug('Could not load categories for images:', categoryError.message);
-        }
-      }
 
       // Get product with supplier and prices
       const product = await prisma.product.findFirst({
@@ -139,18 +104,22 @@ router.get(
           }
         }
         
-        // If still no image, try categoryImageMap (works even when category relation isn't included)
-        if (!finalImageUrl && (product as any).categoryId) {
+        // If still no image, load category map and try (works even when category relation isn't included)
+        if (!finalImageUrl && includeCategory) {
+          // Load category map only when needed (lazy loading)
+          categoryImageMap = await getCategoryImageMap(prisma);
           const categoryId = (product as any).categoryId;
-          const categoryInfo = categoryImageMap.get(categoryId);
-          
-          if (categoryInfo) {
-            // First try subcategory icon
-            if (categoryInfo.iconUrl) {
-              finalImageUrl = categoryInfo.iconUrl;
-            } else if (categoryInfo.parentIconUrl) {
-              // If no subcategory icon, try parent (main category) icon
-              finalImageUrl = categoryInfo.parentIconUrl;
+          if (categoryId) {
+            const categoryInfo = categoryImageMap.get(categoryId);
+            
+            if (categoryInfo) {
+              // First try subcategory icon
+              if (categoryInfo.iconUrl) {
+                finalImageUrl = categoryInfo.iconUrl;
+              } else if (categoryInfo.parentIconUrl) {
+                // If no subcategory icon, try parent (main category) icon
+                finalImageUrl = categoryInfo.parentIconUrl;
+              }
             }
           }
         }
@@ -273,15 +242,8 @@ router.get(
         where.supplierId = supplierId;
       }
 
-      // Check if category_id column exists (do this early)
-      let includeCategory = true;
-      try {
-        await prisma.$queryRaw`SELECT category_id FROM products LIMIT 1`;
-      } catch (testError: any) {
-        if (testError.code === 'P2022' || testError.message?.includes('category_id')) {
-          includeCategory = false;
-        }
-      }
+      // Check if category_id column exists (using cache)
+      const includeCategory = await checkCategoryColumnExists(prisma);
 
       // Handle category filtering: if main category, include all subcategories
       // Only apply if category_id column exists
@@ -349,40 +311,8 @@ router.get(
         ];
       }
 
-      // Get all categories for fallback images (only if product_categories table exists)
-      // Map includes both category ID, parent ID, and parent iconUrl for fallback chain
+      // Category image map will be loaded lazily only if products don't have images (using cache)
       let categoryImageMap = new Map<string, { iconUrl: string | null; parentId: string | null; parentIconUrl: string | null }>();
-      if (includeCategory) {
-        try {
-          // Test if Prisma Client supports productCategory before querying
-          await prisma.productCategory.findFirst({ take: 1 });
-          const categories = await prisma.productCategory.findMany({
-            where: { isActive: true },
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  iconUrl: true,
-                },
-              },
-            },
-          });
-          categoryImageMap = new Map(
-            categories.map((cat: any) => [
-              cat.id, 
-              { 
-                iconUrl: cat.iconUrl, 
-                parentId: cat.parentId,
-                parentIconUrl: cat.parent?.iconUrl || null
-              }
-            ])
-          );
-        } catch (categoryError: any) {
-          // Categories table might not exist yet or Prisma Client not regenerated - continue without category images
-          console.warn('Failed to load categories for images:', categoryError.message);
-          console.warn('Error code:', categoryError.code);
-        }
-      }
 
       // Get products with suppliers and prices
       // Remove categoryId from where if we can't filter by it
@@ -537,6 +467,13 @@ router.get(
       let privatePriceMap = new Map();
       // For now, customers see default prices only
       // Future: Implement customer-specific pricing if needed
+
+      // Check if we need to load category map (only if products don't have images)
+      const needsCategoryMap = includeCategory && products.some((p: any) => !p.images || p.images.length === 0);
+      if (needsCategoryMap) {
+        // Load category map using cache (only when needed)
+        categoryImageMap = await getCategoryImageMap(prisma);
+      }
 
       // Combine products with prices
       const productsWithPrices = products.map((product) => {

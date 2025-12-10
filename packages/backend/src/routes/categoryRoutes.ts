@@ -6,6 +6,7 @@ import createError from 'http-errors';
 import multer from 'multer';
 import { uploadCategoryImage, deleteCategoryImage } from '../utils/supabase';
 import { categoryService } from '../services/categoryService';
+import { clearCategoryCache } from '../utils/categoryCache';
 
 const router = Router();
 
@@ -145,6 +146,9 @@ router.post(
       const input = createCategorySchema.parse(req.body);
       const category = await categoryService.createCategory(input);
 
+      // Clear cache when category is created
+      clearCategoryCache();
+
       res.status(201).json({
         message: 'Category created successfully',
         category,
@@ -181,6 +185,9 @@ router.put(
 
       const input = updateCategorySchema.parse(req.body);
       const category = await categoryService.updateCategory(req.params.id, input);
+
+      // Clear cache when category is updated
+      clearCategoryCache();
 
       res.json({
         message: 'Category updated successfully',
@@ -236,6 +243,9 @@ router.post(
       try {
         const updatedCategory = await categoryService.updateCategory(req.params.id, { iconUrl });
 
+        // Clear cache when category icon is updated
+        clearCategoryCache();
+
         res.json({
           message: 'Category icon uploaded successfully',
           category: updatedCategory,
@@ -283,6 +293,9 @@ router.delete(
       // Update category to remove icon URL
       const updatedCategory = await categoryService.updateCategory(req.params.id, { iconUrl: null });
 
+      // Clear cache when category icon is deleted
+      clearCategoryCache();
+
       res.json({
         message: 'Category icon deleted successfully',
         category: updatedCategory,
@@ -317,6 +330,9 @@ router.delete(
       }
 
       await categoryService.deleteCategory(req.params.id);
+
+      // Clear cache when category is deleted
+      clearCategoryCache();
 
       res.json({
         message: 'Category deleted successfully',
