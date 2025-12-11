@@ -32,10 +32,19 @@ export async function apiRequest<T>(
   // Use shorter timeout on mobile devices (5s) vs desktop (10s)
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const timeout = isMobile ? 5000 : 10000;
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let timeoutId: NodeJS.Timeout | undefined;
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    // Create timeout promise that will reject if fetch takes too long
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(new Error('Request timeout - please check your connection'));
+      }, timeout);
+    });
+
+    // Wrap fetch in Promise.race to ensure timeout works even if fetch hangs
+    const fetchPromise = fetch(`${API_URL}${endpoint}`, {
       ...options,
       signal: controller.signal,
       headers: {
@@ -44,8 +53,14 @@ export async function apiRequest<T>(
         ...options.headers,
       },
     });
+
+    // Race between fetch and timeout to ensure we never hang indefinitely
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
     
-    clearTimeout(timeoutId);
+    // Clear timeout if fetch completed successfully
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
 
     // Handle 401 Unauthorized - try to refresh token
     if (response.status === 401 && retryOn401 && typeof window !== 'undefined') {
@@ -90,9 +105,17 @@ export async function apiRequest<T>(
 
     return response.json();
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
+    // Clear timeout if it exists
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    // Handle various error types
+    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
       throw new Error('Request timeout - please check your connection');
+    }
+    // Handle network errors (CORS, connection refused, etc.)
+    if (error instanceof TypeError && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
+      throw new Error('Network error - unable to reach server. Please check your connection and API URL configuration.');
     }
     throw error;
   }

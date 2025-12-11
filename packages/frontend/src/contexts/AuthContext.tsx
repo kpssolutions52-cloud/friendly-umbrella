@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -35,11 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check if user is already authenticated
     if (isAuthenticated()) {
       // Add a maximum timeout to prevent infinite loading
+      // Use a shorter timeout (10s) to match the auth check timeout
       const timeoutId = setTimeout(() => {
+        console.warn('Auth loading timeout reached - proceeding without user');
         setLoading(false);
-      }, 15000); // 15 second max timeout
+        setUser(null);
+      }, 10000); // 10 second max timeout (matches refreshUser timeout + buffer)
       
       refreshUser()
+        .catch((error) => {
+          // Error already handled in refreshUser, just log it
+          console.error('Auth check failed:', error);
+        })
         .finally(() => {
           clearTimeout(timeoutId);
           setLoading(false);
@@ -47,9 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [refreshUser]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       // Add timeout to prevent hanging - reduced to 8 seconds for faster mobile experience
       const userData = await Promise.race([
@@ -67,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Re-throw to let caller know it failed
       throw error;
     }
-  };
+  }, []);
 
   const login = async (input: LoginInput, returnUrl?: string) => {
     const response = await apiLogin(input);
