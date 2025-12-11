@@ -22,6 +22,8 @@ interface PublicProduct {
   supplierName: string;
   supplierLogoUrl: string | null;
   productImageUrl: string | null;
+  ratePerHour?: number | null;
+  rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null;
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;

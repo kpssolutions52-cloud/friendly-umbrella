@@ -42,6 +42,8 @@ interface Product {
     } | null;
   } | null;
   unit: string;
+  ratePerHour: number | null;
+  rateType: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null;
   isActive: boolean;
   defaultPrices: Array<{
     id: string;
@@ -492,6 +494,9 @@ function DashboardContent() {
         type: 'service',
         serviceCategoryId: finalServiceCategoryId,
         unit: formData.unit,
+        ratePerHour: formData.ratePerHour ? parseFloat(formData.ratePerHour) : null,
+        rateType: formData.rateType || 'per_hour',
+        // For services, we can still use defaultPrice for fixed pricing, but ratePerHour is primary
         defaultPrice: formData.defaultPrice ? parseFloat(formData.defaultPrice) : undefined,
         currency: formData.currency,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
@@ -697,6 +702,8 @@ function DashboardContent() {
         serviceCategoryId: subCategoryId,
         mainCategoryId: mainCategoryId,
         unit: fullProduct.unit,
+        ratePerHour: fullProduct.ratePerHour ? fullProduct.ratePerHour.toString() : '',
+        rateType: fullProduct.rateType || 'per_hour',
         defaultPrice: fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0 
           ? fullProduct.defaultPrices[0].price.toString() 
           : '',
@@ -708,9 +715,9 @@ function DashboardContent() {
       setSelectedMainCategoryId(mainCategoryId);
       
       // Load existing private prices into edit included special prices state
-      if (fullService.privatePrices && fullService.privatePrices.length > 0) {
+      if (fullProduct.privatePrices && fullProduct.privatePrices.length > 0) {
         // Get company names from loaded companies list
-        const existingSpecialPrices: SpecialPriceEntry[] = fullService.privatePrices.map((pp: any) => {
+        const existingSpecialPrices: SpecialPriceEntry[] = fullProduct.privatePrices.map((pp: any) => {
           const companyInfo = companies.find(c => c.id === pp.companyId);
           // Determine pricing type: discountPercentage takes precedence if both exist
           const pricingType = (pp.discountPercentage !== null && pp.discountPercentage !== undefined) 
@@ -827,6 +834,8 @@ function DashboardContent() {
           serviceCategoryId: '',
           mainCategoryId: '',
           unit: '',
+          ratePerHour: '',
+          rateType: 'per_hour',
           defaultPrice: '',
           currency: 'USD',
         });
@@ -1157,12 +1166,16 @@ function DashboardContent() {
                           {product.unit}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {product.defaultPrices && product.defaultPrices.length > 0 ? (
+                          {product.ratePerHour !== null && product.ratePerHour !== undefined ? (
                             <span>
-                              {product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}
+                              {product.rateType === 'per_hour' && `${Number(product.ratePerHour).toFixed(2)}/hr`}
+                              {product.rateType === 'per_project' && `${Number(product.ratePerHour).toFixed(2)}/project`}
+                              {product.rateType === 'fixed' && `${formData.currency || 'USD'} ${Number(product.ratePerHour).toFixed(2)}`}
+                              {product.rateType === 'negotiable' && `From ${Number(product.ratePerHour).toFixed(2)}/hr (Negotiable)`}
+                              {!product.rateType && `${Number(product.ratePerHour).toFixed(2)}/hr`}
                             </span>
                           ) : (
-                            <span className="text-gray-400">No price</span>
+                            <span className="text-gray-400">Rate not set</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1248,20 +1261,32 @@ function DashboardContent() {
                           <span className="ml-1 text-gray-900">{product.unit}</span>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-gray-500">Price:</span>
+                          <span className="text-gray-500">Rate:</span>
                           <span className="ml-1 text-gray-900 font-medium">
-                            {product.defaultPrices && product.defaultPrices.length > 0 ? (
-                              <>{product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}</>
+                            {product.ratePerHour !== null && product.ratePerHour !== undefined ? (
+                              <>
+                                {product.rateType === 'per_hour' && `${Number(product.ratePerHour).toFixed(2)}/hr`}
+                                {product.rateType === 'per_project' && `${Number(product.ratePerHour).toFixed(2)}/project`}
+                                {product.rateType === 'fixed' && `USD ${Number(product.ratePerHour).toFixed(2)}`}
+                                {product.rateType === 'negotiable' && `From ${Number(product.ratePerHour).toFixed(2)}/hr (Negotiable)`}
+                                {!product.rateType && `${Number(product.ratePerHour).toFixed(2)}/hr`}
+                              </>
                             ) : (
-                              <span className="text-gray-400">No price</span>
+                              <span className="text-gray-400">Rate not set</span>
                             )}
                           </span>
                         </div>
+                        {product.description && (
+                          <div className="col-span-2">
+                            <span className="text-gray-500">Description:</span>
+                            <p className="text-xs text-gray-700 mt-1 line-clamp-2">{product.description}</p>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => handleEditService(service)}
+                          onClick={() => handleEditProduct(product)}
                           className="w-full touch-target"
                         >
                           Edit
@@ -1269,7 +1294,7 @@ function DashboardContent() {
                         <div className="grid grid-cols-2 gap-2">
                           <Button
                             variant="outline"
-                            onClick={() => handleToggleInactive(service)}
+                            onClick={() => handleToggleInactive(product)}
                             className={`touch-target ${
                               !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                             }`}
@@ -1295,7 +1320,7 @@ function DashboardContent() {
                 {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
                   <div className="text-sm text-gray-500">
-                    Showing {services.length > 0 ? ((currentPage - 1) * servicesPerPage + 1) : 0} to {Math.min(currentPage * servicesPerPage, totalServices)} of {totalServices} services
+                    Showing {products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts} services
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -1518,7 +1543,49 @@ function DashboardContent() {
                   />
                 </div>
 
+                {/* Service Pricing Fields */}
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="rateType">Pricing Type *</Label>
+                    <select
+                      id="rateType"
+                      name="rateType"
+                      value={formData.rateType}
+                      onChange={handleInputChange}
+                      required
+                      disabled={isSubmitting}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="per_hour">Per Hour</option>
+                      <option value="per_project">Per Project</option>
+                      <option value="fixed">Fixed Price</option>
+                      <option value="negotiable">Negotiable</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ratePerHour">
+                      {formData.rateType === 'per_hour' ? 'Rate Per Hour *' : 
+                       formData.rateType === 'per_project' ? 'Rate Per Project *' : 
+                       formData.rateType === 'fixed' ? 'Fixed Price *' : 
+                       'Starting Rate (Optional)'}
+                    </Label>
+                    <Input
+                      id="ratePerHour"
+                      name="ratePerHour"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.ratePerHour}
+                      onChange={handleInputChange}
+                      required={formData.rateType !== 'negotiable'}
+                      disabled={isSubmitting}
+                      placeholder={formData.rateType === 'per_hour' ? '50.00' : formData.rateType === 'per_project' ? '5000.00' : '1000.00'}
+                    />
+                  </div>
+                </div>
+
+                {/* Optional: Currency for fixed pricing */}
+                {formData.rateType === 'fixed' && (
                   <div>
                     <Label htmlFor="currency">Currency</Label>
                     <select
@@ -1535,14 +1602,17 @@ function DashboardContent() {
                       <option value="SGD">SGD</option>
                     </select>
                   </div>
-                  <div>
-                    <Label htmlFor="defaultPrice">Default Price</Label>
-                    <Input
-                      id="defaultPrice"
-                      name="defaultPrice"
-                      type="number"
-                      step="0.01"
-                      min="0"
+                )}
+
+                {/* Legacy defaultPrice field - hidden for services, kept for backward compatibility */}
+                <div className="hidden">
+                  <Label htmlFor="defaultPrice">Default Price (Legacy)</Label>
+                  <Input
+                    id="defaultPrice"
+                    name="defaultPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
                       value={formData.defaultPrice}
                       onChange={handleInputChange}
                       disabled={isSubmitting}
@@ -1834,7 +1904,7 @@ function DashboardContent() {
       )}
 
       {/* Edit Service Modal */}
-      {showEditProductModal && editingService && (
+      {showEditProductModal && editingProduct && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
           onClick={handleCloseModal}
@@ -1869,7 +1939,7 @@ function DashboardContent() {
                 </div>
               )}
 
-              <form onSubmit={handleUpdateService} className="space-y-4">
+              <form onSubmit={handleUpdateProduct} className="space-y-4">
                 {/* Category Selection - Moved to Top */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -2271,7 +2341,7 @@ function DashboardContent() {
 
                 {/* Service Images Section */}
                 <ServiceImageManager
-                  serviceId={editingService?.id || null}
+                  serviceId={editingProduct?.id || null}
                   disabled={isSubmitting}
                 />
 

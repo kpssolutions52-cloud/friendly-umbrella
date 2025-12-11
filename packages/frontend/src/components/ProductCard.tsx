@@ -9,12 +9,15 @@ interface ProductCardProps {
     sku: string;
     name: string;
     description: string | null;
+    type?: 'product' | 'service';
     category: string | null;
     unit: string;
     supplierId: string;
     supplierName: string;
     supplierLogoUrl: string | null;
     productImageUrl: string | null;
+    ratePerHour?: number | null;
+    rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null;
     defaultPrice: {
       price: number;
       currency: string;
@@ -30,20 +33,27 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onViewDetails }: ProductCardProps) {
-  const hasSpecialPrice = product.privatePrice !== null && 
+  const isService = product.type === 'service';
+  
+  // For services, use rate per hour; for products, use price
+  const hasSpecialPrice = !isService && product.privatePrice !== null && 
     (product.privatePrice.price !== null || product.privatePrice.calculatedPrice !== null);
   
-  const displayPrice = hasSpecialPrice && product.privatePrice !== null && product.privatePrice.calculatedPrice !== null
+  const displayPrice = !isService && hasSpecialPrice && product.privatePrice !== null && product.privatePrice.calculatedPrice !== null
     ? product.privatePrice.calculatedPrice
-    : hasSpecialPrice && product.privatePrice !== null && product.privatePrice.price !== null
+    : !isService && hasSpecialPrice && product.privatePrice !== null && product.privatePrice.price !== null
     ? product.privatePrice.price
-    : product.defaultPrice?.price || null;
+    : !isService ? (product.defaultPrice?.price || null) : null;
   
-  const priceCurrency = hasSpecialPrice && product.privatePrice !== null && product.privatePrice.currency
+  const priceCurrency = !isService && hasSpecialPrice && product.privatePrice !== null && product.privatePrice.currency
     ? product.privatePrice.currency
-    : product.defaultPrice?.currency || 'USD';
+    : !isService ? (product.defaultPrice?.currency || 'USD') : 'USD';
 
-  const discountPercentage = product.privatePrice?.discountPercentage || null;
+  const discountPercentage = !isService ? (product.privatePrice?.discountPercentage || null) : null;
+  
+  // Service-specific pricing
+  const ratePerHour = isService ? (product.ratePerHour || null) : null;
+  const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col">
@@ -113,44 +123,79 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
           <span>{product.unit}</span>
         </div>
 
-        {/* Pricing */}
+        {/* Pricing / Rate */}
         <div className="mb-4">
-          {displayPrice !== null ? (
-            <div>
-              <div className="flex items-baseline gap-2 flex-wrap">
-                {hasSpecialPrice && product.defaultPrice && (
-                  <span className="text-xs sm:text-sm text-gray-400 line-through">
-                    {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+          {isService ? (
+            // Service Card: Show rate per hour
+            ratePerHour !== null ? (
+              <div>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-xl sm:text-2xl font-bold text-blue-600">
+                    {rateType === 'per_hour' && `$${ratePerHour.toFixed(2)}/hr`}
+                    {rateType === 'per_project' && `$${ratePerHour.toFixed(2)}/project`}
+                    {rateType === 'fixed' && `$${ratePerHour.toFixed(2)}`}
+                    {rateType === 'negotiable' && `From $${ratePerHour.toFixed(2)}/hr`}
+                    {!rateType && `$${ratePerHour.toFixed(2)}/hr`}
                   </span>
+                </div>
+                {rateType === 'negotiable' && (
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1.5">Negotiable rates available</p>
                 )}
-                <span className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {priceCurrency} {displayPrice.toFixed(2)}
-                </span>
+                {rateType === 'per_project' && (
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1.5">Project-based pricing</p>
+                )}
               </div>
-              {hasSpecialPrice && discountPercentage !== null && (
-                <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  {discountPercentage.toFixed(1)}% savings
-                </p>
-              )}
-              {hasSpecialPrice && discountPercentage === null && (
-                <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5">Special rate</p>
-              )}
-            </div>
+            ) : (
+              <p className="text-sm text-gray-400">Rate not set</p>
+            )
           ) : (
-            <p className="text-sm text-gray-400">Price not available</p>
+            // Product Card: Show price
+            displayPrice !== null ? (
+              <div>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  {hasSpecialPrice && product.defaultPrice && (
+                    <span className="text-xs sm:text-sm text-gray-400 line-through">
+                      {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-xl sm:text-2xl font-bold text-gray-900">
+                    {priceCurrency} {displayPrice.toFixed(2)}
+                  </span>
+                </div>
+                {hasSpecialPrice && discountPercentage !== null && (
+                  <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {discountPercentage.toFixed(1)}% savings
+                  </p>
+                )}
+                {hasSpecialPrice && discountPercentage === null && (
+                  <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5">Special rate</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">Price not available</p>
+            )
           )}
         </div>
+        
+        {/* Service Description */}
+        {isService && product.description && (
+          <div className="mb-3">
+            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{product.description}</p>
+          </div>
+        )}
 
         {/* View Details Button */}
         <Button
           onClick={onViewDetails}
-          className="w-full touch-target h-11 sm:h-12 text-sm sm:text-base font-semibold"
-          variant="default"
+          className={`w-full touch-target h-11 sm:h-12 text-sm sm:text-base font-semibold ${
+            isService ? 'bg-blue-600 hover:bg-blue-700' : ''
+          }`}
+          variant={isService ? 'default' : 'default'}
         >
-          View Details
+          {isService ? 'View Service' : 'View Details'}
         </Button>
       </div>
     </div>

@@ -20,6 +20,9 @@ export interface CreateProductInput {
   unit: string;
   defaultPrice?: number;
   currency?: string;
+  // Service-specific pricing
+  ratePerHour?: number | null; // For services: hourly rate
+  rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null; // Pricing type for services
   specialPrices?: SpecialPriceInput[];
   metadata?: Record<string, any>;
 }
@@ -56,40 +59,40 @@ export class ProductService {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: {
-          category: {
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          serviceCategory: {
-            include: {
-              parent: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          defaultPrices: {
-            where: { isActive: true },
-            orderBy: { effectiveFrom: 'desc' },
-            take: 1,
-          },
-          _count: {
-            select: {
-              privatePrices: {
-                where: { isActive: true },
+      include: {
+        category: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                name: true,
               },
             },
           },
         },
+        serviceCategory: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        defaultPrices: {
+          where: { isActive: true },
+          orderBy: { effectiveFrom: 'desc' },
+          take: 1,
+        },
+        _count: {
+          select: {
+            privatePrices: {
+              where: { isActive: true },
+            },
+          },
+        },
+      },
         orderBy: {
           createdAt: 'desc',
         },
@@ -226,6 +229,8 @@ export class ProductService {
           categoryId: productType === 'product' ? (input.categoryId || null) : null,
           serviceCategoryId: productType === 'service' ? (input.serviceCategoryId || null) : null,
           unit: input.unit,
+          ratePerHour: productType === 'service' ? (input.ratePerHour ? new Decimal(input.ratePerHour) : null) : null,
+          rateType: productType === 'service' ? (input.rateType || null) : null,
           metadata: input.metadata || {},
           isActive: true,
         },
@@ -451,6 +456,8 @@ export class ProductService {
         if (input.type === 'product') {
           updateData.categoryId = input.categoryId !== undefined ? input.categoryId : null;
           updateData.serviceCategoryId = null;
+          updateData.ratePerHour = null;
+          updateData.rateType = null;
         } else if (input.type === 'service') {
           updateData.serviceCategoryId = input.serviceCategoryId !== undefined ? input.serviceCategoryId : null;
           updateData.categoryId = null;
@@ -465,6 +472,16 @@ export class ProductService {
           if (input.serviceCategoryId !== undefined) {
             updateData.serviceCategoryId = input.serviceCategoryId;
           }
+        }
+      }
+      
+      // Handle service-specific pricing fields
+      if (productType === 'service' || input.type === 'service') {
+        if (input.ratePerHour !== undefined) {
+          updateData.ratePerHour = input.ratePerHour !== null ? new Decimal(input.ratePerHour) : null;
+        }
+        if (input.rateType !== undefined) {
+          updateData.rateType = input.rateType;
         }
       }
       
