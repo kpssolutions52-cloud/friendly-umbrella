@@ -113,6 +113,8 @@ function DashboardContent() {
     serviceCategoryId: '',
     mainCategoryId: '',
     unit: '',
+    ratePerHour: '',
+    rateType: 'per_hour' as 'per_hour' | 'per_project' | 'fixed' | 'negotiable',
     defaultPrice: '',
     currency: 'USD',
   });
@@ -516,6 +518,8 @@ function DashboardContent() {
         serviceCategoryId: '',
         mainCategoryId: '',
         unit: '',
+        ratePerHour: '',
+        rateType: 'per_hour',
         defaultPrice: '',
         currency: 'USD',
       });
