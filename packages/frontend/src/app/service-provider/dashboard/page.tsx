@@ -552,7 +552,7 @@ function DashboardContent() {
     if (!isSubmitting) {
       setShowAddProductModal(false);
       setShowEditProductModal(false);
-      setEditingService(null);
+      setEditingProduct(null);
       setError(null);
       setSuccess(false);
       setFormData({
@@ -562,6 +562,8 @@ function DashboardContent() {
         serviceCategoryId: '',
         mainCategoryId: '',
         unit: '',
+        ratePerHour: '',
+        rateType: 'per_hour',
         defaultPrice: '',
         currency: 'USD',
       });
