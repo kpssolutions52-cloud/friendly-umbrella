@@ -253,17 +253,17 @@ function DashboardContent() {
     if (activeFilter === filter) {
       // If clicking the same card, close the list
       setActiveFilter(null);
-      setServices([]);
+      setProducts([]);
       setSearchQuery('');
       setCurrentPage(1);
       setTotalPages(1);
-      setTotalServices(0);
+      setTotalProducts(0);
     } else {
       // Reset to first page when changing filter
       setCurrentPage(1);
       setSearchQuery(''); // Clear search when changing filter
       setActiveFilter(filter);
-      fetchServices(filter, 1);
+      fetchProducts(filter, 1);
     }
   };
 
@@ -1329,9 +1329,9 @@ function DashboardContent() {
                       onClick={() => {
                         const newPage = currentPage - 1;
                         setCurrentPage(newPage);
-                        fetchServices(activeFilter, newPage);
+                        fetchProducts(activeFilter, newPage);
                       }}
-                      disabled={currentPage === 1 || isLoadingServices}
+                      disabled={currentPage === 1 || isLoadingProducts}
                     >
                       Previous
                     </Button>
@@ -1354,9 +1354,9 @@ function DashboardContent() {
                             size="sm"
                             onClick={() => {
                               setCurrentPage(pageNum);
-                              fetchServices(activeFilter, pageNum);
+                              fetchProducts(activeFilter, pageNum);
                             }}
-                            disabled={isLoadingServices}
+                            disabled={isLoadingProducts}
                             className="min-w-[40px]"
                           >
                             {pageNum}
@@ -1370,9 +1370,9 @@ function DashboardContent() {
                       onClick={() => {
                         const newPage = currentPage + 1;
                         setCurrentPage(newPage);
-                        fetchServices(activeFilter, newPage);
+                        fetchProducts(activeFilter, newPage);
                       }}
-                      disabled={currentPage === totalPages || isLoadingServices}
+                      disabled={currentPage === totalPages || isLoadingProducts}
                     >
                       Next
                     </Button>
