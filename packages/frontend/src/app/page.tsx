@@ -444,6 +444,8 @@ export default function Home() {
                 setSelectedMainCategoryId('');
                 setSelectedSubCategoryId('');
                 setSelectedSupplier('');
+                setSubCategories([]);
+                setSubServiceCategories([]);
                 setCurrentPage(1);
               }}
               className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
@@ -461,6 +463,8 @@ export default function Home() {
                 setSelectedMainCategoryId('');
                 setSelectedSubCategoryId('');
                 setSelectedSupplier('');
+                setSubCategories([]);
+                setSubServiceCategories([]);
                 setCurrentPage(1);
               }}
               className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
@@ -533,9 +537,10 @@ export default function Home() {
                     Main Category
                   </label>
                   <select
+                    key={`main-category-${activeTab}`}
                     value={selectedMainCategoryId}
                     onChange={(e) => handleMainCategoryChange(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
                   >
                     <option value="">All Categories</option>
                     {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
@@ -550,11 +555,12 @@ export default function Home() {
                     Sub Category
                   </label>
                   <select
+                    key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
                     value={selectedSubCategoryId}
                     onChange={(e) => handleSubCategoryChange(e.target.value)}
                     disabled={!selectedMainCategoryId || loadingSubCategories}
                     required={!!(selectedMainCategoryId && (activeTab === 'products' ? subCategories : subServiceCategories).length > 0)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500 cursor-pointer"
                   >
                     <option value="">
                       {loadingSubCategories 
@@ -577,9 +583,10 @@ export default function Home() {
                     {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
                   </label>
                   <select
+                    key={`supplier-${activeTab}`}
                     value={selectedSupplier}
                     onChange={(e) => handleSupplierChange(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
                   >
                     <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
                     {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
