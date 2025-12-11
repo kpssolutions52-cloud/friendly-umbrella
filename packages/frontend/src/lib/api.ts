@@ -27,11 +27,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-  // Add timeout to prevent hanging requests - shorter timeout for mobile
+  // Add timeout to prevent hanging requests - much shorter timeout for mobile
   const controller = new AbortController();
-  // Use shorter timeout on mobile devices (5s) vs desktop (10s)
+  // Use much shorter timeout on mobile devices (3s) vs desktop (10s)
+  // Mobile networks are often slower and localhost won't work, so fail fast
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const timeout = isMobile ? 5000 : 10000;
+  const timeout = isMobile ? 3000 : 10000; // 3s for mobile, 10s for desktop
   let timeoutId: NodeJS.Timeout | undefined;
 
   try {

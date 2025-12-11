@@ -41,6 +41,18 @@ export default function Home() {
   const router = useRouter();
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [forceRender, setForceRender] = useState(false);
+
+  // Emergency fallback: force render after 15 seconds to prevent infinite loading
+  useEffect(() => {
+    const emergencyTimeout = setTimeout(() => {
+      if (authLoading) {
+        console.warn('Emergency timeout: forcing page render despite auth loading');
+        setForceRender(true);
+      }
+    }, 15000);
+    return () => clearTimeout(emergencyTimeout);
+  }, [authLoading]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMainCategoryId, setSelectedMainCategoryId] = useState('');
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState('');
@@ -255,7 +267,8 @@ export default function Home() {
   };
 
 
-  if (authLoading) {
+  // Only show loading spinner if auth is loading AND we haven't hit emergency timeout
+  if (authLoading && !forceRender) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">

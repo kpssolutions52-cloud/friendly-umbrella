@@ -33,11 +33,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      // Add timeout to prevent hanging - reduced to 8 seconds for faster mobile experience
+      // Detect mobile and use shorter timeout
+      const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const timeout = isMobile ? 3000 : 8000; // 3s for mobile, 8s for desktop
+      
+      // Add timeout to prevent hanging - much shorter for mobile
       const userData = await Promise.race([
         getCurrentUser(),
         new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+          setTimeout(() => reject(new Error('Auth check timeout')), timeout)
         )
       ]);
       setUser(userData);
@@ -52,15 +56,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Check if user is already authenticated
-    if (isAuthenticated()) {
-      // Add a maximum timeout to prevent infinite loading
-      // Use a shorter timeout (10s) to match the auth check timeout
-      const timeoutId = setTimeout(() => {
-        console.warn('Auth loading timeout reached - proceeding without user');
+    // Detect mobile and use shorter timeout
+    const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const hardTimeout = isMobile ? 5000 : 12000; // 5s for mobile, 12s for desktop
+    
+    // Check if API URL is localhost on mobile - this won't work, clear tokens immediately
+    if (isMobile && typeof window !== 'undefined') {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      if (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1')) {
+        console.warn('Mobile device detected with localhost API URL - clearing tokens');
+        clearTokens();
         setLoading(false);
         setUser(null);
-      }, 10000); // 10 second max timeout (matches refreshUser timeout + buffer)
+        return;
+      }
+    }
+    
+    // Check if user is already authenticated
+    if (isAuthenticated()) {
+      // Add a hard timeout that ALWAYS triggers to prevent infinite loading
+      // This is a safety net in case refreshUser hangs
+      const hardTimeoutId = setTimeout(() => {
+        console.warn('Auth loading hard timeout reached - forcing stop');
+        setLoading(false);
+        setUser(null);
+        clearTokens(); // Clear tokens if we can't verify them
+      }, hardTimeout);
       
       refreshUser()
         .catch((error) => {
@@ -68,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Auth check failed:', error);
         })
         .finally(() => {
-          clearTimeout(timeoutId);
+          clearTimeout(hardTimeoutId);
           setLoading(false);
         });
     } else {
