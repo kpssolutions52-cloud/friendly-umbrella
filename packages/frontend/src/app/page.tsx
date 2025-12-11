@@ -136,16 +136,30 @@ export default function Home() {
   // Load initial data once when auth is done and user is guest
   useEffect(() => {
     if (!authLoading && !user) {
-      // Only load categories and suppliers once
-      loadMainCategories();
-      loadSuppliers();
+      // Only load categories and suppliers once - don't block if they fail
+      // Use setTimeout to ensure page can render even if API is slow
+      const loadData = async () => {
+        try {
+          await Promise.allSettled([
+            loadMainCategories(),
+            loadSuppliers(),
+          ]);
+        } catch (err) {
+          console.error('Failed to load initial data:', err);
+        }
+      };
+      loadData();
     }
   }, [authLoading, user, loadMainCategories, loadSuppliers]);
 
   // Load products when filters/search change - separate from initial data load
   useEffect(() => {
     if (!authLoading && !user) {
-      loadProducts();
+      // Load products - ensure loading state is always cleared
+      loadProducts().catch(err => {
+        console.error('Failed to load products:', err);
+        setIsLoadingProducts(false);
+      });
     }
   }, [authLoading, user, loadProducts]);
 
@@ -240,11 +254,13 @@ export default function Home() {
     }
   };
 
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-sm text-gray-500">Loading...</p>
         </div>
       </div>
     );

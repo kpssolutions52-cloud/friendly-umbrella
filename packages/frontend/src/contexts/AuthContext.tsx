@@ -34,7 +34,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check if user is already authenticated
     if (isAuthenticated()) {
-      refreshUser().finally(() => setLoading(false));
+      // Add a maximum timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setLoading(false);
+      }, 15000); // 15 second max timeout
+      
+      refreshUser()
+        .finally(() => {
+          clearTimeout(timeoutId);
+          setLoading(false);
+        });
     } else {
       setLoading(false);
     }
@@ -42,18 +51,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      // Add timeout to prevent hanging
+      // Add timeout to prevent hanging - reduced to 8 seconds for faster mobile experience
       const userData = await Promise.race([
         getCurrentUser(),
         new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
         )
       ]);
       setUser(userData);
     } catch (error) {
       console.error('Failed to refresh user:', error);
+      // Clear tokens and set user to null on any error (network, timeout, etc.)
       clearTokens();
       setUser(null);
+      // Re-throw to let caller know it failed
+      throw error;
     }
   };
 

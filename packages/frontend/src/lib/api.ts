@@ -27,9 +27,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-  // Add timeout to prevent hanging requests
+  // Add timeout to prevent hanging requests - shorter timeout for mobile
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  // Use shorter timeout on mobile devices (5s) vs desktop (10s)
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const timeout = isMobile ? 5000 : 10000;
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
