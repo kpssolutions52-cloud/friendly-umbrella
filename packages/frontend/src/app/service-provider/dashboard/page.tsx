@@ -289,7 +289,12 @@ function DashboardContent() {
     }
     
     // For all other fields, update normally
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Handle rateType specifically to ensure type safety
+    if (name === 'rateType') {
+      setFormData((prev) => ({ ...prev, [name]: value as 'per_hour' | 'per_project' | 'fixed' | 'negotiable' }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     setError(null);
   };
 
