@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,7 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<string>('default');
   const productsPerPage = 20;
 
+  // Handle auth redirects - separate effect to avoid loops
   useEffect(() => {
     if (!authLoading && user) {
       // Redirect to appropriate dashboard
@@ -75,23 +76,9 @@ export default function Home() {
         return;
       }
     }
-    // Guests stay on landing page
-    loadProducts();
-    loadMainCategories();
-    loadSuppliers();
-  }, [authLoading, user, router, currentPage, searchQuery, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier]);
+  }, [authLoading, user, router]);
 
-  // Reload subcategories when main category changes (backup mechanism)
-  useEffect(() => {
-    if (selectedMainCategoryId) {
-      loadSubCategories(selectedMainCategoryId);
-    } else {
-      setSubCategories([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMainCategoryId]);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setIsLoadingProducts(true);
     try {
       const params = new URLSearchParams();
@@ -114,7 +101,10 @@ export default function Home() {
       );
 
       setProducts(response.products);
-      setCurrentPage(response.pagination.page);
+      // Only update currentPage if it's different (prevents infinite loops)
+      if (response.pagination.page !== currentPage) {
+        setCurrentPage(response.pagination.page);
+      }
       setTotalPages(response.pagination.totalPages);
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -122,9 +112,9 @@ export default function Home() {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, [currentPage, searchQuery, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier]);
 
-  const loadMainCategories = async () => {
+  const loadMainCategories = useCallback(async () => {
     try {
       const response = await getMainCategories();
       setMainCategories(response.categories || []);
@@ -132,7 +122,42 @@ export default function Home() {
       console.error('Failed to load main categories:', error);
       setMainCategories([]);
     }
-  };
+  }, []);
+
+  const loadSuppliers = useCallback(async () => {
+    try {
+      const response = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/suppliers/public');
+      setSuppliers(response.suppliers);
+    } catch (error) {
+      console.error('Failed to load suppliers:', error);
+    }
+  }, []);
+
+  // Load initial data once when auth is done and user is guest
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Only load categories and suppliers once
+      loadMainCategories();
+      loadSuppliers();
+    }
+  }, [authLoading, user, loadMainCategories, loadSuppliers]);
+
+  // Load products when filters/search change - separate from initial data load
+  useEffect(() => {
+    if (!authLoading && !user) {
+      loadProducts();
+    }
+  }, [authLoading, user, loadProducts]);
+
+  // Reload subcategories when main category changes (backup mechanism)
+  useEffect(() => {
+    if (selectedMainCategoryId) {
+      loadSubCategories(selectedMainCategoryId);
+    } else {
+      setSubCategories([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMainCategoryId]);
 
   const loadSubCategories = async (parentId: string) => {
     if (!parentId) {
@@ -152,14 +177,6 @@ export default function Home() {
     }
   };
 
-  const loadSuppliers = async () => {
-    try {
-      const response = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/suppliers/public');
-      setSuppliers(response.suppliers);
-    } catch (error) {
-      console.error('Failed to load suppliers:', error);
-    }
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
