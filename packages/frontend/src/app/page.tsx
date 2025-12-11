@@ -486,7 +486,7 @@ export default function Home() {
                   <Input
                     id="mobile-search-input"
                     type="text"
-                    placeholder="Search products..."
+                    placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 h-12 sm:h-12 text-base sm:text-base border-0 focus-visible:ring-2 focus-visible:ring-blue-500 bg-gray-50 sm:bg-white"

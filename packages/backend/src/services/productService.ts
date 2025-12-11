@@ -627,7 +627,7 @@ export class ProductService {
   /**
    * Get product statistics for supplier dashboard
    */
-  async getSupplierStats(supplierId: string) {
+  async getSupplierStats(supplierId: string, type?: 'product' | 'service') {
     const [totalProducts, activeProducts, productsWithPrices, productsWithPrivatePrices] =
       await Promise.all([
         prisma.product.count({

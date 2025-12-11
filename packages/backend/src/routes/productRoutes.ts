@@ -18,7 +18,8 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
-router.use(requireTenantType('supplier'));
+// Allow both suppliers and service providers (services are products with type='service')
+router.use(requireTenantType('supplier', 'service_provider'));
 
 const specialPriceSchema = z.object({
   companyId: z.string().uuid('Invalid company ID'),
@@ -91,10 +92,12 @@ router.get(
   }
 );
 
-// GET /api/v1/products/stats - Get supplier statistics
+// GET /api/v1/products/stats - Get supplier/service provider statistics
 router.get('/products/stats', async (req: AuthRequest, res, next) => {
   try {
-    const stats = await productService.getSupplierStats(req.tenantId!);
+    // Filter by type based on tenant type: service_provider -> 'service', supplier -> 'product'
+    const type = req.tenantType === 'service_provider' ? 'service' : 'product';
+    const stats = await productService.getSupplierStats(req.tenantId!, type);
     res.json(stats);
   } catch (error) {
     next(error);

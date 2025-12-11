@@ -152,7 +152,7 @@ function DashboardContent() {
   const fetchStats = async () => {
     try {
       setIsLoadingStats(true);
-      const data = await apiGet<ProductStats>('/api/v1/services/stats');
+      const data = await apiGet<ProductStats>('/api/v1/products/stats');
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
@@ -502,7 +502,7 @@ function DashboardContent() {
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
 
-      const response = await apiPost<{ service: { id: string } }>('/api/v1/services', payload);
+      const response = await apiPost<{ product: { id: string } }>('/api/v1/products', payload);
       setSuccess(true);
       
       // Refresh stats after service creation
