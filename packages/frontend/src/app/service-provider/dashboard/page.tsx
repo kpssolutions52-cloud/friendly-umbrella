@@ -152,7 +152,7 @@ function DashboardContent() {
   const fetchStats = async () => {
     try {
       setIsLoadingStats(true);
-      const data = await apiGet<ServiceStats>('/api/v1/services/stats');
+      const data = await apiGet<ProductStats>('/api/v1/services/stats');
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
