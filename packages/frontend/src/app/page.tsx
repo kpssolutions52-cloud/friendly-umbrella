@@ -43,15 +43,18 @@ export default function Home() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [forceRender, setForceRender] = useState(false);
 
-  // Emergency fallback: force render after 15 seconds to prevent infinite loading
+  // Emergency fallback: force render after much shorter time on mobile
   useEffect(() => {
-    const emergencyTimeout = setTimeout(() => {
+    const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const emergencyTimeout = isMobile ? 6000 : 10000; // 6s mobile, 10s desktop
+    
+    const timeoutId = setTimeout(() => {
       if (authLoading) {
         console.warn('Emergency timeout: forcing page render despite auth loading');
         setForceRender(true);
       }
-    }, 15000);
-    return () => clearTimeout(emergencyTimeout);
+    }, emergencyTimeout);
+    return () => clearTimeout(timeoutId);
   }, [authLoading]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMainCategoryId, setSelectedMainCategoryId] = useState('');

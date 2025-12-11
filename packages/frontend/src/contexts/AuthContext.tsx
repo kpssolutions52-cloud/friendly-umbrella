@@ -31,6 +31,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // CRITICAL: Force loading to false if it's been true for too long (safety net)
+  useEffect(() => {
+    if (loading) {
+      const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const maxLoadingTime = isMobile ? 10000 : 20000; // 10s mobile, 20s desktop
+      
+      const forceStopTimeout = setTimeout(() => {
+        if (loading) {
+          console.error('CRITICAL: Loading state stuck - forcing to false');
+          setLoading(false);
+          // Clear tokens if we can't verify auth
+          if (isAuthenticated()) {
+            clearTokens();
+            setUser(null);
+          }
+        }
+      }, maxLoadingTime);
+      
+      return () => clearTimeout(forceStopTimeout);
+    }
+  }, [loading]);
+
   const refreshUser = useCallback(async () => {
     try {
       // Detect mobile and use shorter timeout
@@ -64,13 +86,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isMobile && typeof window !== 'undefined') {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       if (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1')) {
-        console.warn('Mobile device detected with localhost API URL - clearing tokens');
+        console.warn('Mobile device detected with localhost API URL - clearing tokens and skipping auth');
         clearTokens();
         setLoading(false);
         setUser(null);
         return;
       }
     }
+    
+    // ABSOLUTE MAXIMUM timeout - this ALWAYS clears loading state no matter what
+    const absoluteMaxTimeout = setTimeout(() => {
+      console.error('ABSOLUTE MAX TIMEOUT: Forcing loading to false - auth check took too long');
+      setLoading(false);
+      // Don't clear tokens here - let the user try to use the app
+    }, isMobile ? 8000 : 15000); // 8s mobile, 15s desktop
     
     // Check if user is already authenticated
     if (isAuthenticated()) {
@@ -90,11 +119,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         .finally(() => {
           clearTimeout(hardTimeoutId);
+          clearTimeout(absoluteMaxTimeout);
           setLoading(false);
         });
     } else {
+      clearTimeout(absoluteMaxTimeout);
       setLoading(false);
     }
+    
+    // Cleanup on unmount
+    return () => {
+      clearTimeout(absoluteMaxTimeout);
+    };
   }, [refreshUser]);
 
   const login = async (input: LoginInput, returnUrl?: string) => {
