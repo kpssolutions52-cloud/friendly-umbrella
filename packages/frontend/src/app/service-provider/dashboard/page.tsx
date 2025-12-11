@@ -1613,12 +1613,11 @@ function DashboardContent() {
                     type="number"
                     step="0.01"
                     min="0"
-                      value={formData.defaultPrice}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      placeholder="150.00"
-                    />
-                  </div>
+                    value={formData.defaultPrice}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                    placeholder="150.00"
+                  />
                 </div>
 
                 {/* Special Prices Section */}
