@@ -5,7 +5,7 @@ const BASE_PATH = '/api/v1/admin';
 export interface Tenant {
   id: string;
   name: string;
-  type: 'supplier' | 'company';
+  type: 'supplier' | 'company' | 'service_provider';
   email: string;
   phone: string | null;
   address: string | null;
@@ -72,7 +72,7 @@ export async function getPendingTenants(): Promise<{ tenants: Tenant[] }> {
 // Get all tenants (with optional status and type filter)
 export async function getAllTenants(
   status?: 'pending' | 'active' | 'rejected',
-  type?: 'company' | 'supplier',
+  type?: 'company' | 'supplier' | 'service_provider',
   page = 1,
   limit = 20
 ): Promise<{ tenants: Tenant[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
@@ -215,6 +215,95 @@ export async function deleteCategoryIcon(id: string): Promise<{ message: string;
 
 // Legacy interface for backward compatibility
 export interface Category extends ProductCategory {}
+
+// Service Category interfaces and functions
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  parentId: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  children?: ServiceCategory[];
+  parent?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+// Get all service categories (hierarchical)
+export async function getAllServiceCategories(includeInactive = false): Promise<{ categories: ServiceCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ServiceCategory[] }>(`${BASE_PATH}/service-categories${query}`);
+}
+
+// Get flat list of service categories (for dropdowns)
+export async function getFlatServiceCategories(includeInactive = false): Promise<{ categories: Array<{ id: string; name: string; parentName?: string }> }> {
+  const query = includeInactive ? '?flat=true&includeInactive=true' : '?flat=true';
+  return apiGet<{ categories: Array<{ id: string; name: string; parentName?: string }> }>(`${BASE_PATH}/service-categories${query}`);
+}
+
+// Get only main service categories
+export async function getMainServiceCategories(includeInactive = false): Promise<{ categories: ServiceCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ServiceCategory[] }>(`${BASE_PATH}/service-categories/main${query}`);
+}
+
+// Get subcategories for a main service category
+export async function getServiceSubcategories(parentId: string, includeInactive = false): Promise<{ categories: ServiceCategory[] }> {
+  const query = includeInactive ? '?includeInactive=true' : '';
+  return apiGet<{ categories: ServiceCategory[] }>(`${BASE_PATH}/service-categories/${parentId}/subcategories${query}`);
+}
+
+// Get a single service category
+export async function getServiceCategory(id: string): Promise<{ category: ServiceCategory }> {
+  return apiGet<{ category: ServiceCategory }>(`${BASE_PATH}/service-categories/${id}`);
+}
+
+// Create a new service category (main or subcategory)
+export async function createServiceCategory(input: {
+  name: string;
+  description?: string;
+  parentId?: string | null;
+  displayOrder?: number;
+}): Promise<{ message: string; category: ServiceCategory }> {
+  return apiPost<{ message: string; category: ServiceCategory }>(`${BASE_PATH}/service-categories`, input);
+}
+
+// Update a service category
+export async function updateServiceCategory(
+  id: string,
+  input: {
+    name?: string;
+    description?: string;
+    parentId?: string | null;
+    isActive?: boolean;
+    displayOrder?: number;
+    iconUrl?: string | null;
+  }
+): Promise<{ message: string; category: ServiceCategory }> {
+  return apiPut<{ message: string; category: ServiceCategory }>(`${BASE_PATH}/service-categories/${id}`, input);
+}
+
+// Delete a service category
+export async function deleteServiceCategory(id: string): Promise<{ message: string }> {
+  return apiDelete<{ message: string }>(`${BASE_PATH}/service-categories/${id}`);
+}
+
+// Upload service category icon
+export async function uploadServiceCategoryIcon(id: string, file: File): Promise<{ message: string; category: ServiceCategory }> {
+  const formData = new FormData();
+  formData.append('icon', file);
+  return apiPostForm<{ message: string; category: ServiceCategory }>(`${BASE_PATH}/service-categories/${id}/icon`, formData);
+}
+
+// Delete service category icon
+export async function deleteServiceCategoryIcon(id: string): Promise<{ message: string; category: ServiceCategory }> {
+  return apiDelete<{ message: string; category: ServiceCategory }>(`${BASE_PATH}/service-categories/${id}/icon`);
+}
 
 // Get pending customers
 export async function getPendingCustomers(): Promise<{ customers: Customer[] }> {

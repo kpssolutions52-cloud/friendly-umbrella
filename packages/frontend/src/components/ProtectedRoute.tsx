@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireTenantType?: 'supplier' | 'company';
+  requireTenantType?: 'supplier' | 'company' | 'service_provider';
 }
 
 export function ProtectedRoute({
@@ -28,10 +28,14 @@ export function ProtectedRoute({
         user.tenant?.type !== requireTenantType
       ) {
         // Redirect to appropriate dashboard
-        const dashboardPath =
-          user.tenant?.type === 'supplier'
-            ? '/supplier/dashboard'
-            : '/company/dashboard';
+        let dashboardPath = '/';
+        if (user.tenant?.type === 'supplier') {
+          dashboardPath = '/supplier/dashboard';
+        } else if (user.tenant?.type === 'service_provider') {
+          dashboardPath = '/service-provider/dashboard';
+        } else if (user.tenant?.type === 'company') {
+          dashboardPath = '/company/dashboard';
+        }
         router.push(dashboardPath);
       }
     }

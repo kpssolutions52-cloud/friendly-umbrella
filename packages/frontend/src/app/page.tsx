@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
-import { apiGet, getMainCategories, getSubcategories, ProductCategory } from '@/lib/api';
+import { apiGet, getMainCategories, getSubcategories, getMainServiceCategories, getServiceSubcategories, ProductCategory, ServiceCategory } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 
@@ -15,6 +15,7 @@ interface PublicProduct {
   sku: string;
   name: string;
   description: string | null;
+  type?: 'product' | 'service';
   category: string | null;
   unit: string;
   supplierId: string;
@@ -56,14 +57,18 @@ export default function Home() {
     }, emergencyTimeout);
     return () => clearTimeout(timeoutId);
   }, [authLoading]);
+  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMainCategoryId, setSelectedMainCategoryId] = useState('');
   const [selectedSubCategoryId, setSelectedSubCategoryId] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
+  const [mainServiceCategories, setMainServiceCategories] = useState<ServiceCategory[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<ServiceCategory[]>([]);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
+  const [serviceProviders, setServiceProviders] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -83,10 +88,14 @@ export default function Home() {
         return;
       }
       if (user.tenant) {
-        const dashboardPath =
-          user.tenant.type === 'supplier'
-            ? '/supplier/dashboard'
-            : '/company/dashboard';
+        let dashboardPath: string;
+        if (user.tenant.type === 'supplier') {
+          dashboardPath = '/supplier/dashboard';
+        } else if (user.tenant.type === 'service_provider') {
+          dashboardPath = '/service-provider/dashboard';
+        } else {
+          dashboardPath = '/company/dashboard';
+        }
         router.push(dashboardPath);
         return;
       }
@@ -97,17 +106,34 @@ export default function Home() {
     setIsLoadingProducts(true);
     try {
       const params = new URLSearchParams();
+      // Add type filter based on active tab
+      params.append('type', activeTab === 'products' ? 'product' : 'service');
+      
       if (searchQuery) {
         params.append('q', searchQuery);
       }
+      
       // Use subcategory if selected, otherwise use main category
-      const categoryId = selectedSubCategoryId || selectedMainCategoryId;
-      if (categoryId) {
-        params.append('category', categoryId);
+      // For products, use product categories; for services, use service categories
+      if (activeTab === 'products') {
+        const categoryId = selectedSubCategoryId || selectedMainCategoryId;
+        if (categoryId) {
+          params.append('category', categoryId);
+        }
+        if (selectedSupplier) {
+          params.append('supplierId', selectedSupplier);
+        }
+      } else {
+        // For services, use service categories
+        const serviceCategoryId = selectedSubCategoryId || selectedMainCategoryId;
+        if (serviceCategoryId) {
+          params.append('serviceCategoryId', serviceCategoryId);
+        }
+        if (selectedSupplier) {
+          params.append('supplierId', selectedSupplier); // service providers
+        }
       }
-      if (selectedSupplier) {
-        params.append('supplierId', selectedSupplier);
-      }
+      
       params.append('page', currentPage.toString());
       params.append('limit', productsPerPage.toString());
 
@@ -127,7 +153,7 @@ export default function Home() {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [currentPage, searchQuery, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier]);
+  }, [currentPage, searchQuery, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, activeTab]);
 
   const loadMainCategories = useCallback(async () => {
     try {
@@ -136,6 +162,16 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to load main categories:', error);
       setMainCategories([]);
+    }
+  }, []);
+
+  const loadMainServiceCategories = useCallback(async () => {
+    try {
+      const response = await getMainServiceCategories();
+      setMainServiceCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load main service categories:', error);
+      setMainServiceCategories([]);
     }
   }, []);
 
@@ -148,16 +184,28 @@ export default function Home() {
     }
   }, []);
 
+  const loadServiceProviders = useCallback(async () => {
+    try {
+      const response = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/service-providers/public');
+      setServiceProviders(response.suppliers || []);
+    } catch (error) {
+      console.error('Failed to load service providers:', error);
+      setServiceProviders([]);
+    }
+  }, []);
+
   // Load initial data once when auth is done and user is guest
   useEffect(() => {
     if (!authLoading && !user) {
-      // Only load categories and suppliers once - don't block if they fail
+      // Only load categories and suppliers/service providers once - don't block if they fail
       // Use setTimeout to ensure page can render even if API is slow
       const loadData = async () => {
         try {
           await Promise.allSettled([
             loadMainCategories(),
+            loadMainServiceCategories(),
             loadSuppliers(),
+            loadServiceProviders(),
           ]);
         } catch (err) {
           console.error('Failed to load initial data:', err);
@@ -165,28 +213,41 @@ export default function Home() {
       };
       loadData();
     }
-  }, [authLoading, user, loadMainCategories, loadSuppliers]);
+  }, [authLoading, user, loadMainCategories, loadMainServiceCategories, loadSuppliers, loadServiceProviders]);
 
-  // Load products when filters/search change - separate from initial data load
+  // Load products/services when filters/search/tab change - separate from initial data load
   useEffect(() => {
     if (!authLoading && !user) {
-      // Load products - ensure loading state is always cleared
+      // Reset filters when tab changes
+      setSelectedMainCategoryId('');
+      setSelectedSubCategoryId('');
+      setSelectedSupplier('');
+      setCurrentPage(1);
+      // Load products/services - ensure loading state is always cleared
       loadProducts().catch(err => {
-        console.error('Failed to load products:', err);
+        console.error('Failed to load products/services:', err);
         setIsLoadingProducts(false);
       });
     }
-  }, [authLoading, user, loadProducts]);
+  }, [authLoading, user, loadProducts, activeTab]);
 
   // Reload subcategories when main category changes (backup mechanism)
   useEffect(() => {
-    if (selectedMainCategoryId) {
-      loadSubCategories(selectedMainCategoryId);
+    if (activeTab === 'products') {
+      if (selectedMainCategoryId) {
+        loadSubCategories(selectedMainCategoryId);
+      } else {
+        setSubCategories([]);
+      }
     } else {
-      setSubCategories([]);
+      if (selectedMainCategoryId) {
+        loadSubServiceCategories(selectedMainCategoryId);
+      } else {
+        setSubServiceCategories([]);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMainCategoryId]);
+  }, [selectedMainCategoryId, activeTab]);
 
   const loadSubCategories = async (parentId: string) => {
     if (!parentId) {
@@ -206,6 +267,24 @@ export default function Home() {
     }
   };
 
+  const loadSubServiceCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubServiceCategories([]);
+      return;
+    }
+
+    try {
+      setLoadingSubCategories(true);
+      const response = await getServiceSubcategories(parentId);
+      setSubServiceCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load service subcategories:', error);
+      setSubServiceCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
+    }
+  };
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,11 +298,16 @@ export default function Home() {
     setSelectedSubCategoryId('');
     setCurrentPage(1);
     
-    // Load subcategories for the selected main category
+    // Load subcategories for the selected main category based on active tab
     if (mainCategoryId) {
-      await loadSubCategories(mainCategoryId);
+      if (activeTab === 'products') {
+        await loadSubCategories(mainCategoryId);
+      } else {
+        await loadSubServiceCategories(mainCategoryId);
+      }
     } else {
       setSubCategories([]);
+      setSubServiceCategories([]);
     }
   };
 
@@ -309,6 +393,8 @@ export default function Home() {
                         router.push('/admin/dashboard');
                       } else if (user.tenant?.type === 'supplier') {
                         router.push('/supplier/dashboard');
+                      } else if (user.tenant?.type === 'service_provider') {
+                        router.push('/service-provider/dashboard');
                       } else {
                         router.push('/company/dashboard');
                       }
@@ -336,9 +422,9 @@ export default function Home() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Find the Best Construction Materials</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Find the Best Construction Materials & Services</h2>
             <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto">
-              Compare prices from multiple suppliers and get the best deals on construction materials
+              Compare prices from multiple suppliers and service providers
             </p>
           </div>
         </div>
@@ -346,6 +432,45 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Products vs Services Tabs */}
+        <div className="mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('products');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setSelectedSupplier('');
+                setCurrentPage(1);
+              }}
+              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+                activeTab === 'products'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Products
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('services');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setSelectedSupplier('');
+                setCurrentPage(1);
+              }}
+              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+                activeTab === 'services'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Services
+            </button>
+          </div>
+        </div>
         {/* Mobile-First Modern Search - Sticky on Mobile */}
         <div id="mobile-search-trigger" className="sticky top-16 sm:top-0 sm:relative z-30 mb-6">
           <div className="bg-white rounded-xl shadow-lg sm:shadow-lg border border-gray-100 overflow-hidden">
@@ -411,7 +536,7 @@ export default function Home() {
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="">All Categories</option>
-                    {mainCategories.map((cat) => (
+                    {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>
@@ -426,7 +551,7 @@ export default function Home() {
                     value={selectedSubCategoryId}
                     onChange={(e) => handleSubCategoryChange(e.target.value)}
                     disabled={!selectedMainCategoryId || loadingSubCategories}
-                    required={!!(selectedMainCategoryId && subCategories.length > 0)}
+                    required={!!(selectedMainCategoryId && (activeTab === 'products' ? subCategories : subServiceCategories).length > 0)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                   >
                     <option value="">
@@ -434,11 +559,11 @@ export default function Home() {
                         ? 'Loading...' 
                         : !selectedMainCategoryId 
                           ? 'Select main category first' 
-                          : subCategories.length === 0 
+                          : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
                             ? 'No subcategories' 
                             : 'All Subcategories'}
                     </option>
-                    {subCategories.map((subCat) => (
+                    {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
                       <option key={subCat.id} value={subCat.id}>
                         {subCat.name}
                       </option>
@@ -447,17 +572,17 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
-                    Supplier
+                    {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
                   </label>
                   <select
                     value={selectedSupplier}
                     onChange={(e) => handleSupplierChange(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
-                    <option value="">All Suppliers</option>
-                    {suppliers.map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>
-                        {supplier.name}
+                    <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                    {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name}
                       </option>
                     ))}
                   </select>
@@ -471,6 +596,7 @@ export default function Home() {
                       setSelectedSubCategoryId('');
                       setSelectedSupplier('');
                       setSubCategories([]);
+                      setSubServiceCategories([]);
                       setCurrentPage(1);
                     }}
                     className="sm:hidden w-full mt-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -483,11 +609,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Products Section */}
+        {/* Products/Services Section */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              Products
+              {activeTab === 'products' ? 'Products' : 'Services'}
               {products.length > 0 && (
                 <span className="ml-2 text-base sm:text-lg font-normal text-gray-500">
                   ({products.length} {products.length === 1 ? 'item' : 'items'})
@@ -516,7 +642,7 @@ export default function Home() {
           {isLoadingProducts ? (
             <div className="text-center py-12 sm:py-16">
               <div className="inline-block h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-4 text-gray-500 text-sm sm:text-base">Loading products...</p>
+              <p className="mt-4 text-gray-500 text-sm sm:text-base">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12 sm:py-16 bg-white rounded-xl shadow-sm border border-gray-100">

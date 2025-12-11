@@ -11,12 +11,12 @@ import { getActiveTenants, Tenant } from '@/lib/tenantApi';
 import { apiPost } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-type RegistrationType = 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
+type RegistrationType = 'new_company' | 'new_supplier' | 'new_service_provider' | 'new_company_user' | 'new_supplier_user' | 'new_service_provider_user' | 'customer';
 
 interface RegisterFormData {
   registrationType: RegistrationType;
   tenantName?: string;
-  tenantType?: 'supplier' | 'company';
+  tenantType?: 'supplier' | 'company' | 'service_provider';
   tenantId?: string;
   email: string;
   password: string;
@@ -62,7 +62,7 @@ function RegisterForm() {
 
   // Load tenants when registration type requires it
   useEffect(() => {
-    if (selectedType === 'new_company_user' || selectedType === 'new_supplier_user') {
+    if (selectedType === 'new_company_user' || selectedType === 'new_supplier_user' || selectedType === 'new_service_provider_user') {
       loadTenants();
     }
   }, [selectedType]);
@@ -70,12 +70,21 @@ function RegisterForm() {
   const loadTenants = async () => {
     try {
       setLoadingTenants(true);
-      const tenantType = selectedType === 'new_company_user' ? 'company' : 'supplier';
+      let tenantType: 'company' | 'supplier' | 'service_provider';
+      if (selectedType === 'new_company_user') {
+        tenantType = 'company';
+      } else if (selectedType === 'new_supplier_user') {
+        tenantType = 'supplier';
+      } else {
+        tenantType = 'service_provider';
+      }
       const data = await getActiveTenants(tenantType);
       setTenants(data.tenants);
     } catch (err: any) {
       console.error('Failed to load tenants:', err);
-      setError('Failed to load companies/suppliers. Please try again.');
+      const tenantTypeName = selectedType === 'new_company_user' ? 'companies' : 
+                             selectedType === 'new_supplier_user' ? 'suppliers' : 'service providers';
+      setError(`Failed to load ${tenantTypeName}. Please try again.`);
     } finally {
       setLoadingTenants(false);
     }
@@ -244,7 +253,7 @@ function RegisterForm() {
                 {...register('registrationType', { 
                   required: 'Registration type is required',
                   validate: (value) => {
-                    const validTypes = ['customer', 'new_company', 'new_supplier', 'new_company_user', 'new_supplier_user'];
+                    const validTypes = ['customer', 'new_company', 'new_supplier', 'new_service_provider', 'new_company_user', 'new_supplier_user', 'new_service_provider_user'];
                     if (!validTypes.includes(value)) {
                       return 'Please select a valid registration type';
                     }
@@ -257,7 +266,7 @@ function RegisterForm() {
                   setValue('registrationType', value);
                   setRegistrationType(value);
                   // Clear phone, address, and postal code when switching registration types
-                  if (value !== 'new_company' && value !== 'new_supplier' && value !== 'customer') {
+                  if (value !== 'new_company' && value !== 'new_supplier' && value !== 'new_service_provider' && value !== 'customer') {
                     setValue('phone', '');
                     setValue('address', '');
                     setValue('postalCode', '');
@@ -268,8 +277,10 @@ function RegisterForm() {
                 <option value="customer">Sign up as Customer</option>
                 <option value="new_company">New Company Registration</option>
                 <option value="new_supplier">New Supplier Registration</option>
+                <option value="new_service_provider">New Service Provider Registration</option>
                 <option value="new_company_user">New User for a Company</option>
                 <option value="new_supplier_user">New User for a Supplier</option>
+                <option value="new_service_provider_user">New User for a Service Provider</option>
               </select>
               {errors.registrationType && (
                 <p className="mt-1 text-sm text-red-600">
@@ -278,12 +289,14 @@ function RegisterForm() {
               )}
             </div>
 
-            {/* Show tenant name for new company/supplier */}
-            {(registrationType === 'new_company' || registrationType === 'new_supplier') && (
+            {/* Show tenant name for new company/supplier/service provider */}
+            {(registrationType === 'new_company' || registrationType === 'new_supplier' || registrationType === 'new_service_provider') && (
               <>
                 <div>
                   <Label htmlFor="tenantName">
-                    {registrationType === 'new_supplier' ? 'Supplier Name *' : 'Company Name *'}
+                    {registrationType === 'new_supplier' ? 'Supplier Name *' : 
+                     registrationType === 'new_service_provider' ? 'Service Provider Name *' : 
+                     'Company Name *'}
                   </Label>
                   <Input
                     id="tenantName"
@@ -293,6 +306,8 @@ function RegisterForm() {
                     placeholder={
                       registrationType === 'new_supplier'
                         ? 'Your supplier business name'
+                        : registrationType === 'new_service_provider'
+                        ? 'Your service provider business name'
                         : 'Your company name'
                     }
                   />
@@ -366,17 +381,25 @@ function RegisterForm() {
             )}
 
             {/* Show tenant selection for new user */}
-            {(registrationType === 'new_company_user' || registrationType === 'new_supplier_user') && (
+            {(registrationType === 'new_company_user' || registrationType === 'new_supplier_user' || registrationType === 'new_service_provider_user') && (
               <div>
                 <Label htmlFor="tenantId">
-                  Select {registrationType === 'new_company_user' ? 'Company' : 'Supplier'} *
+                  Select {
+                    registrationType === 'new_company_user' ? 'Company' : 
+                    registrationType === 'new_supplier_user' ? 'Supplier' : 
+                    'Service Provider'
+                  } *
                 </Label>
                 {loadingTenants ? (
                   <div className="mt-1 text-sm text-gray-500">Loading...</div>
                 ) : tenants.length === 0 ? (
                   <div className="mt-1 rounded-md bg-yellow-50 p-3">
                     <p className="text-sm text-yellow-800">
-                      No active {registrationType === 'new_company_user' ? 'companies' : 'suppliers'} found.
+                      No active {
+                        registrationType === 'new_company_user' ? 'companies' : 
+                        registrationType === 'new_supplier_user' ? 'suppliers' : 
+                        'service providers'
+                      } found.
                     </p>
                   </div>
                 ) : (
@@ -385,7 +408,11 @@ function RegisterForm() {
                     {...register('tenantId', { required: true })}
                     className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <option value="">Select a {registrationType === 'new_company_user' ? 'company' : 'supplier'}...</option>
+                    <option value="">Select a {
+                      registrationType === 'new_company_user' ? 'company' : 
+                      registrationType === 'new_supplier_user' ? 'supplier' : 
+                      'service provider'
+                    }...</option>
                     {tenants.map((tenant) => (
                       <option key={tenant.id} value={tenant.id}>
                         {tenant.name}

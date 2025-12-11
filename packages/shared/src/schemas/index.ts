@@ -1,13 +1,18 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  tenantName: z.string().min(1, 'Tenant name is required'),
-  tenantType: z.enum(['supplier', 'company']),
+  tenantName: z.string().min(1, 'Tenant name is required').optional(),
+  tenantType: z.enum(['supplier', 'company', 'service_provider']).optional(),
   email: z.string().email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   role: z.string().optional(),
+  registrationType: z.enum(['new_company', 'new_supplier', 'new_service_provider', 'new_company_user', 'new_supplier_user', 'new_service_provider_user', 'customer']).optional(),
+  tenantId: z.string().uuid().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  postalCode: z.string().optional(),
 });
 
 export const loginSchema = z.object({

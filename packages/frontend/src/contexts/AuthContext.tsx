@@ -220,7 +220,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (tenantType === 'system') {
       return '/admin/dashboard';
     }
-    return tenantType === 'supplier' ? '/supplier/dashboard' : '/company/dashboard';
+    if (tenantType === 'supplier') {
+      return '/supplier/dashboard';
+    }
+    if (tenantType === 'service_provider') {
+      return '/service-provider/dashboard';
+    }
+    return '/company/dashboard';
   }
 
   return (

@@ -56,6 +56,21 @@ router.get(
                 },
               },
             },
+            serviceCategory: {
+              select: {
+                id: true,
+                name: true,
+                iconUrl: true,
+                parentId: true,
+                parent: {
+                  select: {
+                    id: true,
+                    name: true,
+                    iconUrl: true,
+                  },
+                },
+              },
+            },
           }),
           supplier: {
             select: {
@@ -97,15 +112,24 @@ router.get(
       
       // Try category icon fallback if no product image
       if (!finalImageUrl) {
-        // First try using category relation if available
-        if (includeCategory && product.category && typeof product.category !== 'string') {
-          const category = product.category as any;
-          // First try subcategory icon (if product is in a subcategory)
-          if (category.iconUrl) {
-            finalImageUrl = category.iconUrl;
-          } else if (category.parent && category.parent.iconUrl) {
-            // If no subcategory icon, try parent (main category) icon
-            finalImageUrl = category.parent.iconUrl;
+        // First try using category relation if available (based on type)
+        if (includeCategory) {
+          if ((product as any).type === 'service' && product.serviceCategory && typeof product.serviceCategory !== 'string') {
+            const serviceCategory = product.serviceCategory as any;
+            if (serviceCategory.iconUrl) {
+              finalImageUrl = serviceCategory.iconUrl;
+            } else if (serviceCategory.parent && serviceCategory.parent.iconUrl) {
+              finalImageUrl = serviceCategory.parent.iconUrl;
+            }
+          } else if (product.category && typeof product.category !== 'string') {
+            const category = product.category as any;
+            // First try subcategory icon (if product is in a subcategory)
+            if (category.iconUrl) {
+              finalImageUrl = category.iconUrl;
+            } else if (category.parent && category.parent.iconUrl) {
+              // If no subcategory icon, try parent (main category) icon
+              finalImageUrl = category.parent.iconUrl;
+            }
           }
         }
         
@@ -163,16 +187,29 @@ router.get(
         finalCurrency = defaultPrice.currency;
       }
 
+      // Determine category name based on type
+      let categoryName: string | null = null;
+      if ((product as any).type === 'service') {
+        categoryName = includeCategory && product.serviceCategory && typeof product.serviceCategory !== 'string'
+          ? (('parent' in product.serviceCategory && (product.serviceCategory as any).parent) 
+              ? `${(product.serviceCategory as any).parent.name} > ${(product.serviceCategory as any).name}` 
+              : (product.serviceCategory as any).name)
+          : null;
+      } else {
+        categoryName = includeCategory && product.category && typeof product.category !== 'string'
+          ? (('parent' in product.category && (product.category as any).parent) 
+              ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
+              : (product.category as any).name)
+          : (product as any).category || null;
+      }
+
       const productWithPrices = {
         id: product.id,
         sku: product.sku,
         name: product.name,
         description: product.description,
-        category: includeCategory && product.category && typeof product.category !== 'string'
-          ? (('parent' in product.category && (product.category as any).parent) 
-              ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
-              : (product.category as any).name)
-          : (product as any).category || null, // Fallback to old category field if available
+        type: (product as any).type || 'product',
+        category: categoryName,
         unit: product.unit,
         supplierId: product.supplier.id,
         supplierName: product.supplier.name,
@@ -213,6 +250,8 @@ router.get(
   optionalAuthenticate,
   query('q').optional().isString().withMessage('Query must be a string'),
   query('category').optional().isString(),
+  query('serviceCategoryId').optional().isString(),
+  query('type').optional().isIn(['product', 'service']).withMessage('Type must be product or service'),
   query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
   query('page')
     .optional()
@@ -233,6 +272,8 @@ router.get(
 
       const query = (req.query.q as string) || '';
       const category = req.query.category as string | undefined;
+      const serviceCategoryId = req.query.serviceCategoryId as string | undefined;
+      const type = req.query.type as 'product' | 'service' | undefined;
       const supplierId = req.query.supplierId as string | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -243,6 +284,11 @@ router.get(
         isActive: true,
       };
 
+      // Filter by type (product or service)
+      if (type) {
+        where.type = type;
+      }
+
       if (supplierId) {
         where.supplierId = supplierId;
       }
@@ -250,9 +296,14 @@ router.get(
       // Check if category_id column exists (using cache)
       const includeCategory = await checkCategoryColumnExists(prisma);
 
+      // Handle service category filtering (for services)
+      if (serviceCategoryId && (type === 'service' || !type)) {
+        where.serviceCategoryId = serviceCategoryId;
+      }
+
       // Handle category filtering: if main category, include all subcategories
-      // Only apply if category_id column exists
-      if (category && includeCategory) {
+      // Only apply if category_id column exists (for products)
+      if (category && includeCategory && (type === 'product' || !type)) {
         try {
           // Use cached category hierarchy lookup
           const categoryHierarchy = await getCategoryHierarchy(prisma, category);
@@ -329,9 +380,26 @@ router.get(
               name: true,
               description: true,
               unit: true,
+              type: true,
               categoryId: true,
+              serviceCategoryId: true,
               ...(canIncludeCategory && {
                 category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    iconUrl: true,
+                    parentId: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        name: true,
+                        iconUrl: true,
+                      },
+                    },
+                  },
+                },
+                serviceCategory: {
                   select: {
                     id: true,
                     name: true,
@@ -412,7 +480,9 @@ router.get(
               name: true,
               description: true,
               unit: true,
+              type: true,
               categoryId: true,
+              serviceCategoryId: true,
               supplier: {
                 select: {
                   id: true,
@@ -538,16 +608,29 @@ router.get(
           finalCurrency = defaultPrice.currency;
         }
 
+        // Determine category name based on type
+        let categoryName: string | null = null;
+        if (product.type === 'product') {
+          categoryName = canIncludeCategory && includeCategory && product.category && typeof product.category !== 'string'
+            ? (('parent' in product.category && (product.category as any).parent) 
+                ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
+                : (product.category as any).name)
+            : (product as any).category || null;
+        } else if (product.type === 'service') {
+          categoryName = canIncludeCategory && includeCategory && product.serviceCategory && typeof product.serviceCategory !== 'string'
+            ? (('parent' in product.serviceCategory && (product.serviceCategory as any).parent) 
+                ? `${(product.serviceCategory as any).parent.name} > ${(product.serviceCategory as any).name}` 
+                : (product.serviceCategory as any).name)
+            : null;
+        }
+
         return {
           id: product.id,
           sku: product.sku,
           name: product.name,
           description: product.description,
-          category: canIncludeCategory && includeCategory && product.category && typeof product.category !== 'string'
-            ? (('parent' in product.category && (product.category as any).parent) 
-                ? `${(product.category as any).parent.name} > ${(product.category as any).name}` 
-                : (product.category as any).name)
-            : (product as any).category || null, // Fallback to old category field if available
+          type: product.type,
+          category: categoryName,
           unit: product.unit,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
@@ -672,6 +755,34 @@ router.get(
       });
 
       res.json({ suppliers });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Public service providers endpoint
+router.get(
+  '/service-providers/public',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const serviceProviders = await prisma.tenant.findMany({
+        where: {
+          type: 'service_provider',
+          isActive: true,
+          status: 'active',
+        },
+        select: {
+          id: true,
+          name: true,
+          logoUrl: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      res.json({ suppliers: serviceProviders }); // Use 'suppliers' key for consistency with frontend
     } catch (error) {
       next(error);
     }

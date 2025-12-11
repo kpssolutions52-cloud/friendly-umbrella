@@ -33,7 +33,7 @@ model Tenant {
 
   // Relations
   users         User[]
-  products      Product[]        @relation("SupplierProducts")
+  products      Product[]        @relation("SupplierProducts") // Products/services from suppliers or service providers
   privatePrices PrivatePrice[]   @relation("CompanyPrivatePrices")
   priceViews    PriceView[]
 
@@ -47,6 +47,7 @@ model Tenant {
 enum TenantType {
   supplier
   company
+  service_provider
 }
 
 enum TenantStatus {
@@ -95,6 +96,8 @@ enum UserRole {
   supplier_staff
   company_admin
   company_staff
+  service_provider_admin
+  service_provider_staff
   customer
 }
 
@@ -104,23 +107,35 @@ enum UserStatus {
   rejected
 }
 
-// Supplier product catalog
+// Product type enum
+enum ProductType {
+  product
+  service
+}
+
+// Supplier product catalog (now supports both products and services)
 model Product {
-  id          String   @id @default(uuid())
-  supplierId  String   @map("supplier_id")
-  sku         String   @db.VarChar(100)
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
-  categoryId  String?  @map("category_id") // Reference to ProductCategory (can be main or subcategory)
-  unit        String   @db.VarChar(50)
-  isActive    Boolean  @default(true) @map("is_active")
-  metadata    Json?    @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String      @id @default(uuid())
+  supplierId      String      @map("supplier_id") // Can be supplier or service_provider
+  type            ProductType @default(product)
+  sku             String      @db.VarChar(100)
+  name            String      @db.VarChar(255)
+  description     String?     @db.Text
+  categoryId      String?      @map("category_id") // Reference to ProductCategory (for products)
+  serviceCategoryId String?   @map("service_category_id") // Reference to ServiceCategory (for services)
+  unit            String      @db.VarChar(50)
+  // Service-specific fields
+  ratePerHour     Decimal?    @map("rate_per_hour") @db.Decimal(10, 2) // For services: hourly rate
+  rateType        String?     @map("rate_type") @db.VarChar(50) // e.g., "per_hour", "per_project", "fixed", "negotiable"
+  isActive        Boolean     @default(true) @map("is_active")
+  metadata        Json?       @default("{}")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   // Relations
   supplier        Tenant           @relation("SupplierProducts", fields: [supplierId], references: [id], onDelete: Cascade)
   category        ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  serviceCategory ServiceCategory? @relation(fields: [serviceCategoryId], references: [id], onDelete: SetNull)
   defaultPrices   DefaultPrice[]
   privatePrices   PrivatePrice[]
   priceAudits     PriceAuditLog[]
@@ -130,9 +145,11 @@ model Product {
   @@unique([supplierId, sku])
   @@map("products")
   @@index([supplierId])
+  @@index([type])
   @@index([isActive])
   @@index([sku])
   @@index([categoryId])
+  @@index([serviceCategoryId])
 }
 
 // Product images
@@ -272,6 +289,34 @@ model ProductCategory {
 
   @@unique([name, parentId]) // Allow same name in different parents
   @@map("product_categories")
+  @@index([parentId])
+  @@index([isActive])
+  @@index([name])
+  @@index([displayOrder])
+}
+
+// Service categories managed by super admin (supports main categories and subcategories)
+// Separate from product categories as services have different structure
+model ServiceCategory {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  iconUrl     String?  @map("icon_url") @db.VarChar(500)
+  parentId    String?  @map("parent_id") // Null for main categories, set for subcategories
+  isActive    Boolean  @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Self-referential relation for parent-child
+  parent      ServiceCategory? @relation("ServiceCategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    ServiceCategory[] @relation("ServiceCategoryHierarchy")
+
+  // Relations
+  products    Product[]
+
+  @@unique([name, parentId]) // Allow same name in different parents
+  @@map("service_categories")
   @@index([parentId])
   @@index([isActive])
   @@index([name])

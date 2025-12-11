@@ -4,17 +4,17 @@ import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import createError from 'http-errors';
 
 export interface RegisterInput {
-  registrationType: 'new_company' | 'new_supplier' | 'new_company_user' | 'new_supplier_user' | 'customer';
-  tenantName?: string; // Required for new_company and new_supplier
-  tenantType?: 'supplier' | 'company'; // Required for new_company and new_supplier
-  tenantId?: string; // Required for new_company_user and new_supplier_user
+  registrationType: 'new_company' | 'new_supplier' | 'new_service_provider' | 'new_company_user' | 'new_supplier_user' | 'new_service_provider_user' | 'customer';
+  tenantName?: string; // Required for new_company, new_supplier, and new_service_provider
+  tenantType?: 'supplier' | 'company' | 'service_provider'; // Required for new_company, new_supplier, and new_service_provider
+  tenantId?: string; // Required for new_company_user, new_supplier_user, and new_service_provider_user
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
-  phone?: string; // Required for new_company and new_supplier
-  address?: string; // Required for new_company and new_supplier
-  postalCode?: string; // Required for new_company and new_supplier
+  phone?: string; // Required for new_company, new_supplier, and new_service_provider
+  address?: string; // Required for new_company, new_supplier, and new_service_provider
+  postalCode?: string; // Required for new_company, new_supplier, and new_service_provider
   role?: string;
   permissions?: Record<string, any>;
 }
@@ -36,9 +36,9 @@ export class AuthService {
     }
 
     // Handle different registration types
-    if (input.registrationType === 'new_company' || input.registrationType === 'new_supplier') {
+    if (input.registrationType === 'new_company' || input.registrationType === 'new_supplier' || input.registrationType === 'new_service_provider') {
       return this.registerNewTenant(input);
-    } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user') {
+    } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user' || input.registrationType === 'new_service_provider_user') {
       return this.registerNewUser(input);
     } else if (input.registrationType === 'customer') {
       return this.registerCustomer(input);
@@ -48,7 +48,7 @@ export class AuthService {
   }
 
   /**
-   * Register a new company or supplier (creates tenant + admin user)
+   * Register a new company, supplier, or service provider (creates tenant + admin user)
    */
   private async registerNewTenant(input: RegisterInput) {
     if (!input.tenantName || !input.tenantType) {
@@ -65,7 +65,16 @@ export class AuthService {
     }
 
     // Determine role - admin for new tenant creators
-    const role = input.tenantType === 'supplier' ? 'supplier_admin' : 'company_admin';
+    let role: string;
+    if (input.tenantType === 'supplier') {
+      role = 'supplier_admin';
+    } else if (input.tenantType === 'company') {
+      role = 'company_admin';
+    } else if (input.tenantType === 'service_provider') {
+      role = 'service_provider_admin';
+    } else {
+      throw createError(400, 'Invalid tenant type');
+    }
 
     // Create tenant and user in transaction - both start as pending
     const result = await prisma.$transaction(async (tx) => {
@@ -203,7 +212,16 @@ export class AuthService {
     }
 
     // Determine role based on tenant type
-    const defaultRole = tenant.type === 'supplier' ? 'supplier_staff' : 'company_staff';
+    let defaultRole: string;
+    if (tenant.type === 'supplier') {
+      defaultRole = 'supplier_staff';
+    } else if (tenant.type === 'company') {
+      defaultRole = 'company_staff';
+    } else if (tenant.type === 'service_provider') {
+      defaultRole = 'service_provider_staff';
+    } else {
+      throw createError(400, 'Invalid tenant type');
+    }
     const role = input.role || defaultRole;
 
     // Validate role matches tenant type
@@ -212,6 +230,9 @@ export class AuthService {
     }
     if (tenant.type === 'company' && !['company_admin', 'company_staff'].includes(role)) {
       throw createError(400, 'Invalid role for company tenant');
+    }
+    if (tenant.type === 'service_provider' && !['service_provider_admin', 'service_provider_staff'].includes(role)) {
+      throw createError(400, 'Invalid role for service provider tenant');
     }
 
     // Hash password
@@ -367,7 +388,9 @@ export class AuthService {
 
     // Check tenant and user status
     if (user.tenant.status !== 'active' || !user.tenant.isActive) {
-      throw createError(403, 'Your company/supplier account is pending approval by a super administrator');
+      const tenantTypeName = user.tenant.type === 'service_provider' ? 'service provider' : 
+                             user.tenant.type === 'supplier' ? 'supplier' : 'company';
+      throw createError(403, `Your ${tenantTypeName} account is pending approval by a super administrator`);
     }
 
     if (user.status !== 'active' || !user.isActive) {

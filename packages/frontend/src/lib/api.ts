@@ -235,6 +235,39 @@ export async function getSubcategories(parentId: string): Promise<{ categories: 
   return apiGet<{ categories: ProductCategory[] }>(`/api/v1/categories/${parentId}/subcategories`);
 }
 
+// Service category functions (no authentication required)
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  parentId: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  children?: ServiceCategory[];
+  parent?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+// Get all active service categories (hierarchical) - Public endpoint
+export async function getServiceCategories(): Promise<{ categories: ServiceCategory[] }> {
+  return apiGet<{ categories: ServiceCategory[] }>('/api/v1/service-categories');
+}
+
+// Get only main service categories - Public endpoint
+export async function getMainServiceCategories(): Promise<{ categories: ServiceCategory[] }> {
+  return apiGet<{ categories: ServiceCategory[] }>('/api/v1/service-categories/main');
+}
+
+// Get subcategories for a main service category - Public endpoint
+export async function getServiceSubcategories(parentId: string): Promise<{ categories: ServiceCategory[] }> {
+  return apiGet<{ categories: ServiceCategory[] }>(`/api/v1/service-categories/${parentId}/subcategories`);
+}
+
 
 
 

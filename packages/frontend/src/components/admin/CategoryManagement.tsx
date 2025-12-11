@@ -10,6 +10,14 @@ import {
   uploadCategoryIcon,
   deleteCategoryIcon,
   ProductCategory,
+  getAllServiceCategories,
+  getMainServiceCategories,
+  createServiceCategory,
+  updateServiceCategory,
+  deleteServiceCategory,
+  uploadServiceCategoryIcon,
+  deleteServiceCategoryIcon,
+  ServiceCategory,
 } from '@/lib/adminApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,20 +44,29 @@ export function CategoryManagement() {
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [activeTab]);
 
   const loadCategories = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getAllCategories(true); // Include inactive for admin view
-      setCategories(data.categories || []);
-      
-      // Also load main categories for parent selection
-      const mainData = await getMainCategories(true);
-      setMainCategories(mainData.categories || []);
+      if (activeTab === 'products') {
+        const data = await getAllCategories(true); // Include inactive for admin view
+        setCategories(data.categories || []);
+        
+        // Also load main categories for parent selection
+        const mainData = await getMainCategories(true);
+        setMainCategories(mainData.categories || []);
+      } else {
+        const data = await getAllServiceCategories(true); // Include inactive for admin view
+        setServiceCategories(data.categories || []);
+        
+        // Also load main service categories for parent selection
+        const mainData = await getMainServiceCategories(true);
+        setMainServiceCategories(mainData.categories || []);
+      }
     } catch (err: any) {
-      setError(String(err?.error?.message || err?.message || 'Failed to load categories'));
+      setError(String(err?.error?.message || err?.message || `Failed to load ${activeTab === 'products' ? 'product' : 'service'} categories`));
     } finally {
       setLoading(false);
     }
@@ -106,7 +123,7 @@ export function CategoryManagement() {
     }
   };
 
-  const handleEdit = (category: ProductCategory) => {
+  const handleEdit = (category: ProductCategory | ServiceCategory) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
@@ -119,7 +136,7 @@ export function CategoryManagement() {
     setSuccess(null);
   };
 
-  const handleAddSubcategory = (parentCategory: ProductCategory) => {
+  const handleAddSubcategory = (parentCategory: ProductCategory | ServiceCategory) => {
     setAddingSubcategoryTo(parentCategory.id);
     setEditingCategory(null);
     setFormData({
@@ -224,7 +241,7 @@ export function CategoryManagement() {
     }
   };
 
-  const renderCategoryRow = (category: ProductCategory, level = 0): JSX.Element => {
+  const renderCategoryRow = (category: ProductCategory | ServiceCategory, level = 0): JSX.Element => {
     const isExpanded = expandedCategories.has(category.id);
     const hasChildren = category.children && category.children.length > 0;
 
@@ -420,7 +437,7 @@ export function CategoryManagement() {
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">None (Main Category)</option>
-                {mainCategories
+                {(activeTab === 'products' ? mainCategories : mainServiceCategories)
                   .filter((cat) => !editingCategory || cat.id !== editingCategory.id)
                   .map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -472,9 +489,9 @@ export function CategoryManagement() {
       )}
 
       {/* Categories List */}
-      {categories.length === 0 ? (
+      {(activeTab === 'products' ? categories : serviceCategories).length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">No categories found. Create your first category to get started.</p>
+          <p className="text-gray-500">No {activeTab === 'products' ? 'product' : 'service'} categories found. Create your first category to get started.</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -483,7 +500,7 @@ export function CategoryManagement() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Icon (Subcategories Only)
+                    Icon
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
@@ -497,7 +514,7 @@ export function CategoryManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories.map((category) => renderCategoryRow(category))}
+                {(activeTab === 'products' ? categories : serviceCategories).map((category) => renderCategoryRow(category))}
               </tbody>
             </table>
           </div>

@@ -14,7 +14,9 @@ export interface CreateProductInput {
   sku: string;
   name: string;
   description?: string;
-  categoryId?: string; // Reference to ProductCategory (can be main or subcategory)
+  type?: 'product' | 'service'; // Defaults to 'product'
+  categoryId?: string; // Reference to ProductCategory (for products)
+  serviceCategoryId?: string; // Reference to ServiceCategory (for services)
   unit: string;
   defaultPrice?: number;
   currency?: string;
@@ -26,8 +28,13 @@ export interface UpdateProductInput {
   sku?: string;
   name?: string;
   description?: string;
-  categoryId?: string | null; // Reference to ProductCategory (can be main or subcategory)
+  type?: 'product' | 'service';
+  categoryId?: string | null; // Reference to ProductCategory (for products)
+  serviceCategoryId?: string | null; // Reference to ServiceCategory (for services)
   unit?: string;
+  // Service-specific pricing
+  ratePerHour?: number | null; // For services: hourly rate
+  rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null; // Pricing type for services
   isActive?: boolean;
   metadata?: Record<string, any>;
   specialPrices?: SpecialPriceInput[]; // Optional: add/update special prices
@@ -35,12 +42,13 @@ export interface UpdateProductInput {
 
 export class ProductService {
   /**
-   * Get all products for a supplier
+   * Get all products/services for a supplier or service provider
    */
-  async getSupplierProducts(supplierId: string, includeInactive = false, page = 1, limit = 20) {
+  async getSupplierProducts(supplierId: string, includeInactive = false, page = 1, limit = 20, type?: 'product' | 'service') {
     const where: any = {
       supplierId,
       ...(includeInactive ? {} : { isActive: true }),
+      ...(type ? { type } : {}),
     };
 
     const skip = (page - 1) * limit;
@@ -50,6 +58,16 @@ export class ProductService {
         where,
         include: {
           category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          serviceCategory: {
             include: {
               parent: {
                 select: {
@@ -112,6 +130,16 @@ export class ProductService {
             },
           },
         },
+        serviceCategory: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         defaultPrices: {
           where: { isActive: true },
           orderBy: { effectiveFrom: 'desc' },
@@ -157,13 +185,32 @@ export class ProductService {
       throw createError(409, `Product with SKU "${input.sku}" already exists`);
     }
 
-    // Validate category exists if provided
-    if (input.categoryId) {
-      const category = await prisma.productCategory.findUnique({
-        where: { id: input.categoryId },
-      });
-      if (!category || !category.isActive) {
-        throw createError(400, 'Invalid or inactive category');
+    const productType = input.type || 'product';
+    
+    // Validate category based on type
+    if (productType === 'product') {
+      if (input.categoryId) {
+        const category = await prisma.productCategory.findUnique({
+          where: { id: input.categoryId },
+        });
+        if (!category || !category.isActive) {
+          throw createError(400, 'Invalid or inactive product category');
+        }
+      }
+      if (input.serviceCategoryId) {
+        throw createError(400, 'serviceCategoryId should not be provided for products');
+      }
+    } else if (productType === 'service') {
+      if (input.serviceCategoryId) {
+        const serviceCategory = await prisma.serviceCategory.findUnique({
+          where: { id: input.serviceCategoryId },
+        });
+        if (!serviceCategory || !serviceCategory.isActive) {
+          throw createError(400, 'Invalid or inactive service category');
+        }
+      }
+      if (input.categoryId) {
+        throw createError(400, 'categoryId should not be provided for services');
       }
     }
 
@@ -175,7 +222,9 @@ export class ProductService {
           sku: input.sku,
           name: input.name,
           description: input.description,
-          categoryId: input.categoryId || null,
+          type: productType,
+          categoryId: productType === 'product' ? (input.categoryId || null) : null,
+          serviceCategoryId: productType === 'service' ? (input.serviceCategoryId || null) : null,
           unit: input.unit,
           metadata: input.metadata || {},
           isActive: true,
@@ -286,6 +335,16 @@ export class ProductService {
               },
             },
           },
+          serviceCategory: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
           defaultPrices: {
             where: { isActive: true },
             orderBy: { effectiveFrom: 'desc' },
@@ -335,14 +394,37 @@ export class ProductService {
       }
     }
 
-    // Validate category exists if provided
-    if (input.categoryId !== undefined) {
-      if (input.categoryId) {
-        const category = await prisma.productCategory.findUnique({
-          where: { id: input.categoryId },
-        });
-        if (!category || !category.isActive) {
-          throw createError(400, 'Invalid or inactive category');
+    const productType = input.type || existing.type;
+    
+    // Validate category based on type
+    if (input.categoryId !== undefined || input.serviceCategoryId !== undefined || input.type) {
+      if (productType === 'product') {
+        if (input.categoryId !== undefined) {
+          if (input.categoryId) {
+            const category = await prisma.productCategory.findUnique({
+              where: { id: input.categoryId },
+            });
+            if (!category || !category.isActive) {
+              throw createError(400, 'Invalid or inactive product category');
+            }
+          }
+        }
+        if (input.serviceCategoryId !== undefined && input.serviceCategoryId !== null) {
+          throw createError(400, 'serviceCategoryId should not be provided for products');
+        }
+      } else if (productType === 'service') {
+        if (input.serviceCategoryId !== undefined) {
+          if (input.serviceCategoryId) {
+            const serviceCategory = await prisma.serviceCategory.findUnique({
+              where: { id: input.serviceCategoryId },
+            });
+            if (!serviceCategory || !serviceCategory.isActive) {
+              throw createError(400, 'Invalid or inactive service category');
+            }
+          }
+        }
+        if (input.categoryId !== undefined && input.categoryId !== null) {
+          throw createError(400, 'categoryId should not be provided for services');
         }
       }
     }
@@ -353,17 +435,42 @@ export class ProductService {
     // Update product and handle special prices in transaction
     return prisma.$transaction(async (tx) => {
       // Update product basic info
+      const updateData: any = {
+        ...(input.sku && { sku: input.sku }),
+        ...(input.name && { name: input.name }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.unit && { unit: input.unit }),
+        ...(input.isActive !== undefined && { isActive: input.isActive }),
+        ...(input.metadata !== undefined && { metadata: input.metadata }),
+      };
+      
+      // Handle type change
+      if (input.type) {
+        updateData.type = input.type;
+        // Clear the opposite category when type changes
+        if (input.type === 'product') {
+          updateData.categoryId = input.categoryId !== undefined ? input.categoryId : null;
+          updateData.serviceCategoryId = null;
+        } else if (input.type === 'service') {
+          updateData.serviceCategoryId = input.serviceCategoryId !== undefined ? input.serviceCategoryId : null;
+          updateData.categoryId = null;
+        }
+      } else {
+        // No type change, update categories based on existing type
+        if (productType === 'product') {
+          if (input.categoryId !== undefined) {
+            updateData.categoryId = input.categoryId;
+          }
+        } else if (productType === 'service') {
+          if (input.serviceCategoryId !== undefined) {
+            updateData.serviceCategoryId = input.serviceCategoryId;
+          }
+        }
+      }
+      
       const product = await tx.product.update({
         where: { id: productId },
-        data: {
-          ...(input.sku && { sku: input.sku }),
-          ...(input.name && { name: input.name }),
-          ...(input.description !== undefined && { description: input.description }),
-          ...(input.categoryId !== undefined && { categoryId: input.categoryId }),
-          ...(input.unit && { unit: input.unit }),
-          ...(input.isActive !== undefined && { isActive: input.isActive }),
-          ...(input.metadata !== undefined && { metadata: input.metadata }),
-        },
+        data: updateData,
       });
 
       // Handle special prices if provided
@@ -449,6 +556,16 @@ export class ProductService {
         where: { id: product.id },
         include: {
           category: {
+            include: {
+              parent: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          serviceCategory: {
             include: {
               parent: {
                 select: {
