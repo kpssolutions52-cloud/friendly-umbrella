@@ -24,13 +24,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function CategoryManagement() {
+  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+  const [mainServiceCategories, setMainServiceCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<ProductCategory | ServiceCategory | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -99,14 +102,26 @@ export function CategoryManagement() {
         if (editingCategory.parentId) {
           updateData.parentId = formData.parentId;
         }
-        await updateCategory(editingCategory.id, updateData);
+        if (activeTab === 'products') {
+          await updateCategory(editingCategory.id, updateData);
+        } else {
+          await updateServiceCategory(editingCategory.id, updateData);
+        }
         setSuccess('Category updated successfully');
       } else {
-        await createCategory({
-          name: formData.name,
-          description: formData.description || undefined,
-          parentId: formData.parentId || undefined,
-        });
+        if (activeTab === 'products') {
+          await createCategory({
+            name: formData.name,
+            description: formData.description || undefined,
+            parentId: formData.parentId || undefined,
+          });
+        } else {
+          await createServiceCategory({
+            name: formData.name,
+            description: formData.description || undefined,
+            parentId: formData.parentId || undefined,
+          });
+        }
         setSuccess('Category created successfully');
       }
 
@@ -166,7 +181,11 @@ export function CategoryManagement() {
     try {
       setError(null);
       setSuccess(null);
-      await deleteCategory(id);
+      if (activeTab === 'products') {
+        await deleteCategory(id);
+      } else {
+        await deleteServiceCategory(id);
+      }
       setSuccess('Category deleted successfully');
       await loadCategories();
     } catch (err: any) {
@@ -174,11 +193,15 @@ export function CategoryManagement() {
     }
   };
 
-  const handleToggleActive = async (category: ProductCategory) => {
+  const handleToggleActive = async (category: ProductCategory | ServiceCategory) => {
     try {
       setError(null);
       setSuccess(null);
-      await updateCategory(category.id, { isActive: !category.isActive });
+      if (activeTab === 'products') {
+        await updateCategory(category.id, { isActive: !category.isActive });
+      } else {
+        await updateServiceCategory(category.id, { isActive: !category.isActive });
+      }
       setSuccess(`Category ${!category.isActive ? 'activated' : 'deactivated'} successfully`);
       await loadCategories();
     } catch (err: any) {
@@ -209,7 +232,11 @@ export function CategoryManagement() {
     try {
       setError(null);
       setSuccess(null);
-      await deleteCategoryIcon(categoryId);
+      if (activeTab === 'products') {
+        await deleteCategoryIcon(categoryId);
+      } else {
+        await deleteServiceCategoryIcon(categoryId);
+      }
       setSuccess('Icon deleted successfully');
       await loadCategories();
     } catch (err: any) {
@@ -388,6 +415,40 @@ export function CategoryManagement() {
 
   return (
     <div>
+      {/* Products vs Services Tabs */}
+      <div className="mb-6">
+        <div className="flex border-b border-gray-200">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('products');
+              setShowCreateForm(false);
+              setEditingCategory(null);
+              setAddingSubcategoryTo(null);
+            }}
+            className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+              activeTab === 'products' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Product Categories
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('services');
+              setShowCreateForm(false);
+              setEditingCategory(null);
+              setAddingSubcategoryTo(null);
+            }}
+            className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+              activeTab === 'services' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Service Categories
+          </button>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Category Management</h2>
         <div className="flex gap-2">
@@ -395,7 +456,7 @@ export function CategoryManagement() {
             Refresh
           </Button>
           <Button onClick={() => setShowCreateForm(!showCreateForm)} disabled={!!editingCategory || !!addingSubcategoryTo}>
-            {showCreateForm ? 'Cancel' : editingCategory || addingSubcategoryTo ? 'Cancel' : 'Create Main Category'}
+            {showCreateForm ? 'Cancel' : editingCategory || addingSubcategoryTo ? 'Cancel' : `Create Main ${activeTab === 'products' ? 'Product' : 'Service'} Category`}
           </Button>
         </div>
       </div>
@@ -417,12 +478,12 @@ export function CategoryManagement() {
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             {addingSubcategoryTo
-              ? `Add Subcategory to "${mainCategories.find(c => c.id === addingSubcategoryTo)?.name || 'Category'}"`
+              ? `Add Subcategory to "${(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === addingSubcategoryTo)?.name || 'Category'}"`
               : editingCategory
               ? editingCategory.parentId
                 ? 'Edit Subcategory'
                 : 'Edit Main Category'
-              : 'Create New Category'}
+              : `Create New ${activeTab === 'products' ? 'Product' : 'Service'} Category`}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
