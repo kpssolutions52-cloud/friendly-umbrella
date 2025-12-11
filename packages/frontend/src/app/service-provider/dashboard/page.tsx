@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete, getMainServiceCategories, getServiceSubcategories, ServiceCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
-import { ServiceImageManager } from '@/components/ServiceImageManager';
+import { ProductImageManager } from '@/components/ProductImageManager';
 import Link from 'next/link';
 
 export default function ServiceProviderDashboardPage() {
@@ -2340,8 +2340,8 @@ function DashboardContent() {
                 </div>
 
                 {/* Service Images Section */}
-                <ServiceImageManager
-                  serviceId={editingProduct?.id || null}
+                <ProductImageManager
+                  productId={editingProduct?.id || null}
                   disabled={isSubmitting}
                 />
 
