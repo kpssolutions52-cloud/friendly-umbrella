@@ -31,6 +31,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const refreshUser = useCallback(async () => {
+    try {
+      // Add timeout to prevent hanging - reduced to 8 seconds for faster mobile experience
+      const userData = await Promise.race([
+        getCurrentUser(),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+        )
+      ]);
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      // Clear tokens and set user to null on any error (network, timeout, etc.)
+      clearTokens();
+      setUser(null);
+      // Re-throw to let caller know it failed
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     // Check if user is already authenticated
     if (isAuthenticated()) {
@@ -55,26 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, [refreshUser]);
-
-  const refreshUser = useCallback(async () => {
-    try {
-      // Add timeout to prevent hanging - reduced to 8 seconds for faster mobile experience
-      const userData = await Promise.race([
-        getCurrentUser(),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
-        )
-      ]);
-      setUser(userData);
-    } catch (error) {
-      console.error('Failed to refresh user:', error);
-      // Clear tokens and set user to null on any error (network, timeout, etc.)
-      clearTokens();
-      setUser(null);
-      // Re-throw to let caller know it failed
-      throw error;
-    }
-  }, []);
 
   const login = async (input: LoginInput, returnUrl?: string) => {
     const response = await apiLogin(input);
