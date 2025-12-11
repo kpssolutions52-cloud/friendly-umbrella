@@ -628,17 +628,25 @@ export class ProductService {
    * Get product statistics for supplier dashboard
    */
   async getSupplierStats(supplierId: string, type?: 'product' | 'service') {
+    const baseWhere: any = { supplierId };
+    if (type) {
+      baseWhere.type = type;
+    }
+
     const [totalProducts, activeProducts, productsWithPrices, productsWithPrivatePrices] =
       await Promise.all([
         prisma.product.count({
-          where: { supplierId },
-        }),
-        prisma.product.count({
-          where: { supplierId, isActive: true },
+          where: baseWhere,
         }),
         prisma.product.count({
           where: {
-            supplierId,
+            ...baseWhere,
+            isActive: true,
+          },
+        }),
+        prisma.product.count({
+          where: {
+            ...baseWhere,
             isActive: true,
             defaultPrices: {
               some: { isActive: true },
@@ -647,7 +655,7 @@ export class ProductService {
         }),
         prisma.product.count({
           where: {
-            supplierId,
+            ...baseWhere,
             isActive: true,
             privatePrices: {
               some: { isActive: true },
