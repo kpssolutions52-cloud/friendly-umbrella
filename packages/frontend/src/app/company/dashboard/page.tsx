@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { apiGet } from '@/lib/api';
+import { apiGet, getMainCategories, getSubcategories, getMainServiceCategories, getServiceSubcategories, ProductCategory, ServiceCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
@@ -96,6 +96,9 @@ function DashboardContent() {
   const [isLoadingImages, setIsLoadingImages] = useState<Map<string, boolean>>(new Map());
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
+  
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -103,10 +106,19 @@ function DashboardContent() {
   const [filters, setFilters] = useState({
     supplierId: '',
     category: '',
+    serviceCategoryId: '',
     search: '',
   });
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
+  const [serviceProviders, setServiceProviders] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
+  const [mainServiceCategories, setMainServiceCategories] = useState<ServiceCategory[]>([]);
+  const [subServiceCategories, setSubServiceCategories] = useState<ServiceCategory[]>([]);
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState('');
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState('');
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const productsPerPage = 10;
@@ -124,15 +136,30 @@ function DashboardContent() {
   const loadProducts = useCallback(async (page = 1) => {
     setIsLoadingProducts(true);
     const params = new URLSearchParams();
+    
+    // Add type filter based on active tab
+    params.append('type', activeTab === 'products' ? 'product' : 'service');
+    
     if (filters.search) {
       params.append('q', filters.search);
     }
     if (filters.supplierId) {
       params.append('supplierId', filters.supplierId);
     }
-    if (filters.category) {
-      params.append('category', filters.category);
+    
+    // Use appropriate category filter based on tab
+    if (activeTab === 'products') {
+      const categoryId = selectedSubCategoryId || selectedMainCategoryId;
+      if (categoryId) {
+        params.append('category', categoryId);
+      }
+    } else {
+      const serviceCategoryId = selectedSubCategoryId || selectedMainCategoryId;
+      if (serviceCategoryId) {
+        params.append('serviceCategoryId', serviceCategoryId);
+      }
     }
+    
     params.append('page', page.toString());
     params.append('limit', productsPerPage.toString());
 
@@ -167,9 +194,9 @@ function DashboardContent() {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [filters.search, filters.supplierId, filters.category]);
+  }, [filters.search, filters.supplierId, activeTab, selectedMainCategoryId, selectedSubCategoryId]);
 
-  // Load suppliers and categories on mount
+  // Load suppliers, service providers, and categories on mount
   useEffect(() => {
     const loadInitialData = async () => {
       try {
@@ -177,7 +204,19 @@ function DashboardContent() {
         const suppliersResponse = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/suppliers');
         setSuppliers(suppliersResponse.suppliers);
 
-        // Load categories
+        // Load service providers
+        const serviceProvidersResponse = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/service-providers/public');
+        setServiceProviders(serviceProvidersResponse.suppliers || []);
+
+        // Load product categories
+        const mainCategoriesResponse = await getMainCategories();
+        setMainCategories(mainCategoriesResponse.categories || []);
+
+        // Load service categories
+        const mainServiceCategoriesResponse = await getMainServiceCategories();
+        setMainServiceCategories(mainServiceCategoriesResponse.categories || []);
+
+        // Load legacy categories for backward compatibility
         const categoriesResponse = await apiGet<{ categories: string[] }>('/api/v1/products/categories');
         setCategories(categoriesResponse.categories);
       } catch (error: any) {
@@ -191,6 +230,82 @@ function DashboardContent() {
 
     loadInitialData();
   }, []);
+
+  // Load subcategories when main category changes
+  const loadSubCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubCategories([]);
+      return;
+    }
+
+    try {
+      setLoadingSubCategories(true);
+      const response = await getSubcategories(parentId);
+      setSubCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load subcategories:', error);
+      setSubCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
+    }
+  };
+
+  const loadSubServiceCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubServiceCategories([]);
+      return;
+    }
+
+    try {
+      setLoadingSubCategories(true);
+      const response = await getServiceSubcategories(parentId);
+      setSubServiceCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load service subcategories:', error);
+      setSubServiceCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'products') {
+      if (selectedMainCategoryId) {
+        loadSubCategories(selectedMainCategoryId);
+      } else {
+        setSubCategories([]);
+      }
+    } else {
+      if (selectedMainCategoryId) {
+        loadSubServiceCategories(selectedMainCategoryId);
+      } else {
+        setSubServiceCategories([]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMainCategoryId, activeTab]);
+
+  const handleMainCategoryChange = async (mainCategoryId: string) => {
+    setSelectedMainCategoryId(mainCategoryId);
+    setSelectedSubCategoryId('');
+    setCurrentPage(1);
+    
+    if (mainCategoryId) {
+      if (activeTab === 'products') {
+        await loadSubCategories(mainCategoryId);
+      } else {
+        await loadSubServiceCategories(mainCategoryId);
+      }
+    } else {
+      setSubCategories([]);
+      setSubServiceCategories([]);
+    }
+  };
+
+  const handleSubCategoryChange = (subCategoryId: string) => {
+    setSelectedSubCategoryId(subCategoryId);
+    setCurrentPage(1);
+  };
 
   // Fetch pending user count for admin users
   useEffect(() => {
@@ -212,10 +327,15 @@ function DashboardContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
-  // Load products when filters change or on initial mount
+  // Load products when filters change, tab changes, or on initial mount
   useEffect(() => {
+    // Reset filters when tab changes
+    setSelectedMainCategoryId('');
+    setSelectedSubCategoryId('');
+    setFilters(prev => ({ ...prev, supplierId: '', category: '', serviceCategoryId: '' }));
+    setCurrentPage(1);
     loadProducts(1);
-  }, [loadProducts]);
+  }, [loadProducts, activeTab]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -427,18 +547,67 @@ function DashboardContent() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
-        {/* Product Filters */}
+        {/* Products vs Services Tabs */}
+        <div className="mb-6">
+          <div className="flex border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('products');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setFilters(prev => ({ ...prev, supplierId: '', category: '', serviceCategoryId: '' }));
+                setSubCategories([]);
+                setSubServiceCategories([]);
+                setCurrentPage(1);
+              }}
+              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+                activeTab === 'products'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Products
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('services');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setFilters(prev => ({ ...prev, supplierId: '', category: '', serviceCategoryId: '' }));
+                setSubCategories([]);
+                setSubServiceCategories([]);
+                setCurrentPage(1);
+              }}
+              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
+                activeTab === 'services'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Services
+            </button>
+          </div>
+        </div>
+
+        {/* Product/Service Filters */}
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Browse Products</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Browse {activeTab === 'products' ? 'Products' : 'Services'}</h2>
             <Button
               variant="outline"
               onClick={() => {
-                setFilters({ supplierId: '', category: '', search: '' });
+                setFilters({ supplierId: '', category: '', serviceCategoryId: '', search: '' });
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setSubCategories([]);
+                setSubServiceCategories([]);
                 setSupplierSearchQuery('');
                 setCategorySearchQuery('');
                 setSupplierDropdownOpen(false);
                 setCategoryDropdownOpen(false);
+                setCurrentPage(1);
               }}
               className="touch-target w-full sm:w-auto"
             >
@@ -449,7 +618,7 @@ function DashboardContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="relative supplier-dropdown-container">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Supplier
+                Filter by {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
               </label>
               <div className="relative">
                 <input
@@ -488,9 +657,9 @@ function DashboardContent() {
                         setSupplierDropdownOpen(false);
                       }}
                     >
-                      All Suppliers
+                      All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}
                     </div>
-                    {suppliers
+                    {(activeTab === 'products' ? suppliers : serviceProviders)
                       .filter(supplier =>
                         supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
                       )
@@ -525,11 +694,11 @@ function DashboardContent() {
                           </div>
                         </div>
                       ))}
-                    {suppliers.filter(supplier =>
+                    {(activeTab === 'products' ? suppliers : serviceProviders).filter(supplier =>
                       supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
                     ).length === 0 && supplierSearchQuery && (
                       <div className="px-4 py-2 text-gray-500 text-sm">
-                        No suppliers found
+                        No {activeTab === 'products' ? 'suppliers' : 'service providers'} found
                       </div>
                     )}
                   </div>
@@ -537,87 +706,58 @@ function DashboardContent() {
               </div>
             </div>
             
-            <div className="relative category-dropdown-container">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Category
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search or select category..."
-                  value={categoryDropdownOpen ? categorySearchQuery : filters.category}
-                  onChange={(e) => {
-                    setCategorySearchQuery(e.target.value);
-                    if (!categoryDropdownOpen) setCategoryDropdownOpen(true);
-                  }}
-                  onFocus={() => {
-                    setCategoryDropdownOpen(true);
-                    setCategorySearchQuery('');
-                  }}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCategoryDropdownOpen(!categoryDropdownOpen);
-                    if (!categoryDropdownOpen) setCategorySearchQuery('');
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={categoryDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                  </svg>
-                </button>
-                {categoryDropdownOpen && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    <div
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        handleFilterChange('category', '');
-                        setCategorySearchQuery('');
-                        setCategoryDropdownOpen(false);
-                      }}
-                    >
-                      All Categories
-                    </div>
-                    {categories
-                      .filter(category =>
-                        category.toLowerCase().includes(categorySearchQuery.toLowerCase())
-                      )
-                      .map((category) => (
-                        <div
-                          key={category}
-                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                            filters.category === category ? 'bg-blue-50' : ''
-                          }`}
-                          onClick={() => {
-                            handleFilterChange('category', category);
-                            setCategorySearchQuery('');
-                            setCategoryDropdownOpen(false);
-                          }}
-                        >
-                          {category}
-                        </div>
-                      ))}
-                    {categories.filter(category =>
-                      category.toLowerCase().includes(categorySearchQuery.toLowerCase())
-                    ).length === 0 && categorySearchQuery && (
-                      <div className="px-4 py-2 text-gray-500 text-sm">
-                        No categories found
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search by Product Name
+                Main Category
+              </label>
+              <select
+                key={`main-category-${activeTab}`}
+                value={selectedMainCategoryId}
+                onChange={(e) => handleMainCategoryChange(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
+              >
+                <option value="">All Categories</option>
+                {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sub Category
+              </label>
+              <select
+                key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
+                value={selectedSubCategoryId}
+                onChange={(e) => handleSubCategoryChange(e.target.value)}
+                disabled={!selectedMainCategoryId || loadingSubCategories}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500 cursor-pointer"
+              >
+                <option value="">
+                  {loadingSubCategories 
+                    ? 'Loading...' 
+                    : !selectedMainCategoryId 
+                      ? 'Select main category first' 
+                      : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                        ? 'No subcategories' 
+                        : 'All Subcategories'}
+                </option>
+                {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                  <option key={subCat.id} value={subCat.id}>
+                    {subCat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search by {activeTab === 'products' ? 'Product' : 'Service'} Name
               </label>
               <input
                 type="text"
-                placeholder="Search by product name..."
+                placeholder={`Search by ${activeTab === 'products' ? 'product' : 'service'} name...`}
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -626,14 +766,14 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Products List */}
+        {/* Products/Services List */}
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-              Available Products
+              Available {activeTab === 'products' ? 'Products' : 'Services'}
               {filteredProducts.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'})
+                  ({filteredProducts.length} {filteredProducts.length === 1 ? (activeTab === 'products' ? 'product' : 'service') : (activeTab === 'products' ? 'products' : 'services')})
                 </span>
               )}
             </h2>
@@ -667,13 +807,13 @@ function DashboardContent() {
           {isLoadingProducts ? (
             <div className="text-center py-8">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-2 text-gray-500">Loading products...</p>
+              <p className="mt-2 text-gray-500">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-gray-500 px-4">
               {filters.supplierId || filters.category || filters.search
-                ? 'No products match your filters. Try adjusting your filters.'
-                : 'No products available yet. Suppliers need to add products with default prices.'}
+                ? `No ${activeTab === 'products' ? 'products' : 'services'} match your filters. Try adjusting your filters.`
+                : `No ${activeTab === 'products' ? 'products' : 'services'} available yet. ${activeTab === 'products' ? 'Suppliers' : 'Service providers'} need to add ${activeTab === 'products' ? 'products' : 'services'} with default prices.`}
             </div>
           ) : viewMode === 'grid' ? (
             <>

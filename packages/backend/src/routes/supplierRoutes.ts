@@ -341,7 +341,9 @@ router.get(
   [
     query('q').optional().isString().withMessage('Query must be a string'),
     query('category').optional().isString(),
+    query('serviceCategoryId').optional().isString(),
     query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
+    query('type').optional().isIn(['product', 'service']).withMessage('Type must be either product or service'),
     query('page')
       .optional()
       .isInt({ min: 1 })
@@ -360,7 +362,9 @@ router.get(
 
       const query = (req.query.q as string) || '';
       const category = req.query.category as string | undefined;
+      const serviceCategoryId = req.query.serviceCategoryId as string | undefined;
       const supplierId = req.query.supplierId as string | undefined;
+      const type = req.query.type as 'product' | 'service' | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
@@ -374,8 +378,16 @@ router.get(
         where.supplierId = supplierId;
       }
 
+      if (type) {
+        where.type = type;
+      }
+
       if (category) {
         where.categoryId = category;
+      }
+
+      if (serviceCategoryId) {
+        where.serviceCategoryId = serviceCategoryId;
       }
 
       if (query) {
