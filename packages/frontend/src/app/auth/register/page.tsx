@@ -210,27 +210,28 @@ function RegisterForm() {
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
               <Image
-                src="/images/logo.svg"
-                alt="ALLIED DIGITAL & EVENTS"
+                src="/images/logo.jpg"
+                alt="ALLIED DIGITAL & EVENTS PTE. LTD."
                 width={64}
                 height={64}
                 className="object-contain"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  if (target.src.endsWith('.svg')) {
+                  if (target.src.endsWith('.jpg') || target.src.endsWith('.jpeg')) {
                     target.src = '/images/logo.png';
                   } else if (target.src.endsWith('.png')) {
-                    target.src = '/images/logo.jpg';
+                    target.src = '/images/logo.svg';
                   } else {
                     target.style.display = 'none';
                   }
                 }}
                 priority
+                unoptimized
               />
             </div>
             <div className="hidden sm:block">
               <div className="text-lg font-bold text-gray-900">ALLIED</div>
-              <div className="text-xs font-semibold text-gray-700 -mt-0.5">DIGITAL & EVENTS</div>
+              <div className="text-xs font-semibold text-gray-700 -mt-0.5">DIGITAL & EVENTS PTE. LTD.</div>
             </div>
           </Link>
           <Link

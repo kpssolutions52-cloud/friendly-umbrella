@@ -10,6 +10,7 @@ import { apiGet, getMainCategories, getSubcategories, getMainServiceCategories, 
 import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 
 interface PublicProduct {
   id: string;
@@ -370,7 +371,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0 flex flex-col">
       {/* Modern Header with Logo */}
       <Header />
 
@@ -387,7 +388,7 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         {/* Products vs Services Tabs */}
         <div className="mb-6">
           <div className="flex border-b border-gray-200">
@@ -668,6 +669,9 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Footer with Powered By */}
+      <Footer />
 
       {/* Bottom Navigation - Mobile Only */}
       <BottomNavigation />

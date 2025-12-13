@@ -21,27 +21,28 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
         <div className="flex justify-between items-center h-16 sm:h-20">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              {/* Logo - Try SVG first, fallback to PNG, then JPG */}
+              {/* Logo - Try JPG first (since we have logo.jpg), then PNG, then SVG */}
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                 <Image
-                  src="/images/logo.svg"
-                  alt="ALLIED DIGITAL & EVENTS"
+                  src="/images/logo.jpg"
+                  alt="ALLIED DIGITAL & EVENTS PTE. LTD."
                   width={48}
                   height={48}
                   className="object-contain"
                   onError={(e) => {
-                    // Fallback chain: SVG -> PNG -> JPG
+                    // Fallback chain: JPG -> PNG -> SVG
                     const target = e.target as HTMLImageElement;
-                    if (target.src.endsWith('.svg')) {
+                    if (target.src.endsWith('.jpg') || target.src.endsWith('.jpeg')) {
                       target.src = '/images/logo.png';
                     } else if (target.src.endsWith('.png')) {
-                      target.src = '/images/logo.jpg';
+                      target.src = '/images/logo.svg';
                     } else {
-                      // If all fail, hide image and show text
+                      // If all fail, show text only
                       target.style.display = 'none';
                     }
                   }}
                   priority
+                  unoptimized
                 />
               </div>
               {/* Company Name - Hidden on very small screens, shown on sm and up */}
@@ -50,7 +51,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   ALLIED
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-gray-700 -mt-1">
-                  DIGITAL & EVENTS
+                  DIGITAL & EVENTS PTE. LTD.
                 </div>
               </div>
               {/* Mobile: Just show "ALLIED" */}
