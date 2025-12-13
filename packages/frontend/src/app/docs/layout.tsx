@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Documentation - Construction Pricing Platform',
+  title: 'Documentation - ALLIED DIGITAL & EVENTS',
   description: 'Complete documentation for Construction Pricing Platform',
 };
 
@@ -17,11 +18,36 @@ export default function DocsLayout({
       <nav className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex">
-              <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold text-gray-900">
-                  Construction Pricing Platform
-                </span>
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+                {/* Logo */}
+                <div className="relative h-8 w-8 flex-shrink-0">
+                  <Image
+                    src="/images/logo.svg"
+                    alt="ALLIED DIGITAL & EVENTS"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.endsWith('.svg')) {
+                        target.src = '/images/logo.png';
+                      } else {
+                        target.style.display = 'none';
+                      }
+                    }}
+                    priority
+                  />
+                </div>
+                {/* Company Name */}
+                <div>
+                  <div className="text-sm font-bold text-gray-900">
+                    ALLIED
+                  </div>
+                  <div className="text-xs font-semibold text-gray-700 -mt-0.5">
+                    DIGITAL & EVENTS
+                  </div>
+                </div>
               </Link>
               <div className="ml-8 flex space-x-8">
                 <Link

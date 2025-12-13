@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function LoginForm() {
   const router = useRouter();
@@ -52,8 +53,32 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
       <div className="w-full max-w-md space-y-6 sm:space-y-8">
-        {/* Back to Home Button */}
-        <div className="flex justify-start">
+        {/* Logo and Back to Home */}
+        <div className="flex flex-col items-center space-y-4">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <div className="relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
+              <Image
+                src="/images/logo.svg"
+                alt="ALLIED DIGITAL & EVENTS"
+                width={64}
+                height={64}
+                className="object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.endsWith('.svg')) {
+                    target.src = '/images/logo.png';
+                  } else {
+                    target.style.display = 'none';
+                  }
+                }}
+                priority
+              />
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-lg font-bold text-gray-900">ALLIED</div>
+              <div className="text-xs font-semibold text-gray-700 -mt-0.5">DIGITAL & EVENTS</div>
+            </div>
+          </Link>
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors touch-target"

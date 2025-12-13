@@ -1,0 +1,5 @@
+# This file ensures the images directory is tracked by git
+# Place your logo files here:
+# - logo.svg (preferred) or logo.png
+# - logo-icon.png (optional, for favicon)
+
