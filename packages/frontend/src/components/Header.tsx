@@ -21,7 +21,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
         <div className="flex justify-between items-center h-16 sm:h-20">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              {/* Logo - Try SVG first, fallback to PNG */}
+              {/* Logo - Try SVG first, fallback to PNG, then JPG */}
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                 <Image
                   src="/images/logo.svg"
@@ -30,12 +30,14 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   height={48}
                   className="object-contain"
                   onError={(e) => {
-                    // Fallback to PNG if SVG doesn't exist
+                    // Fallback chain: SVG -> PNG -> JPG
                     const target = e.target as HTMLImageElement;
                     if (target.src.endsWith('.svg')) {
                       target.src = '/images/logo.png';
+                    } else if (target.src.endsWith('.png')) {
+                      target.src = '/images/logo.jpg';
                     } else {
-                      // If both fail, hide image and show text
+                      // If all fail, hide image and show text
                       target.style.display = 'none';
                     }
                   }}

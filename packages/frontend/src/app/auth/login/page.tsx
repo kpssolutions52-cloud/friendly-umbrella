@@ -67,6 +67,8 @@ function LoginForm() {
                   const target = e.target as HTMLImageElement;
                   if (target.src.endsWith('.svg')) {
                     target.src = '/images/logo.png';
+                  } else if (target.src.endsWith('.png')) {
+                    target.src = '/images/logo.jpg';
                   } else {
                     target.style.display = 'none';
                   }
