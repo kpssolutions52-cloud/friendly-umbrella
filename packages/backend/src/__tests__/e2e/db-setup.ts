@@ -1,9 +1,9 @@
-import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { PrismaClient } from '@prisma/client';
 import * as path from 'path';
 import * as fs from 'fs';
 
-let postgresContainer: PostgreSqlContainer | null = null;
+let postgresContainer: StartedPostgreSqlContainer | null = null;
 let e2ePrisma: PrismaClient | null = null;
 let isInitialized = false;
 let databaseUrl: string | null = null;
@@ -136,14 +136,30 @@ export async function setupInMemoryDatabase(): Promise<PrismaClient> {
 
   try {
     // Start PostgreSQL container
-    postgresContainer = await new PostgreSqlContainer('postgres:15-alpine')
+    const container = new PostgreSqlContainer('postgres:15-alpine')
       .withDatabase('testdb')
       .withUsername('testuser')
-      .withPassword('testpass')
-      .start();
+      .withPassword('testpass');
+    
+    postgresContainer = await container.start();
 
     // Get connection string from container
-    databaseUrl = postgresContainer.getConnectionUri();
+    if (!postgresContainer) {
+      throw new Error('PostgreSQL container failed to start');
+    }
+    // Get connection URI from started container
+    try {
+      databaseUrl = postgresContainer.getConnectionUri();
+    } catch (error) {
+      // Fallback: build connection string from container properties
+      const host = postgresContainer.getHost();
+      const port = postgresContainer.getPort();
+      databaseUrl = `postgresql://testuser:testpass@${host}:${port}/testdb`;
+    }
+    
+    if (!databaseUrl) {
+      throw new Error('Failed to get database connection URI from container');
+    }
     
     console.log('✅ PostgreSQL container started');
     console.log(`📦 Database URL: ${databaseUrl.replace(/:[^:@]+@/, ':****@')}`);
@@ -157,6 +173,9 @@ export async function setupInMemoryDatabase(): Promise<PrismaClient> {
 
     // Create Prisma client (assumes it's already generated)
     // We don't need to generate it here - it should be generated during build
+    if (!databaseUrl) {
+      throw new Error('Database URL is not available');
+    }
     e2ePrisma = new PrismaClient({
       datasources: {
         db: {
@@ -182,7 +201,7 @@ export async function setupInMemoryDatabase(): Promise<PrismaClient> {
     // Clean up on error
     if (postgresContainer) {
       try {
-        await postgresContainer.stop();
+        await (postgresContainer as any).stop();
       } catch (cleanupError) {
         // Ignore cleanup errors
       }
@@ -254,7 +273,7 @@ export async function closeInMemoryDatabase() {
   
   if (postgresContainer) {
     try {
-      await postgresContainer.stop();
+      await (postgresContainer as any).stop();
       console.log('✅ PostgreSQL container stopped');
     } catch (error) {
       console.warn('⚠️  Error stopping container:', error);
