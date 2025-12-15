@@ -78,8 +78,9 @@ describe('Price Routes Integration Tests', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('price');
-      expect(response.body.price).toBe(99.99);
+      // API returns { defaultPrice: { price, ... } }
+      expect(response.body).toHaveProperty('defaultPrice.price');
+      expect(Number(response.body.defaultPrice.price)).toBe(99.99);
     });
 
     it('should fail if not a supplier', async () => {
@@ -120,8 +121,9 @@ describe('Price Routes Integration Tests', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('price');
-      expect(response.body.price).toBe(85.50);
+      // API returns { privatePrice: { price, ... } }
+      expect(response.body).toHaveProperty('privatePrice.price');
+      expect(Number(response.body.privatePrice.price)).toBe(85.5);
     });
 
     it('should create private price with discount percentage', async () => {
@@ -135,8 +137,8 @@ describe('Price Routes Integration Tests', () => {
         });
 
       expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('discountPercentage');
-      expect(response.body.discountPercentage).toBe(15);
+      expect(response.body).toHaveProperty('privatePrice.discountPercentage');
+      expect(Number(response.body.privatePrice.discountPercentage)).toBe(15);
     });
 
     it('should fail if both price and discount provided', async () => {
@@ -183,7 +185,8 @@ describe('Price Routes Integration Tests', () => {
 
     it('should update private price', async () => {
       const response = await request(app)
-        .put(`/api/v1/products/${productId}/private-prices/${privatePriceId}`)
+        // Update endpoint is /api/v1/private-prices/:id
+        .put(`/api/v1/private-prices/${privatePriceId}`)
         .set('Authorization', `Bearer ${supplierAdmin.accessToken}`)
         .send({
           price: 80,
@@ -191,7 +194,8 @@ describe('Price Routes Integration Tests', () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.price).toBe(80);
+      expect(response.body).toHaveProperty('privatePrice.price');
+      expect(Number(response.body.privatePrice.price)).toBe(80);
     });
   });
 
@@ -248,8 +252,9 @@ describe('Price Routes Integration Tests', () => {
         .set('Authorization', `Bearer ${companyAdmin.accessToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('price');
-      expect(response.body.price).toBe(100);
+      // Supplier routes return { price: { ...priceInfo... } }
+      expect(response.body).toHaveProperty('price.price');
+      expect(response.body.price.price).toBe(100);
     });
   });
 });

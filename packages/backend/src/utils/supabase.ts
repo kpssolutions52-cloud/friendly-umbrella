@@ -3,8 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// In test environment, skip noisy warning about missing Supabase credentials
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn('⚠️  Supabase credentials not configured. Logo uploads will not work.');
+  if (process.env.NODE_ENV !== 'test') {
+    console.warn('⚠️  Supabase credentials not configured. Logo uploads will not work.');
+  }
 }
 
 export const supabase = supabaseUrl && supabaseServiceKey

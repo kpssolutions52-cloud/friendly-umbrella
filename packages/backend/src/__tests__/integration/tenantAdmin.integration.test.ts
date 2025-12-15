@@ -237,8 +237,9 @@ describe('Tenant Admin Routes Integration Tests', () => {
         .set('Authorization', `Bearer ${supplierAdmin.accessToken}`);
 
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('totalUsers');
-      expect(typeof response.body.totalUsers).toBe('number');
+      expect(response.body).toHaveProperty('users');
+      expect(response.body.users).toHaveProperty('total');
+      expect(typeof response.body.users.total).toBe('number');
     });
   });
 });

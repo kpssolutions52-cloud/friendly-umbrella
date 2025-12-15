@@ -71,11 +71,14 @@ export async function createTestTenant(
     status?: TenantStatus;
   }
 ): Promise<TestTenant> {
+  // Generate unique email if not provided to avoid unique constraint violations
+  const uniqueEmail = options.email || `${options.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@test.com`;
+  
   const tenant = await prisma.tenant.create({
     data: {
       name: options.name || `${options.type} Test Company`,
       type: options.type,
-      email: options.email || `${options.type}@test.com`,
+      email: uniqueEmail,
       phone: '+1234567890',
       address: '123 Test St',
       postalCode: '12345',
@@ -121,6 +124,7 @@ export async function createTestTenantAdmin(
     ? UserRole.supplier_admin 
     : UserRole.company_admin);
 
+  const finalStatus = options.status || UserStatus.active;
   const user = await prisma.user.create({
     data: {
       tenantId,
@@ -129,8 +133,8 @@ export async function createTestTenantAdmin(
       firstName: 'Tenant',
       lastName: 'Admin',
       role,
-      status: options.status || UserStatus.active,
-      isActive: options.status === UserStatus.active,
+      status: finalStatus,
+      isActive: finalStatus === UserStatus.active,
     },
   });
 
@@ -178,6 +182,7 @@ export async function createTestStaff(
     ? UserRole.supplier_staff 
     : UserRole.company_staff);
 
+  const finalStatus = options.status || UserStatus.active;
   const user = await prisma.user.create({
     data: {
       tenantId,
@@ -186,8 +191,8 @@ export async function createTestStaff(
       firstName: 'Staff',
       lastName: 'User',
       role,
-      status: options.status || UserStatus.active,
-      isActive: options.status === UserStatus.active,
+      status: finalStatus,
+      isActive: finalStatus === UserStatus.active,
     },
   });
 
