@@ -1,6 +1,5 @@
-import { test, expect } from '../fixtures/auth.fixtures';
-import { waitForElementVisible, registerViaAPI } from '../helpers/test-helpers';
-import { randomEmail } from '../helpers/test-helpers';
+import { test, expect, registerViaAPI } from '../fixtures/auth.fixtures';
+import { waitForElementVisible, randomEmail } from '../helpers/test-helpers';
 
 test.describe('Tenant Approval Workflow', () => {
   test('super admin should see pending tenants', async ({ superAdminPage }) => {
@@ -9,8 +8,11 @@ test.describe('Tenant Approval Workflow', () => {
     
     // Look for pending tenants section
     // Adjust selectors based on your actual UI
-    const pendingSection = superAdminPage.locator('[class*="pending"], [class*="Pending"], text=/pending/i');
-    const sectionCount = await pendingSection.count();
+    // Use separate locators - can't mix CSS and text selectors with commas
+    const pendingSection1 = superAdminPage.locator('[class*="pending"]');
+    const pendingSection2 = superAdminPage.locator('[class*="Pending"]');
+    const pendingSection3 = superAdminPage.locator('text=/pending/i');
+    const sectionCount = (await pendingSection1.count()) + (await pendingSection2.count()) + (await pendingSection3.count());
     
     // Pending tenants section should be accessible
     expect(sectionCount >= 0).toBeTruthy();
@@ -68,8 +70,10 @@ test.describe('Tenant Approval Workflow', () => {
       await superAdminPage.waitForTimeout(2000);
 
       // Tenant should be approved
-      const successMessage = superAdminPage.locator('[class*="success"], text=/approved/i');
-      const messageCount = await successMessage.count();
+      // Use separate locators - can't mix CSS and text selectors with commas
+      const successMessage1 = superAdminPage.locator('[class*="success"]');
+      const successMessage2 = superAdminPage.locator('text=/approved/i');
+      const messageCount = (await successMessage1.count()) + (await successMessage2.count());
 
       // Success message should appear or tenant should be removed from pending list
       expect(messageCount >= 0).toBeTruthy();

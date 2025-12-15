@@ -20,7 +20,19 @@ async function loginViaAPI(page: Page, email: string, password: string): Promise
   });
 
   if (!response.ok()) {
-    throw new Error(`Login failed: ${response.status()} ${response.statusText()}`);
+    // Try to get error details from response
+    let errorMessage = `${response.status()} ${response.statusText()}`;
+    try {
+      const errorBody = await response.json();
+      if (errorBody?.error?.message) {
+        errorMessage = `${errorMessage}: ${errorBody.error.message}`;
+      } else if (errorBody?.message) {
+        errorMessage = `${errorMessage}: ${errorBody.message}`;
+      }
+    } catch {
+      // If response body is not JSON, use status text
+    }
+    throw new Error(`Login failed: ${errorMessage}`);
   }
 
   const data = await response.json();

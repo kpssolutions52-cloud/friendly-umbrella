@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Metadata } from 'next';
+import { Logo } from '@/components/Logo';
 
 export const metadata: Metadata = {
   title: 'Documentation - ALLIED DIGITAL & EVENTS',
@@ -22,22 +22,11 @@ export default function DocsLayout({
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
                 {/* Logo */}
                 <div className="relative h-8 w-8 flex-shrink-0">
-                  <Image
+                  <Logo
                     src="/images/logo.jpg"
                     alt="ALLIED DIGITAL & EVENTS PTE. LTD."
                     width={32}
                     height={32}
-                    className="object-contain"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.endsWith('.jpg') || target.src.endsWith('.jpeg')) {
-                        target.src = '/images/logo.png';
-                      } else if (target.src.endsWith('.png')) {
-                        target.src = '/images/logo.svg';
-                      } else {
-                        target.style.display = 'none';
-                      }
-                    }}
                     priority
                     unoptimized
                   />

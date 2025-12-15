@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/Logo';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -23,24 +23,11 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
             <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               {/* Logo - Try JPG first (since we have logo.jpg), then PNG, then SVG */}
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                <Image
+                <Logo
                   src="/images/logo.jpg"
                   alt="ALLIED DIGITAL & EVENTS PTE. LTD."
                   width={48}
                   height={48}
-                  className="object-contain"
-                  onError={(e) => {
-                    // Fallback chain: JPG -> PNG -> SVG
-                    const target = e.target as HTMLImageElement;
-                    if (target.src.endsWith('.jpg') || target.src.endsWith('.jpeg')) {
-                      target.src = '/images/logo.png';
-                    } else if (target.src.endsWith('.png')) {
-                      target.src = '/images/logo.svg';
-                    } else {
-                      // If all fail, show text only
-                      target.style.display = 'none';
-                    }
-                  }}
                   priority
                   unoptimized
                 />

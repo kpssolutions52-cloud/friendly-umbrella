@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@playwright/test", "node"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "e2e/**/*.ts",
+    "playwright.config.ts",
+    "packages/backend/src/e2e/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "packages/**/src/__tests__/**",
+    "packages/**/src/**/*.test.ts",
+    "packages/**/src/**/*.spec.ts"
+  ]
+}

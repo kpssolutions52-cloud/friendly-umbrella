@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 import { body, validationResult } from 'express-validator';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma';
+import { logger } from '../utils/logger';
 
 const router = Router();
 
@@ -140,6 +141,21 @@ router.post(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
+      
+      // Check for database connection errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        const dbError = error as { code: string; message: string };
+        if (dbError.code === 'P1001' || dbError.code === 'P2002' || dbError.message?.includes('connect')) {
+          logger.error('Database connection error during login:', dbError);
+          return res.status(503).json({
+            error: {
+              message: 'Database connection error. Please check your database configuration.',
+              statusCode: 503,
+            },
+          });
+        }
+      }
+      
       next(error);
     }
   }

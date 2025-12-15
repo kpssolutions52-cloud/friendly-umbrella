@@ -7,8 +7,11 @@ test.describe('User Management - Super Admin', () => {
     await waitForElementVisible(superAdminPage, 'body', 5000);
 
     // Look for user management section
-    const userSection = superAdminPage.locator('[class*="user"], [class*="User"], text=/user/i');
-    const sectionCount = await userSection.count();
+    // Use separate locators - can't mix CSS and text selectors with commas
+    const userSection1 = superAdminPage.locator('[class*="user"]');
+    const userSection2 = superAdminPage.locator('[class*="User"]');
+    const userSection3 = superAdminPage.locator('text=/user/i');
+    const sectionCount = (await userSection1.count()) + (await userSection2.count()) + (await userSection3.count());
 
     // User management should be accessible
     expect(sectionCount >= 0).toBeTruthy();

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Logo } from '@/components/Logo';
 
 function LoginForm() {
   const router = useRouter();
@@ -57,22 +57,11 @@ function LoginForm() {
         <div className="flex flex-col items-center space-y-4">
           <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div className="relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
-              <Image
+              <Logo
                 src="/images/logo.jpg"
                 alt="ALLIED DIGITAL & EVENTS PTE. LTD."
                 width={64}
                 height={64}
-                className="object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src.endsWith('.jpg') || target.src.endsWith('.jpeg')) {
-                    target.src = '/images/logo.png';
-                  } else if (target.src.endsWith('.png')) {
-                    target.src = '/images/logo.svg';
-                  } else {
-                    target.style.display = 'none';
-                  }
-                }}
                 priority
                 unoptimized
               />
