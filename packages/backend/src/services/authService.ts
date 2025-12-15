@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prisma';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
+import { findUserByEmail, updateUserLastLogin, createUser, findTenantByEmail, findTenantById, createTenant, findUserById } from '../utils/db';
 import createError from 'http-errors';
 
 export interface RegisterInput {
@@ -27,9 +28,7 @@ export interface LoginInput {
 export class AuthService {
   async register(input: RegisterInput) {
     // Validate email is unique
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
+    const existingUser = await findUserByEmail(input.email);
 
     if (existingUser) {
       throw createError(409, 'Email already registered');
@@ -56,9 +55,7 @@ export class AuthService {
     }
 
     // Check if tenant email already exists
-    const existingTenant = await prisma.tenant.findUnique({
-      where: { email: input.email },
-    });
+    const existingTenant = await findTenantByEmail(input.email);
 
     if (existingTenant) {
       throw createError(409, 'Email already registered');
@@ -76,58 +73,47 @@ export class AuthService {
       throw createError(400, 'Invalid tenant type');
     }
 
-    // Create tenant and user in transaction - both start as pending
-    const result = await prisma.$transaction(async (tx) => {
-      // Create tenant with pending status
-      const tenant = await tx.tenant.create({
-        data: {
-          name: input.tenantName!,
-          type: input.tenantType!,
-          email: input.email,
-          phone: input.phone || null,
-          address: input.address || null,
-          postalCode: input.postalCode || null,
-          status: 'pending',
-          isActive: false,
-        },
-      });
+    // Hash password
+    const passwordHash = await hashPassword(input.password);
 
-      // Hash password
-      const passwordHash = await hashPassword(input.password);
-
-      // Create user with pending status (but will become admin once tenant is approved)
-      const user = await tx.user.create({
-        data: {
-          tenantId: tenant.id,
-          email: input.email,
-          passwordHash,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          role: role as any,
-          status: 'pending',
-          isActive: false,
-          permissions: { view: true, create: true, admin: true }, // Full admin permissions
-        },
-        include: {
-          tenant: true,
-        },
-      });
-
-      return { user, tenant };
+    // Create tenant with pending status
+    const tenant = await createTenant({
+      name: input.tenantName!,
+      type: input.tenantType!,
+      email: input.email,
+      phone: input.phone || null,
+      address: input.address || null,
+      postalCode: input.postalCode || null,
+      status: 'pending',
+      isActive: false,
     });
+
+    // Create user with pending status (but will become admin once tenant is approved)
+    const user = await createUser({
+      tenantId: tenant.id,
+      email: input.email,
+      passwordHash,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      role: role,
+      status: 'pending',
+      isActive: false,
+    });
+
+    const result = { user, tenant };
 
     return {
       message: 'Registration successful. Your account is pending approval by a super administrator.',
       user: {
-        id: result.user.id,
-        email: result.user.email,
-        firstName: result.user.firstName,
-        lastName: result.user.lastName,
-        role: result.user.role,
-        status: result.user.status,
-        tenantId: result.user.tenantId,
-        tenantType: result.tenant.type,
-        tenantStatus: result.tenant.status,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        tenantId: user.tenantId,
+        tenantType: tenant.type,
+        tenantStatus: tenant.status,
       },
     };
   }
@@ -140,18 +126,15 @@ export class AuthService {
     const passwordHash = await hashPassword(input.password);
 
     // Create customer user - customers are auto-approved and active
-    const user = await prisma.user.create({
-      data: {
-        tenantId: null, // Customers don't have tenants
-        email: input.email,
-        passwordHash,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        role: 'customer',
-        status: 'active', // Customers are auto-approved
-        isActive: true,
-        permissions: {}, // Customers have no special permissions
-      },
+    const user = await createUser({
+      tenantId: null, // Customers don't have tenants
+      email: input.email,
+      passwordHash,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      role: 'customer',
+      status: 'active', // Customers are auto-approved
+      isActive: true,
     });
 
     // Generate tokens for customer (similar to login flow)
@@ -199,9 +182,7 @@ export class AuthService {
     }
 
     // Verify tenant exists and is active
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: input.tenantId },
-    });
+    const tenant = await findTenantById(input.tenantId);
 
     if (!tenant) {
       throw createError(404, 'Tenant not found');
@@ -239,21 +220,15 @@ export class AuthService {
     const passwordHash = await hashPassword(input.password);
 
     // Create user with pending status - needs admin approval
-    const user = await prisma.user.create({
-      data: {
-        tenantId: input.tenantId,
-        email: input.email,
-        passwordHash,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        role: role as any,
-        status: 'pending',
-        isActive: false,
-        permissions: input.permissions || { view: true, create: false, admin: false }, // Default permissions
-      },
-      include: {
-        tenant: true,
-      },
+    const user = await createUser({
+      tenantId: input.tenantId,
+      email: input.email,
+      passwordHash,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      role: role,
+      status: 'pending',
+      isActive: false,
     });
 
     return {
@@ -274,10 +249,7 @@ export class AuthService {
 
   async login(input: LoginInput) {
     // Find user (with optional tenant for super admins)
-    const user = await prisma.user.findUnique({
-      where: { email: input.email },
-      include: { tenant: true },
-    });
+    const user = await findUserByEmail(input.email, true);
 
     if (!user) {
       throw createError(401, 'Invalid email or password');
@@ -297,10 +269,7 @@ export class AuthService {
       }
 
       // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      });
+      await updateUserLastLogin(user.id);
 
       // Generate tokens for super admin (tenantId is null)
       const accessToken = generateAccessToken({
@@ -344,10 +313,7 @@ export class AuthService {
       }
 
       // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      });
+      await updateUserLastLogin(user.id);
 
       // Generate tokens for customer (tenantId is null)
       const accessToken = generateAccessToken({
@@ -444,10 +410,7 @@ export class AuthService {
       const payload = verifyRefreshToken(refreshToken);
 
       // Verify user still exists and is active
-      const user = await prisma.user.findUnique({
-        where: { id: payload.userId },
-        include: { tenant: true },
-      });
+      const user = await findUserById(payload.userId, true);
 
       if (!user || !user.isActive || user.status !== 'active') {
         throw createError(401, 'User is inactive or pending approval');
@@ -495,21 +458,7 @@ export class AuthService {
   }
 
   async getCurrentUser(userId: string) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            email: true,
-            phone: true,
-            address: true,
-          },
-        },
-      },
-    });
+    const user = await findUserById(userId, true);
 
     if (!user) {
       throw createError(404, 'User not found');
@@ -521,7 +470,14 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      tenant: user.tenant,
+      tenant: user.tenant ? {
+        id: user.tenant.id,
+        name: user.tenant.name,
+        type: user.tenant.type,
+        email: user.tenant.email,
+        phone: null, // Not stored in abstraction
+        address: null, // Not stored in abstraction
+      } : null,
     };
   }
 }

@@ -1,4 +1,9 @@
 import 'dotenv/config';
+
+// For E2E tests with TestContainers, the database is initialized in global-setup
+// The DATABASE_URL will be set by TestContainers and passed via environment
+// No special initialization needed here - Prisma will connect normally
+
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';

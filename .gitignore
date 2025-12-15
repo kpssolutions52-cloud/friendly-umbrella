@@ -47,6 +47,7 @@ packages/frontend/out/
 *.db
 *.sqlite
 *.sqlite3
+.e2e-database-url
 
 # Docker
 .dockerignore

@@ -2,7 +2,9 @@ name: KPS FEBE CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, 10_e2e_test]
+  pull_request:
+    branches: [main, 10_e2e_test]
   workflow_dispatch:
 
 jobs:
@@ -40,6 +42,51 @@ jobs:
         run: cd packages/frontend && npm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://friendly-umbrella-production.up.railway.app' }}
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build shared package
+        run: cd packages/shared && npm run build
+
+      - name: Generate Prisma Client
+        run: cd packages/backend && npm run db:generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+
+      - name: Build backend
+        run: cd packages/backend && npm run build
+
+      - name: Run E2E tests (excluding visual regression, Chromium only)
+        run: npx playwright test --ignore-snapshots --project=chromium e2e/auth e2e/admin e2e/dashboard e2e/end-to-end e2e/prices e2e/products e2e/scenarios
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-e2e-tests-minimum-32-characters-long' }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-e2e-tests-minimum-32-characters-long' }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
   # Deployment Notes:
   # - Railway: Deploy manually from Railway Dashboard → Service → Deployments → Redeploy

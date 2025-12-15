@@ -109,10 +109,14 @@ test.describe('User Registration', () => {
     
     // Should show validation error or stay on page (validation prevents submission)
     const currentUrl = page.url();
-    const errorExists = await page.locator('[class*="bg-red-50"], [class*="error"], text=/required/i').count();
+    
+    // Check for error indicators using separate locators
+    const errorClassExists = await page.locator('[class*="bg-red-50"], [class*="error"]').count();
+    const errorTextExists = await page.locator('text=/required/i').count();
+    const errorExists = errorClassExists > 0 || errorTextExists > 0;
     
     // Either error message appears or form prevents submission
-    expect(errorExists > 0 || currentUrl.includes('/auth/register')).toBeTruthy();
+    expect(errorExists || currentUrl.includes('/auth/register')).toBeTruthy();
   });
 
   test('should validate email format', async ({ page }) => {

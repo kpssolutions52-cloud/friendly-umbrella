@@ -19,6 +19,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:e2e:install": "playwright install",
+    "test:e2e:generate": "tsx e2e/scripts/generate-test-cases.ts",
     "lint": "npm run lint --workspace=@platform/backend && npm run lint --workspace=@platform/frontend",
     "type-check": "npm run type-check --workspaces",
     "db:generate": "npm run db:generate --workspace=@platform/backend",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
     "playwright": "^1.57.0",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3"

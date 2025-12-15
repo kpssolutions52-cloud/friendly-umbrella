@@ -7,10 +7,41 @@ import { defineConfig, devices } from '@playwright/test';
 require('dotenv').config();
 
 /**
+ * Configure TypeScript to exclude Jest test files
+ * Use Playwright-specific tsconfig that excludes Jest tests
+ * Also set NODE_OPTIONS to prevent loading Jest test files
+ */
+process.env.TS_NODE_PROJECT = './playwright-tsconfig.json';
+// Prevent Jest test files from being loaded
+process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS || '') + ' --no-warnings';
+
+/**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './e2e',
+  /* Only match test files in e2e directory */
+  testMatch: /.*\.spec\.ts$/,
+  /* Ignore Jest test files */
+  testIgnore: [
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/packages/**/src/__tests__/**',
+    '**/packages/**/src/**/*.test.ts',
+    '**/packages/**/src/**/*.spec.ts',
+    '**/packages/backend/src/**/__tests__/**',
+  ],
+  /* Configure module resolution to exclude Jest tests */
+  build: {
+    // Exclude Jest test files from being loaded
+    external: [
+      '**/packages/**/src/__tests__/**',
+      '**/packages/**/src/**/*.test.ts',
+    ],
+  },
+  /* Global setup and teardown for TestContainers database */
+  globalSetup: require.resolve('./e2e/helpers/global-setup.ts'),
+  globalTeardown: require.resolve('./e2e/helpers/global-teardown.ts'),
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -82,15 +113,22 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'npm run dev:backend',
+      command: process.platform === 'win32' 
+        ? 'cd packages/backend && npm run dev'
+        : 'cd packages/backend && npm run dev',
       url: 'http://localhost:8000/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
       stdout: 'ignore',
       stderr: 'pipe',
+      env: {
+        ...process.env,
+      },
     },
     {
-      command: 'npm run dev:frontend',
+      command: process.platform === 'win32'
+        ? 'cd packages/frontend && npm run dev'
+        : 'cd packages/frontend && npm run dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
