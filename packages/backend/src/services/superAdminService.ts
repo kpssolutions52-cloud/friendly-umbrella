@@ -207,6 +207,7 @@ export class SuperAdminService {
         email: true,
         firstName: true,
         lastName: true,
+        role: true,
         status: true,
         isActive: true,
         lastLoginAt: true,
@@ -256,6 +257,7 @@ export class SuperAdminService {
       email: superAdmin.email,
       firstName: superAdmin.firstName,
       lastName: superAdmin.lastName,
+      role: superAdmin.role,
       status: superAdmin.status,
       isActive: superAdmin.isActive,
     };
@@ -340,18 +342,24 @@ export class SuperAdminService {
         prisma.user.count({ where: { role: 'customer', status: 'pending' } }),
       ]);
 
+    const totalTenants = pendingTenants + activeTenants + rejectedTenants;
+
     return {
+      // Backwards-compatible detailed structure
       tenants: {
         pending: pendingTenants,
         active: activeTenants,
         rejected: rejectedTenants,
-        companies: companies,
-        suppliers: suppliers,
+        companies,
+        suppliers,
       },
       users: {
         total: totalUsers,
         pending: pendingCustomers,
       },
+      // Top-level summary fields expected by integration tests
+      totalTenants,
+      totalUsers,
     };
   }
 }

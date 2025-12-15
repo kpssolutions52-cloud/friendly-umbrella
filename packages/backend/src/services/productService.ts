@@ -364,11 +364,10 @@ export class ProductService {
    * Update a product
    */
   async updateProduct(productId: string, supplierId: string, input: UpdateProductInput) {
-    // Verify product belongs to supplier
-    const existing = await prisma.product.findFirst({
+    // Fetch product by id first, then verify ownership to return the right status code
+    const existing = await prisma.product.findUnique({
       where: {
         id: productId,
-        supplierId,
       },
       include: {
         defaultPrices: {
@@ -381,6 +380,11 @@ export class ProductService {
 
     if (!existing) {
       throw createError(404, 'Product not found');
+    }
+
+    // If product exists but belongs to a different supplier, return 403 instead of 404
+    if (existing.supplierId !== supplierId) {
+      throw createError(403, 'Product belongs to a different tenant');
     }
 
     // Check SKU uniqueness if SKU is being updated

@@ -292,11 +292,12 @@ describe('Product Routes Integration Tests', () => {
 
       expect(response.status).toBe(204);
 
-      // Verify product is deleted
+      // Verify product is soft-deleted (isActive set to false)
       const deleted = await prisma.product.findUnique({
         where: { id: productId },
       });
-      expect(deleted).toBeNull();
+      expect(deleted).not.toBeNull();
+      expect(deleted?.isActive).toBe(false);
     });
   });
 

@@ -1,6 +1,7 @@
 import winston from 'winston';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
+const isTestEnv = process.env.NODE_ENV === 'test';
 
 export const logger = winston.createLogger({
   level: logLevel,
@@ -17,7 +18,9 @@ export const logger = winston.createLogger({
   ],
 });
 
-// Always log to console (needed for Railway, Docker, etc. to capture logs)
+// Log to console in non-test environments (needed for Railway, Docker, local dev, etc.)
+// During integration tests (NODE_ENV === 'test'), suppress console logging to reduce noise
+if (!isTestEnv) {
   logger.add(
     new winston.transports.Console({
       format: winston.format.combine(
@@ -32,6 +35,7 @@ export const logger = winston.createLogger({
       ),
     })
   );
+}
 
 
 

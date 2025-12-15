@@ -133,33 +133,31 @@ const errorMsg = getErrorMessage(response);
 
 ## Test Database Setup
 
-Tests use a separate test database to avoid affecting development data. The test database is:
+Tests use TestContainers to automatically spin up a PostgreSQL database container. This means:
 
-1. **Cleaned before each test file** - All tables are truncated
-2. **Isolated** - Tests don't affect each other
-3. **Fast** - Uses TestContainers PostgreSQL for E2E tests
+1. **No manual setup required** - TestContainers handles everything automatically
+2. **Isolated** - Each test run gets a fresh database container
+3. **Fast** - Container starts quickly and is automatically cleaned up
+4. **Consistent** - Same database setup every time
 
-### Setting Up Test Database
+### Prerequisites
 
-1. Create a test database:
-   ```sql
-   CREATE DATABASE construction_pricing_test;
-   ```
+**Docker Desktop must be running** for TestContainers to work:
 
-2. Set environment variable:
-   ```bash
-   export TEST_DATABASE_URL=postgresql://user:password@localhost:5432/construction_pricing_test?schema=public
-   ```
+1. Open Docker Desktop application
+2. Wait until Docker Desktop shows "Docker Desktop is running"
+3. Verify with: `docker ps`
 
-   Or create a `.env.test` file:
-   ```
-   TEST_DATABASE_URL=postgresql://user:password@localhost:5432/construction_pricing_test?schema=public
-   ```
+### How It Works
 
-3. Run migrations on test database:
-   ```bash
-   DATABASE_URL=$TEST_DATABASE_URL npx prisma migrate deploy
-   ```
+When you run `npm run test:integration`:
+
+1. **TestContainers starts** - A PostgreSQL 15 container is automatically started
+2. **Schema is created** - Prisma schema is automatically pushed to the database
+3. **Tests run** - All integration tests execute against the TestContainers database
+4. **Cleanup** - Container is automatically stopped after tests complete
+
+**No manual database setup or environment variables needed!** TestContainers handles everything.
 
 ## Writing New Tests
 
@@ -213,10 +211,67 @@ describe('Route Name', () => {
 
 ## Troubleshooting
 
+### Docker Not Running
+
+**Error: `container runtime` or `Docker` related errors**
+
+TestContainers requires Docker Desktop to be running:
+
+1. **Start Docker Desktop:**
+   - Open Docker Desktop application
+   - Wait until it shows "Docker Desktop is running"
+   - Verify with: `docker ps`
+
+2. **Check Docker is accessible:**
+   ```bash
+   docker ps
+   ```
+   Should return a list of containers (or empty list if no containers running)
+
+3. **On Windows:** Make sure Docker Desktop is fully started before running tests
+
+### EPERM Error (Windows File Locking)
+
+If you see an `EPERM: operation not permitted` error when running tests:
+- This is a Windows-specific issue where Prisma's query engine DLL is locked
+- The tests will continue - Prisma client is likely already generated
+- If tests fail, try running manually: `npx prisma generate --schema=packages/backend/prisma/schema.prisma`
+- Close any other processes that might be using the Prisma client (IDEs, other test runs, etc.)
+
+### Container Fails to Start
+
+If TestContainers fails to start the PostgreSQL container:
+
+1. **Check Docker resources:**
+   - Docker Desktop → Settings → Resources
+   - Ensure enough memory/CPU allocated (at least 2GB RAM)
+
+2. **Check for port conflicts:**
+   - TestContainers uses random ports, but if you have many containers, ports might be exhausted
+   - Restart Docker Desktop to free up ports
+
+3. **Check Docker logs:**
+   ```bash
+   docker logs <container-id>
+   ```
+
 ### Tests Fail with Database Connection Error
-- Check `TEST_DATABASE_URL` is set correctly
-- Verify database exists and is accessible
-- Run migrations: `DATABASE_URL=$TEST_DATABASE_URL npx prisma migrate deploy`
+
+If you see database connection errors:
+
+1. **Verify TestContainers started:**
+   - Check console output for "✅ PostgreSQL container started"
+   - If not, see "Docker Not Running" above
+
+2. **Check container is running:**
+   ```bash
+   docker ps
+   ```
+   Should show a PostgreSQL container running
+
+3. **Check Prisma schema exists:**
+   - Verify `packages/backend/prisma/schema.prisma` exists
+   - Schema should be valid Prisma schema
 
 ### Tests Fail with "Table does not exist"
 - Run Prisma migrations on test database

@@ -21,7 +21,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   passWithNoTests: true,
-  testTimeout: 30000, // 30 seconds for integration tests
+  testTimeout: 120000, // 120 seconds for integration tests (TestContainers can take time)
   globalSetup: '<rootDir>/src/__tests__/setup/jest.globalSetup.ts',
   globalTeardown: '<rootDir>/src/__tests__/setup/jest.globalTeardown.ts',
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup/jest.setup.ts'],

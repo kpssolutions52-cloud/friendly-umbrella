@@ -39,6 +39,7 @@ export class TenantAdminService {
         lastName: true,
         role: true,
         status: true,
+        tenantId: true, // Include tenantId for filtering verification
         createdAt: true,
       },
       orderBy: {

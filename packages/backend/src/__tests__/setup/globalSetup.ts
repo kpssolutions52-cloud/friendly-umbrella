@@ -5,7 +5,8 @@ import { setupTestDatabase, cleanTestDatabase, closeTestDatabase } from './testS
  * This runs once before all tests
  */
 export async function globalSetup() {
-  // Set test environment variables (only if not already set)
+  // Set test environment variables FIRST, before any modules are imported
+  // This ensures Prisma client and other modules use test configuration
   if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = 'test';
   }
@@ -21,6 +22,19 @@ export async function globalSetup() {
   if (!process.env.JWT_REFRESH_EXPIRES_IN) {
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
   }
+  
+  // Remove any beforeExit handlers that might have been registered before NODE_ENV was set
+  // This prevents infinite loops from Prisma disconnect handlers
+  const listeners = process.listeners('beforeExit');
+  listeners.forEach(listener => {
+    // Remove all beforeExit listeners to prevent loops
+    // The test setup will handle cleanup explicitly
+    try {
+      process.removeListener('beforeExit', listener);
+    } catch {
+      // Ignore errors removing listeners
+    }
+  });
   
   // Initialize test database
   await setupTestDatabase();
