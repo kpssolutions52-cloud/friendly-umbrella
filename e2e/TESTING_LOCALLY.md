@@ -1,6 +1,6 @@
 # Testing E2E Tests Locally
 
-This guide will help you run E2E tests locally with the in-memory database.
+This guide will help you run E2E tests locally with TestContainers (PostgreSQL container).
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ npm run test:e2e
 ```
 
 This will:
-- ✅ Initialize in-memory database
+- ✅ Initialize TestContainers PostgreSQL database
 - ✅ Start backend server (if not running)
 - ✅ Start frontend server (if not running)
 - ✅ Run all E2E tests
@@ -102,7 +102,7 @@ playwright-report/index.html
 
 ## Test Data
 
-The in-memory database is automatically seeded with test users:
+The TestContainers database is automatically seeded with test users:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -123,8 +123,9 @@ The in-memory database is automatically seeded with test users:
 ### Database Errors
 
 **Issue**: "Database not initialized" errors
-- **Solution**: Check that `USE_IN_MEMORY_DB=true` is set (automatically set by npm scripts)
-- **Check**: Look for "✅ In-memory database initialized" in console output
+- **Solution**: Make sure Docker is running (required for TestContainers)
+- **Check**: Look for "✅ TestContainers database initialized" in console output
+- **Verify**: Run `docker ps` to confirm Docker is running
 
 ### Browser Not Found
 

@@ -47,11 +47,11 @@ Or open: `playwright-report/index.html`
 ## What Happens Automatically
 
 When you run tests:
-1. ✅ **In-memory database** is initialized (no external DB needed!)
+1. ✅ **TestContainers PostgreSQL** is initialized (Docker required)
 2. ✅ **Backend server** starts on port 8000 (if not running)
 3. ✅ **Frontend server** starts on port 3000 (if not running)
 4. ✅ **Test data** is seeded (users, tenants, etc.)
-5. ✅ **Tests run** against the in-memory database
+5. ✅ **Tests run** against the TestContainers database
 6. ✅ **Report generated** with results
 
 ## Test Users Available
@@ -91,7 +91,10 @@ npm run test:e2e:report
 
 **Tests timeout?** Check that servers are starting correctly
 
-**Database errors?** Check console for "✅ In-memory database initialized"
+**Database errors?** 
+- Make sure Docker is running (required for TestContainers)
+- Check console for "✅ TestContainers database initialized"
+- Verify Docker: `docker ps`
 
 ## Next Steps
 

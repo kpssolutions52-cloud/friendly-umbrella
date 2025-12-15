@@ -137,7 +137,7 @@ Tests use a separate test database to avoid affecting development data. The test
 
 1. **Cleaned before each test file** - All tables are truncated
 2. **Isolated** - Tests don't affect each other
-3. **Fast** - Uses in-memory or dedicated test database
+3. **Fast** - Uses TestContainers PostgreSQL for E2E tests
 
 ### Setting Up Test Database
 

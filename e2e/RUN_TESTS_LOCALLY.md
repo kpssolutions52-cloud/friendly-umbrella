@@ -27,7 +27,7 @@
    $env:DATABASE_URL=$env:TEST_DATABASE_URL; npx prisma migrate deploy
    ```
 
-4. **Run tests** (without in-memory DB flag):
+4. **Run tests** (TestContainers will create the database automatically):
    ```bash
    playwright test
    ```
@@ -107,11 +107,13 @@ The tests use the seeded test users:
 
 **Browsers not found?** Run `npm run test:e2e:install`
 
-## Note on In-Memory Database
+## Note on TestContainers
 
-The in-memory database setup (pg-mem) is available but requires additional work to fully integrate with Prisma. For now, using a test database is the recommended approach.
-
-See `e2e/IN_MEMORY_DB_NOTE.md` for more details.
+E2E tests use TestContainers to automatically create a PostgreSQL database container for testing. This means:
+- ✅ No manual database setup needed
+- ✅ Docker must be running
+- ✅ Database is automatically created and cleaned up
+- ✅ Each test run gets a fresh database
 
 
 

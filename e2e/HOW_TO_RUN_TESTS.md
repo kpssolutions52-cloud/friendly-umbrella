@@ -71,7 +71,7 @@ npx playwright test --project=chromium
 
 1. ✅ **Backend server** starts automatically (port 8000)
 2. ✅ **Frontend server** starts automatically (port 3000)
-3. ✅ **In-memory database** initializes (if configured)
+3. ✅ **TestContainers PostgreSQL** initializes (Docker required)
 4. ✅ **Tests run** against the application
 5. ✅ **Report generated** with results
 
@@ -98,8 +98,9 @@ npm run test:e2e:install
 - Or change ports in `playwright.config.ts`
 
 ### "Database connection error"
-- The in-memory database setup may need additional configuration
-- You can use a test database instead (see `e2e/RUN_TESTS_LOCALLY.md`)
+- Make sure Docker is running (required for TestContainers)
+- Check that TestContainers can create containers: `docker ps`
+- Verify console output shows "✅ TestContainers database initialized"
 
 ### Tests timeout
 - Check that servers are starting correctly

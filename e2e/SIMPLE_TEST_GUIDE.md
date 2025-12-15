@@ -2,7 +2,7 @@
 
 ## The Easiest Way
 
-Since the in-memory database integration with Prisma needs additional work, here's the simplest approach:
+E2E tests use TestContainers to automatically spin up a PostgreSQL database. Here's how to run them:
 
 ### Step 1: Use Your Existing Database
 
@@ -104,7 +104,7 @@ playwright test e2e/auth/authentication.spec.ts
 npm run test:e2e:report
 ```
 
-That's it! The tests will run against your database. The infrastructure for in-memory database is ready for future enhancement.
+That's it! The tests will automatically use TestContainers to create a PostgreSQL database for testing.
 
 
 

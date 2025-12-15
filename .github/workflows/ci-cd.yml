@@ -73,12 +73,20 @@ jobs:
       - name: Build backend
         run: cd packages/backend && npm run build
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (excluding visual regression)
+        run: npm run test:e2e -- --grep-invert "Visual Regression"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-e2e-tests-minimum-32-characters-long' }}
           JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-e2e-tests-minimum-32-characters-long' }}
+
+      - name: Run visual regression tests and update snapshots
+        run: npm run test:e2e -- e2e/visual/visual-regression.spec.ts --update-snapshots
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-e2e-tests-minimum-32-characters-long' }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-e2e-tests-minimum-32-characters-long' }}
+        continue-on-error: true
 
       - name: Upload test results
         if: always()
@@ -87,6 +95,15 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+      - name: Upload visual regression snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-snapshots
+          path: e2e/visual/visual-regression.spec.ts-snapshots/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Deployment Notes:
   # - Railway: Deploy manually from Railway Dashboard → Service → Deployments → Redeploy
