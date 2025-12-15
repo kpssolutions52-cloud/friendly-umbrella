@@ -43,6 +43,45 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://friendly-umbrella-production.up.railway.app' }}
 
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: cd packages/shared && npm run build
+
+      - name: Generate Prisma Client
+        run: cd packages/backend && npm run db:generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
+
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-unit-tests-minimum-32-characters-long' }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-unit-tests-minimum-32-characters-long' }}
+
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-coverage
+          path: packages/backend/coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
