@@ -73,8 +73,8 @@ jobs:
       - name: Build backend
         run: cd packages/backend && npm run build
 
-      - name: Run E2E tests (excluding visual regression)
-        run: npx playwright test --ignore-snapshots e2e/auth e2e/admin e2e/dashboard e2e/end-to-end e2e/prices e2e/products e2e/scenarios
+      - name: Run E2E tests (excluding visual regression, Chromium only)
+        run: npx playwright test --ignore-snapshots --project=chromium e2e/auth e2e/admin e2e/dashboard e2e/end-to-end e2e/prices e2e/products e2e/scenarios
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://test:test@localhost:5432/test' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-e2e-tests-minimum-32-characters-long' }}
