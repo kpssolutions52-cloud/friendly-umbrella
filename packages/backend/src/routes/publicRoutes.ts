@@ -428,6 +428,7 @@ router.get(
                   id: true,
                   name: true,
                   logoUrl: true,
+                  address: true,
                 },
               },
               images: {
@@ -497,6 +498,7 @@ router.get(
                   id: true,
                   name: true,
                   logoUrl: true,
+                  address: true,
                 },
               },
               images: {
