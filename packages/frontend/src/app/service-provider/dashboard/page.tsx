@@ -105,7 +105,7 @@ function DashboardContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const productsPerPage = 10;
+  const productsPerPage = 18;
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -1118,222 +1118,181 @@ function DashboardContent() {
             </div>
 
             {isLoadingProducts ? (
-              <div className="text-center py-8">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                <p className="mt-2 text-gray-500">Loading services...</p>
+              <div className="text-center py-12">
+                <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                <p className="mt-4 text-sm font-medium text-gray-600">Loading services...</p>
+                <p className="mt-1 text-xs text-gray-500">Please wait while we fetch your services</p>
               </div>
             ) : (searchQuery ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) : products).length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {searchQuery ? <>No services found matching &quot;{searchQuery}&quot;</> : 'No services found'}
+              <div className="text-center py-12">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                  />
+                </svg>
+                <h3 className="mt-4 text-sm font-medium text-gray-900">
+                  {searchQuery ? 'No services found' : 'No services available'}
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  {searchQuery ? (
+                    <>No services match &quot;{searchQuery}&quot;. Try adjusting your search terms.</>
+                  ) : (
+                    <>Get started by adding your first service using the &quot;Add Service&quot; button.</>
+                  )}
+                </p>
               </div>
             ) : (
               <>
-                {/* Desktop table view */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        SKU
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Unit
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Price
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {products
-                      .filter(product => 
-                        searchQuery === '' || 
-                        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      .map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {product.sku}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {product.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.serviceCategory ? (product.serviceCategory.parent ? `${product.serviceCategory.parent.name} > ${product.serviceCategory.name}` : product.serviceCategory.name) : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {product.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {product.ratePerHour !== null && product.ratePerHour !== undefined ? (
-                            <span>
-                              {product.rateType === 'per_hour' && `${Number(product.ratePerHour).toFixed(2)}/hr`}
-                              {product.rateType === 'per_project' && `${Number(product.ratePerHour).toFixed(2)}/project`}
-                              {product.rateType === 'fixed' && `${formData.currency || 'USD'} ${Number(product.ratePerHour).toFixed(2)}`}
-                              {product.rateType === 'negotiable' && `From ${Number(product.ratePerHour).toFixed(2)}/hr (Negotiable)`}
-                              {!product.rateType && `${Number(product.ratePerHour).toFixed(2)}/hr`}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">Rate not set</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              product.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {product.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditProduct(product)}
-                              className="h-8 px-3 touch-target"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleInactive(product)}
-                              className={`h-8 px-3 touch-target ${
-                                !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              {product.isActive ? 'Inactive' : 'Activate'}
-                            </Button>
-                            {user?.role === 'service_provider_admin' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setDeleteConfirm(product.id)}
-                                className="h-8 px-3 text-red-600 hover:bg-red-50 hover:text-red-700 touch-target"
-                              >
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile card view */}
-                <div className="md:hidden space-y-4">
+                {/* Responsive Grid Layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
                   {products
                     .filter(product => 
                       searchQuery === '' || 
                       product.name.toLowerCase().includes(searchQuery.toLowerCase())
                     )
-                    .map((product) => (
-                    <div key={product.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">{product.name}</h3>
-                          <p className="text-xs text-gray-500 mt-1">SKU: {product.sku}</p>
-                        </div>
-                        <span
-                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${
-                            product.isActive
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
+                    .map((product) => {
+                      // Format price/rate display
+                      const formatPrice = () => {
+                        if (product.ratePerHour === null || product.ratePerHour === undefined) {
+                          return { text: 'Rate not set', className: 'text-gray-400' };
+                        }
+                        const rate = Number(product.ratePerHour).toFixed(2);
+                        const currency = formData.currency || 'USD';
+                        switch (product.rateType) {
+                          case 'per_hour':
+                            return { text: `${rate}/hr`, className: 'text-gray-900' };
+                          case 'per_project':
+                            return { text: `${rate}/project`, className: 'text-gray-900' };
+                          case 'fixed':
+                            return { text: `${currency} ${rate}`, className: 'text-gray-900' };
+                          case 'negotiable':
+                            return { text: `From ${rate}/hr`, className: 'text-gray-900' };
+                          default:
+                            return { text: `${rate}/hr`, className: 'text-gray-900' };
+                        }
+                      };
+
+                      const priceInfo = formatPrice();
+                      const categoryText = product.serviceCategory 
+                        ? (product.serviceCategory.parent 
+                          ? `${product.serviceCategory.parent.name} > ${product.serviceCategory.name}` 
+                          : product.serviceCategory.name) 
+                        : '-';
+
+                      return (
+                        <div
+                          key={product.id}
+                          className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
                         >
-                          {product.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        <div>
-                          <span className="text-gray-500">Category:</span>
-                          <span className="ml-1 text-gray-900">{product.serviceCategory ? (product.serviceCategory.parent ? `${product.serviceCategory.parent.name} > ${product.serviceCategory.name}` : product.serviceCategory.name) : '-'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Unit:</span>
-                          <span className="ml-1 text-gray-900">{product.unit}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-gray-500">Rate:</span>
-                          <span className="ml-1 text-gray-900 font-medium">
-                            {product.ratePerHour !== null && product.ratePerHour !== undefined ? (
-                              <>
-                                {product.rateType === 'per_hour' && `${Number(product.ratePerHour).toFixed(2)}/hr`}
-                                {product.rateType === 'per_project' && `${Number(product.ratePerHour).toFixed(2)}/project`}
-                                {product.rateType === 'fixed' && `USD ${Number(product.ratePerHour).toFixed(2)}`}
-                                {product.rateType === 'negotiable' && `From ${Number(product.ratePerHour).toFixed(2)}/hr (Negotiable)`}
-                                {!product.rateType && `${Number(product.ratePerHour).toFixed(2)}/hr`}
-                              </>
-                            ) : (
-                              <span className="text-gray-400">Rate not set</span>
-                            )}
-                          </span>
-                        </div>
-                        {product.description && (
-                          <div className="col-span-2">
-                            <span className="text-gray-500">Description:</span>
-                            <p className="text-xs text-gray-700 mt-1 line-clamp-2">{product.description}</p>
+                          {/* Card Header */}
+                          <div className="p-4 flex-1 flex flex-col">
+                            {/* Status Badge */}
+                            <div className="flex justify-end mb-2">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  product.isActive
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {product.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+
+                            {/* Service Name */}
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem]">
+                              {product.name}
+                            </h3>
+
+                            {/* SKU */}
+                            <p className="text-xs text-gray-500 mb-3">SKU: {product.sku}</p>
+
+                            {/* Category */}
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-500 mb-0.5">Category</p>
+                              <p className="text-xs text-gray-900 font-medium line-clamp-1">{categoryText}</p>
+                            </div>
+
+                            {/* Unit */}
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-500 mb-0.5">Unit</p>
+                              <p className="text-xs text-gray-900 font-medium">{product.unit}</p>
+                            </div>
+
+                            {/* Pricing/Rate */}
+                            <div className="mb-3">
+                              <p className="text-xs text-gray-500 mb-0.5">Rate</p>
+                              <p className={`text-sm font-semibold ${priceInfo.className}`}>
+                                {priceInfo.text}
+                              </p>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => handleEditProduct(product)}
-                          className="w-full touch-target"
-                        >
-                          Edit
-                        </Button>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => handleToggleInactive(product)}
-                            className={`touch-target ${
-                              !product.isActive ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                            }`}
-                          >
-                            {product.isActive ? 'Deactivate' : 'Activate'}
-                          </Button>
-                          {user?.role === 'service_provider_admin' && (
+
+                          {/* Card Actions */}
+                          <div className="p-4 pt-0 border-t border-gray-100 space-y-2">
                             <Button
+                              size="sm"
                               variant="outline"
-                              onClick={() => setDeleteConfirm(product.id)}
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700 touch-target"
+                              onClick={() => handleEditProduct(product)}
+                              className="w-full h-8 text-xs touch-target"
                             >
-                              Delete
+                              Edit
                             </Button>
-                          )}
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleInactive(product)}
+                                className={`h-8 text-xs touch-target ${
+                                  !product.isActive 
+                                    ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
+                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                {product.isActive ? 'Deactivate' : 'Activate'}
+                              </Button>
+                              {user?.role === 'service_provider_admin' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setDeleteConfirm(product.id)}
+                                  className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target"
+                                >
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
                 </div>
 
-                {/* Pagination */}
+                {/* Enhanced Pagination */}
                 {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Showing {products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts} services
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Pagination Info */}
+                  <div className="text-sm text-gray-600">
+                    Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
+                    <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
+                    <span className="font-medium text-gray-900">{totalProducts}</span> services
+                    {totalPages > 1 && (
+                      <span className="ml-2 text-gray-500">
+                        (Page {currentPage} of {totalPages})
+                      </span>
+                    )}
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Pagination Controls */}
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1343,21 +1302,56 @@ function DashboardContent() {
                         fetchProducts(activeFilter, newPage);
                       }}
                       disabled={currentPage === 1 || isLoadingProducts}
+                      className="min-w-[80px]"
                     >
                       Previous
                     </Button>
+
+                    {/* Page Numbers with Ellipsis */}
                     <div className="flex items-center gap-1">
+                      {/* Always show first page */}
+                      {currentPage > 3 && totalPages > 7 && (
+                        <>
+                          <Button
+                            variant={currentPage === 1 ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(1);
+                              fetchProducts(activeFilter, 1);
+                            }}
+                            disabled={isLoadingProducts}
+                            className="min-w-[40px]"
+                          >
+                            1
+                          </Button>
+                          {currentPage > 4 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Dynamic page numbers */}
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum: number;
-                        if (totalPages <= 5) {
+                        if (totalPages <= 7) {
+                          // Show all pages if 7 or fewer
                           pageNum = i + 1;
                         } else if (currentPage <= 3) {
+                          // Show first 5 pages
                           pageNum = i + 1;
                         } else if (currentPage >= totalPages - 2) {
+                          // Show last 5 pages
                           pageNum = totalPages - 4 + i;
                         } else {
+                          // Show 2 pages before and after current
                           pageNum = currentPage - 2 + i;
                         }
+
+                        // Skip if already shown (first page)
+                        if (pageNum === 1 && currentPage > 3 && totalPages > 7) {
+                          return null;
+                        }
+
                         return (
                           <Button
                             key={pageNum}
@@ -1374,7 +1368,29 @@ function DashboardContent() {
                           </Button>
                         );
                       })}
+
+                      {/* Show ellipsis and last page if needed */}
+                      {currentPage < totalPages - 2 && totalPages > 7 && (
+                        <>
+                          {currentPage < totalPages - 3 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === totalPages ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(totalPages);
+                              fetchProducts(activeFilter, totalPages);
+                            }}
+                            disabled={isLoadingProducts}
+                            className="min-w-[40px]"
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
                     </div>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1384,6 +1400,7 @@ function DashboardContent() {
                         fetchProducts(activeFilter, newPage);
                       }}
                       disabled={currentPage === totalPages || isLoadingProducts}
+                      className="min-w-[80px]"
                     >
                       Next
                     </Button>
