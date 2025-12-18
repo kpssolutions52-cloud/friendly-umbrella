@@ -1,0 +1,35 @@
+{
+  "name": "ConstructionGuru - Real-Time Pricing",
+  "short_name": "ConstructionGuru",
+  "description": "Real-time pricing platform for construction suppliers and companies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Go to dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/images/logo.jpg", "sizes": "192x192" }]
+    }
+  ]
+}

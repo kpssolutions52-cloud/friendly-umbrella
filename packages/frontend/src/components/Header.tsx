@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -50,6 +51,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
           
           {showAuthButtons && (
             <div className="flex items-center gap-2 sm:gap-4">
+              <PWAInstallButton />
               {user ? (
                 <>
                   <span className="hidden sm:inline text-sm text-gray-600">
