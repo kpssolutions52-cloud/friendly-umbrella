@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete, getMainServiceCategories, getServiceSubcategories, ServiceCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { 
   Edit, 
@@ -79,6 +81,7 @@ type FilterType = 'all' | 'active' | 'withPrices' | 'withPrivatePrices' | null;
 function DashboardContent() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   // Redirect to landing page if user is not authorized (wrong tenant type or not a service provider)
   useEffect(() => {
@@ -330,12 +333,22 @@ function DashboardContent() {
       setIsLoadingProducts(true);
       const deletePromises = Array.from(selectedProducts).map(id => apiDelete(`/api/v1/products/${id}`));
       await Promise.all(deletePromises);
+      const count = selectedProducts.size;
       setSelectedProducts(new Set());
       await fetchProducts(activeFilter, currentPage);
       await fetchStats();
+      toast({
+        variant: 'success',
+        title: 'Services deleted',
+        description: `${count} service${count > 1 ? 's' : ''} deleted successfully.`,
+      });
     } catch (err) {
       console.error('Failed to delete services:', err);
-      alert('Failed to delete some services. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: 'Failed to delete some services. Please try again.',
+      });
     } finally {
       setIsLoadingProducts(false);
     }
@@ -351,12 +364,23 @@ function DashboardContent() {
         }
       });
       await Promise.all(togglePromises);
+      const count = selectedProducts.size;
+      const action = products.find(p => selectedProducts.has(p.id))?.isActive ? 'deactivated' : 'activated';
       setSelectedProducts(new Set());
       await fetchProducts(activeFilter, currentPage);
       await fetchStats();
+      toast({
+        variant: 'success',
+        title: 'Services updated',
+        description: `${count} service${count > 1 ? 's' : ''} ${action} successfully.`,
+      });
     } catch (err) {
       console.error('Failed to toggle services:', err);
-      alert('Failed to update some services. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: 'Failed to update some services. Please try again.',
+      });
     } finally {
       setIsLoadingProducts(false);
     }
@@ -636,6 +660,11 @@ function DashboardContent() {
 
       const response = await apiPost<{ product: { id: string } }>('/api/v1/products', payload);
       setSuccess(true);
+      toast({
+        variant: 'success',
+        title: 'Service created',
+        description: 'Service created successfully.',
+      });
       
       // Refresh stats after service creation
       await fetchStats();
@@ -951,6 +980,11 @@ function DashboardContent() {
 
       await apiPut(`/api/v1/products/${editingProduct.id}`, payload);
       setSuccess(true);
+      toast({
+        variant: 'success',
+        title: 'Service updated',
+        description: 'Service updated successfully.',
+      });
 
       // Refresh stats and products
       await fetchStats();
@@ -979,7 +1013,13 @@ function DashboardContent() {
         setSubCategories([]);
       }, 1000);
     } catch (err: any) {
-      setError(err?.error?.message || 'Failed to update service');
+      const errorMessage = err?.error?.message || 'Failed to update service';
+      setError(errorMessage);
+      toast({
+        variant: 'destructive',
+        title: 'Update failed',
+        description: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -1023,7 +1063,17 @@ function DashboardContent() {
       }
 
       setDeleteConfirm(null);
+      toast({
+        variant: 'success',
+        title: 'Service deleted',
+        description: 'Service deleted successfully.',
+      });
     } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: err?.error?.message || 'Failed to delete service.',
+      });
       alert(err?.error?.message || 'Failed to delete service');
     }
   };
@@ -1122,19 +1172,28 @@ function DashboardContent() {
             onClick={() => handleCardClick('all')}
           >
             <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {isLoadingStats ? '...' : stats.totalProducts}
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
-                      <Package className="w-4 h-4 mr-1.5 text-blue-500" />
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                      <Package className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <dt className="text-sm font-medium text-gray-600">
                       Total Services
                     </dt>
-                  </dl>
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                    {isLoadingStats ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      stats.totalProducts
+                    )}
+                  </div>
+                  {!isLoadingStats && stats.totalProducts > 0 && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <span>All your services</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1147,19 +1206,33 @@ function DashboardContent() {
             onClick={() => handleCardClick('active')}
           >
             <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {isLoadingStats ? '...' : stats.activeProducts}
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-1.5 text-green-500" />
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <div className="p-2 bg-green-100 rounded-lg mr-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <dt className="text-sm font-medium text-gray-600">
                       Active Services
                     </dt>
-                  </dl>
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                    {isLoadingStats ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      stats.activeProducts
+                    )}
+                  </div>
+                  {!isLoadingStats && stats.totalProducts > 0 && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <span>
+                        {Math.round((stats.activeProducts / stats.totalProducts) * 100)}% of total
+                      </span>
+                      {stats.activeProducts === stats.totalProducts && (
+                        <CheckCircle className="w-3 h-3 ml-1.5 text-green-500" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1172,19 +1245,73 @@ function DashboardContent() {
             onClick={() => handleCardClick('withPrivatePrices')}
           >
             <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {isLoadingStats ? '...' : stats.productsWithPrivatePrices}
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
-                      <DollarSign className="w-4 h-4 mr-1.5 text-purple-500" />
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                      <DollarSign className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <dt className="text-sm font-medium text-gray-600">
                       Private Prices
                     </dt>
-                  </dl>
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                    {isLoadingStats ? (
+                      <Skeleton className="h-8 w-16" />
+                    ) : (
+                      stats.productsWithPrivatePrices
+                    )}
+                  </div>
+                  {!isLoadingStats && stats.totalProducts > 0 && (
+                    <div className="flex items-center text-xs text-gray-500">
+                      <span>
+                        {stats.productsWithPrivatePrices === 0 
+                          ? 'No custom pricing yet' 
+                          : `${Math.round((stats.productsWithPrivatePrices / stats.totalProducts) * 100)}% have custom pricing`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Insights Card */}
+          <div 
+            className="bg-gradient-to-br from-white to-amber-50/30 overflow-hidden shadow-sm rounded-lg border border-gray-200"
+          >
+            <div className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <div className="p-2 bg-amber-100 rounded-lg mr-3">
+                      <TrendingUp className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <dt className="text-sm font-medium text-gray-600">
+                      Quick Insights
+                    </dt>
+                  </div>
+                  <div className="space-y-1.5 text-xs">
+                    {!isLoadingStats && (
+                      <>
+                        {stats.totalProducts === 0 ? (
+                          <div className="text-amber-700 font-medium">Add your first service to get started</div>
+                        ) : stats.activeProducts < stats.totalProducts ? (
+                          <div className="text-amber-700 font-medium">
+                            {stats.totalProducts - stats.activeProducts} inactive service{stats.totalProducts - stats.activeProducts > 1 ? 's' : ''}
+                          </div>
+                        ) : (
+                          <div className="text-green-700 font-medium flex items-center">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            All services active
+                          </div>
+                        )}
+                        {stats.productsWithPrivatePrices === 0 && stats.totalProducts > 0 && (
+                          <div className="text-gray-600">Consider adding custom pricing</div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1344,28 +1471,60 @@ function DashboardContent() {
             )}
 
             {isLoadingProducts ? (
-              <div className="text-center py-12">
-                <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                <p className="mt-4 text-sm font-medium text-gray-600">Loading services...</p>
-                <p className="mt-1 text-xs text-gray-500">Please wait while we fetch your services</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 md:gap-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col h-full animate-pulse">
+                    <div className="p-3 flex-1 flex flex-col">
+                      <div className="flex justify-end mb-2">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-3 w-3/4 mb-3" />
+                      <Skeleton className="h-3 w-full mb-2" />
+                      <Skeleton className="h-3 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-2" />
+                    </div>
+                    <div className="p-3 pt-0 border-t border-gray-100 space-y-2">
+                      <Skeleton className="h-8 w-full rounded-md" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Skeleton className="h-8 w-full rounded-md" />
+                        <Skeleton className="h-8 w-full rounded-md" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (searchQuery ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) : products).length === 0 ? (
-              <div className="text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <div className="text-center py-16 animate-in fade-in duration-500">
+                <div className="mx-auto w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6 shadow-inner">
                   {searchQuery ? (
-                    <Search className="h-8 w-8 text-gray-400" />
+                    <Search className="h-10 w-10 text-gray-400" />
                   ) : (
-                    <Package className="h-8 w-8 text-gray-400" />
+                    <Package className="h-10 w-10 text-gray-400" />
                   )}
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-gray-900">
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">
                   {searchQuery ? 'No services found' : 'No services available'}
                 </h3>
-                <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
+                <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
                   {searchQuery ? (
-                    <>No services match &quot;<span className="font-medium text-gray-700">{searchQuery}</span>&quot;. Try adjusting your search terms.</>
+                    <>
+                      No services match &quot;<span className="font-medium text-gray-800">{searchQuery}</span>&quot;.
+                      <br />
+                      <span className="text-gray-500">Try adjusting your search terms or clear the search to see all services.</span>
+                    </>
                   ) : (
-                    <>Get started by adding your first service using the &quot;Add Service&quot; button below.</>
+                    <>
+                      Get started by adding your first service.
+                      <br />
+                      <Button 
+                        onClick={() => setShowAddProductModal(true)} 
+                        className="mt-4"
+                        size="sm"
+                      >
+                        Add Your First Service
+                      </Button>
+                    </>
                   )}
                 </p>
               </div>
@@ -1405,14 +1564,21 @@ function DashboardContent() {
 
                       const isSelected = selectedProducts.has(product.id);
 
+                      const sortedProducts = getSortedProducts(products);
+                      const index = sortedProducts.indexOf(product);
+                      
                       return (
                         <div
                           key={product.id}
-                          className={`bg-gradient-to-br from-white to-gray-50/50 rounded-lg border shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col h-full group ${
+                          className={`bg-gradient-to-br from-white to-gray-50/50 rounded-lg border shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col h-full group opacity-0 animate-in fade-in slide-in-from-bottom-2 ${
                             isSelected 
                               ? 'border-blue-500 ring-2 ring-blue-200' 
                               : 'border-gray-200 hover:border-blue-200'
                           }`}
+                          style={{ 
+                            animationDelay: `${Math.min(index * 30, 300)}ms`,
+                            animationFillMode: 'forwards'
+                          }}
                         >
                           {/* Card Header */}
                           <div className="p-3 md:p-3 flex-1 flex flex-col">
@@ -1567,14 +1733,21 @@ function DashboardContent() {
                           : product.serviceCategory.name) 
                         : '-';
 
+                      const sortedProducts = getSortedProducts(products);
+                      const index = sortedProducts.indexOf(product);
+                      
                       return (
                         <div
                           key={product.id}
-                          className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 ${
+                          className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 opacity-0 animate-in fade-in slide-in-from-left-2 ${
                             isSelected 
                               ? 'border-blue-500 ring-2 ring-blue-200' 
                               : 'border-gray-200 hover:border-blue-200'
                           }`}
+                          style={{ 
+                            animationDelay: `${Math.min(index * 30, 300)}ms`,
+                            animationFillMode: 'forwards'
+                          }}
                         >
                           <div className="p-4 flex items-center gap-4">
                             {/* Checkbox */}
