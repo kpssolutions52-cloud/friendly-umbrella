@@ -1152,7 +1152,7 @@ function DashboardContent() {
             ) : (
               <>
                 {/* Responsive Grid Layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {products
                     .filter(product => 
                       searchQuery === '' || 
@@ -1277,9 +1277,8 @@ function DashboardContent() {
                 </div>
 
                 {/* Enhanced Pagination */}
-                {totalPages > 1 && (
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  {/* Pagination Info */}
+                  {/* Pagination Info - Always show */}
                   <div className="text-sm text-gray-600">
                     Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
                     <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
@@ -1291,122 +1290,123 @@ function DashboardContent() {
                     )}
                   </div>
 
-                  {/* Pagination Controls */}
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const newPage = currentPage - 1;
-                        setCurrentPage(newPage);
-                        fetchProducts(activeFilter, newPage);
-                      }}
-                      disabled={currentPage === 1 || isLoadingProducts}
-                      className="min-w-[80px]"
-                    >
-                      Previous
-                    </Button>
-
-                    {/* Page Numbers with Ellipsis */}
+                  {/* Pagination Controls - Only show when multiple pages */}
+                  {totalPages > 1 && (
                     <div className="flex items-center gap-1">
-                      {/* Always show first page */}
-                      {currentPage > 3 && totalPages > 7 && (
-                        <>
-                          <Button
-                            variant={currentPage === 1 ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(1);
-                              fetchProducts(activeFilter, 1);
-                            }}
-                            disabled={isLoadingProducts}
-                            className="min-w-[40px]"
-                          >
-                            1
-                          </Button>
-                          {currentPage > 4 && (
-                            <span className="px-2 text-gray-400">...</span>
-                          )}
-                        </>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newPage = currentPage - 1;
+                          setCurrentPage(newPage);
+                          fetchProducts(activeFilter, newPage);
+                        }}
+                        disabled={currentPage === 1 || isLoadingProducts}
+                        className="min-w-[80px]"
+                      >
+                        Previous
+                      </Button>
 
-                      {/* Dynamic page numbers */}
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum: number;
-                        if (totalPages <= 7) {
-                          // Show all pages if 7 or fewer
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          // Show first 5 pages
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          // Show last 5 pages
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          // Show 2 pages before and after current
-                          pageNum = currentPage - 2 + i;
-                        }
+                      {/* Page Numbers with Ellipsis */}
+                      <div className="flex items-center gap-1">
+                        {/* Always show first page */}
+                        {currentPage > 3 && totalPages > 7 && (
+                          <>
+                            <Button
+                              variant={currentPage === 1 ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => {
+                                setCurrentPage(1);
+                                fetchProducts(activeFilter, 1);
+                              }}
+                              disabled={isLoadingProducts}
+                              className="min-w-[40px]"
+                            >
+                              1
+                            </Button>
+                            {currentPage > 4 && (
+                              <span className="px-2 text-gray-400">...</span>
+                            )}
+                          </>
+                        )}
 
-                        // Skip if already shown (first page)
-                        if (pageNum === 1 && currentPage > 3 && totalPages > 7) {
-                          return null;
-                        }
+                        {/* Dynamic page numbers */}
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum: number;
+                          if (totalPages <= 7) {
+                            // Show all pages if 7 or fewer
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            // Show first 5 pages
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            // Show last 5 pages
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            // Show 2 pages before and after current
+                            pageNum = currentPage - 2 + i;
+                          }
 
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(pageNum);
-                              fetchProducts(activeFilter, pageNum);
-                            }}
-                            disabled={isLoadingProducts}
-                            className="min-w-[40px]"
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
+                          // Skip if already shown (first page)
+                          if (pageNum === 1 && currentPage > 3 && totalPages > 7) {
+                            return null;
+                          }
 
-                      {/* Show ellipsis and last page if needed */}
-                      {currentPage < totalPages - 2 && totalPages > 7 && (
-                        <>
-                          {currentPage < totalPages - 3 && (
-                            <span className="px-2 text-gray-400">...</span>
-                          )}
-                          <Button
-                            variant={currentPage === totalPages ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(totalPages);
-                              fetchProducts(activeFilter, totalPages);
-                            }}
-                            disabled={isLoadingProducts}
-                            className="min-w-[40px]"
-                          >
-                            {totalPages}
-                          </Button>
-                        </>
-                      )}
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => {
+                                setCurrentPage(pageNum);
+                                fetchProducts(activeFilter, pageNum);
+                              }}
+                              disabled={isLoadingProducts}
+                              className="min-w-[40px]"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+
+                        {/* Show ellipsis and last page if needed */}
+                        {currentPage < totalPages - 2 && totalPages > 7 && (
+                          <>
+                            {currentPage < totalPages - 3 && (
+                              <span className="px-2 text-gray-400">...</span>
+                            )}
+                            <Button
+                              variant={currentPage === totalPages ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => {
+                                setCurrentPage(totalPages);
+                                fetchProducts(activeFilter, totalPages);
+                              }}
+                              disabled={isLoadingProducts}
+                              className="min-w-[40px]"
+                            >
+                              {totalPages}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newPage = currentPage + 1;
+                          setCurrentPage(newPage);
+                          fetchProducts(activeFilter, newPage);
+                        }}
+                        disabled={currentPage === totalPages || isLoadingProducts}
+                        className="min-w-[80px]"
+                      >
+                        Next
+                      </Button>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const newPage = currentPage + 1;
-                        setCurrentPage(newPage);
-                        fetchProducts(activeFilter, newPage);
-                      }}
-                      disabled={currentPage === totalPages || isLoadingProducts}
-                      className="min-w-[80px]"
-                    >
-                      Next
-                    </Button>
-                  </div>
+                  )}
                 </div>
-                )}
               </>
             )}
           </div>
