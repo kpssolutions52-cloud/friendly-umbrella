@@ -249,21 +249,30 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
-  // Load products/services when filters/tab change (not search - handled by debounce)
+  // Reset filters when tab changes (not when filters change)
   useEffect(() => {
     if (!authLoading && !user) {
       // Reset filters when tab changes
       setSelectedMainCategoryId('');
       setSelectedSubCategoryId('');
       setSelectedSupplier('');
+      setPriceRange([0, 10000]);
+      setSubCategories([]);
+      setSubServiceCategories([]);
       setCurrentPage(1);
-      // Load products/services - ensure loading state is always cleared
+    }
+  }, [authLoading, user, activeTab]);
+
+  // Load products/services when filters change (not search - handled by debounce)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Load products/services when filters change
       loadProducts().catch(err => {
         console.error('Failed to load products/services:', err);
         setIsLoadingProducts(false);
       });
     }
-  }, [authLoading, user, loadProducts, activeTab, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier]);
+  }, [authLoading, user, loadProducts, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, currentPage]);
 
   // Reload subcategories when main category changes (backup mechanism)
   useEffect(() => {
