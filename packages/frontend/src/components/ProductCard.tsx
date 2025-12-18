@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 
 interface ProductCardProps {
   product: {
