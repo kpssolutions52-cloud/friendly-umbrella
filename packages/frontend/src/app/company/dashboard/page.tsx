@@ -11,7 +11,9 @@ import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
 import { ProductCard } from '@/components/ProductCard';
-import { Search as SearchIcon, Filter, X, ChevronDown } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Search as SearchIcon, Filter, X, ChevronDown, Package } from 'lucide-react';
 
 interface SearchProduct {
   id: string;
@@ -885,18 +887,48 @@ function DashboardContent() {
               <p className="mt-2 text-gray-500">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 px-4">
-              {filters.supplierId || filters.category || filters.search
-                ? `No ${activeTab === 'products' ? 'products' : 'services'} match your filters. Try adjusting your filters.`
-                : `No ${activeTab === 'products' ? 'products' : 'services'} available yet. ${activeTab === 'products' ? 'Suppliers' : 'Service providers'} need to add ${activeTab === 'products' ? 'products' : 'services'} with default prices.`}
+            <div className="text-center py-16 animate-in fade-in duration-500">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <Package className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                {filters.supplierId || filters.category || filters.search
+                  ? 'No results found'
+                  : `No ${activeTab === 'products' ? 'products' : 'services'} available`}
+              </h3>
+              <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                {filters.supplierId || filters.category || filters.search
+                  ? (
+                    <>
+                      No {activeTab === 'products' ? 'products' : 'services'} match your filters.
+                      <br />
+                      <span className="text-gray-500">Try adjusting your search or filters.</span>
+                    </>
+                  )
+                  : (
+                    <>
+                      {activeTab === 'products' ? 'Suppliers' : 'Service providers'} need to add {activeTab === 'products' ? 'products' : 'services'} with default prices.
+                      <br />
+                      <span className="text-gray-500">Check back later or contact suppliers directly.</span>
+                    </>
+                  )}
+              </p>
             </div>
           ) : viewMode === 'grid' ? (
             <>
               {/* Grid View */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {filteredProducts.map((product) => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6">
+                {filteredProducts.map((product, index) => {
                   const productKey = `${product.id}-${product.supplierId}`;
                   return (
+                    <div
+                      key={productKey}
+                      className="opacity-0 animate-in fade-in slide-in-from-bottom-2"
+                      style={{ 
+                        animationDelay: `${Math.min(index * 30, 300)}ms`,
+                        animationFillMode: 'forwards'
+                      }}
+                    >
                     <ProductCard
                       key={productKey}
                       product={product}
