@@ -929,11 +929,11 @@ function DashboardContent() {
                         animationFillMode: 'forwards'
                       }}
                     >
-                    <ProductCard
-                      key={productKey}
-                      product={product}
-                      onViewDetails={() => handleProductSelect(product)}
-                    />
+                      <ProductCard
+                        product={product}
+                        onViewDetails={() => handleProductSelect(product)}
+                      />
+                    </div>
                   );
                 })}
               </div>
