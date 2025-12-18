@@ -491,11 +491,7 @@ export default function Home() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Services {products.length > 0 && activeTab === 'services' && (
-                <span className="ml-1 text-sm font-normal">
-                  ({getFilteredProducts(products).length})
-                </span>
-              )}
+              Services
             </button>
           </div>
         </div>
@@ -832,14 +828,6 @@ export default function Home() {
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {activeTab === 'products' ? 'Products' : 'Services'}
-              {products.length > 0 && (
-                <span className="ml-2 text-base sm:text-lg font-normal text-gray-500">
-                    ({getFilteredProducts(products).length} {getFilteredProducts(products).length === 1 ? 'item' : 'items'})
-                </span>
-              )}
-            </h2>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
                 Sort by:
