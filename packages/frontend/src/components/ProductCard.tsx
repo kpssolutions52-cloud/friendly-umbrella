@@ -92,12 +92,13 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
               e.stopPropagation(); // Prevent card click when button is clicked
               onViewDetails();
             }}
-            className={`h-7 px-3 text-xs font-medium shadow-md hover:shadow-lg transition-all ${
+            className={`h-8 w-8 p-0 shadow-md hover:shadow-lg transition-all flex items-center justify-center ${
               isService ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300'
             }`}
             variant={isService ? 'default' : 'outline'}
+            title={isService ? 'View Service' : 'View Details'}
           >
-            {isService ? 'View Service' : 'View Details'}
+            <Eye className="w-4 h-4" />
           </Button>
         </div>
       </div>

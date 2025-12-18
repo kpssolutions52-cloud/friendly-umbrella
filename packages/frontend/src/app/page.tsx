@@ -549,8 +549,8 @@ export default function Home() {
                 </button>
               </div>
             </form>
-          </div>
-
+              </div>
+              
           {/* Active Filter Chips - Compact */}
           {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || searchQuery || priceRange[0] > 0 || priceRange[1] < 10000) && (
             <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -671,7 +671,7 @@ export default function Home() {
                   <button
                     onClick={() => setShowFilterSidebar(false)}
                     className="md:hidden p-1.5 rounded-lg hover:bg-gray-100"
-                  >
+              >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
@@ -711,43 +711,43 @@ export default function Home() {
                   </label>
                   <div className="space-y-2">
                     <div className="relative">
-                      <select
-                        key={`main-category-${activeTab}`}
-                        value={selectedMainCategoryId}
-                        onChange={(e) => handleMainCategoryChange(e.target.value)}
+                  <select
+                    key={`main-category-${activeTab}`}
+                    value={selectedMainCategoryId}
+                    onChange={(e) => handleMainCategoryChange(e.target.value)}
                         className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                      >
-                        <option value="">All Categories</option>
-                        {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
+                  >
+                    <option value="">All Categories</option>
+                    {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
                       <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
+                </div>
                     {selectedMainCategoryId && (
                       <div className="relative">
-                        <select
-                          key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
-                          value={selectedSubCategoryId}
-                          onChange={(e) => handleSubCategoryChange(e.target.value)}
+                  <select
+                    key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
+                    value={selectedSubCategoryId}
+                    onChange={(e) => handleSubCategoryChange(e.target.value)}
                           disabled={loadingSubCategories}
                           className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
-                        >
-                          <option value="">
-                            {loadingSubCategories 
-                              ? 'Loading...' 
-                              : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
-                                ? 'No subcategories' 
-                                : 'All Subcategories'}
-                          </option>
-                          {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
-                            <option key={subCat.id} value={subCat.id}>
-                              {subCat.name}
-                            </option>
-                          ))}
-                        </select>
+                  >
+                    <option value="">
+                      {loadingSubCategories 
+                        ? 'Loading...' 
+                          : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                            ? 'No subcategories' 
+                            : 'All Subcategories'}
+                    </option>
+                    {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                      <option key={subCat.id} value={subCat.id}>
+                        {subCat.name}
+                      </option>
+                    ))}
+                  </select>
                         <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                       </div>
                     )}
@@ -760,19 +760,19 @@ export default function Home() {
                     {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
                   </label>
                   <div className="relative">
-                    <select
-                      key={`supplier-${activeTab}`}
-                      value={selectedSupplier}
-                      onChange={(e) => handleSupplierChange(e.target.value)}
+                  <select
+                    key={`supplier-${activeTab}`}
+                    value={selectedSupplier}
+                    onChange={(e) => handleSupplierChange(e.target.value)}
                       className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                    >
-                      <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
-                      {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
-                        <option key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </option>
-                      ))}
-                    </select>
+                  >
+                    <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                    {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
                     <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
@@ -810,7 +810,7 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
-            </div>
+          </div>
           </>
         )}
 
@@ -819,32 +819,32 @@ export default function Home() {
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {activeTab === 'products' ? 'Products' : 'Services'}
-                {products.length > 0 && (
-                  <span className="ml-2 text-base sm:text-lg font-normal text-gray-500">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              {activeTab === 'products' ? 'Products' : 'Services'}
+              {products.length > 0 && (
+                <span className="ml-2 text-base sm:text-lg font-normal text-gray-500">
                     ({getFilteredProducts(products).length} {getFilteredProducts(products).length === 1 ? 'item' : 'items'})
-                  </span>
-                )}
-              </h2>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                  Sort by:
-                </label>
-                <select
-                  id="sort-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 sm:flex-initial rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                >
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
-                  <option value="name-a-z">Name: A to Z</option>
-                  <option value="name-z-a">Name: Z to A</option>
-                </select>
-              </div>
+                </span>
+              )}
+            </h2>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Sort by:
+              </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 sm:flex-initial rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              >
+                <option value="price-low-high">Price: Low to High</option>
+                <option value="price-high-low">Price: High to Low</option>
+                <option value="name-a-z">Name: A to Z</option>
+                <option value="name-z-a">Name: Z to A</option>
+              </select>
             </div>
+          </div>
 
           {isLoadingProducts ? (
             <div className="text-center py-12 sm:py-16">
@@ -883,12 +883,12 @@ export default function Home() {
                   Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
                   <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
                   <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
-                  {totalPages > 1 && (
+              {totalPages > 1 && (
                     <span className="ml-2 text-gray-500">
                       (Page {currentPage} of {totalPages})
                     </span>
                   )}
-                </div>
+                  </div>
 
                 {/* Pagination Controls - Only show when multiple pages */}
                 {totalPages > 1 && (
@@ -996,7 +996,7 @@ export default function Home() {
                     </Button>
                   </div>
                 )}
-              </div>
+                </div>
             </>
           )}
           </div>
