@@ -7,11 +7,12 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ConstructionGuru - Real-Time Pricing for Construction Professionals',
+  title: 'ConstructionGuru',
   description: 'Real-time pricing platform for construction suppliers and companies',
   icons: {
-    icon: '/images/logo-icon.png',
-    apple: '/images/logo-icon.png',
+    icon: '/images/logo.jpg',
+    apple: '/images/logo.jpg',
+    shortcut: '/images/logo.jpg',
   },
 };
 
@@ -24,6 +25,9 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/images/logo.jpg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/images/logo.jpg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/images/logo.jpg" />
         <meta name="theme-color" content="#2563eb" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
