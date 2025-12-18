@@ -468,7 +468,11 @@ export default function Home() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Products
+              Products {products.length > 0 && activeTab === 'products' && (
+                <span className="ml-1 text-sm font-normal">
+                  ({getFilteredProducts(products).length})
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -487,7 +491,11 @@ export default function Home() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Services
+              Services {products.length > 0 && activeTab === 'services' && (
+                <span className="ml-1 text-sm font-normal">
+                  ({getFilteredProducts(products).length})
+                </span>
+              )}
             </button>
           </div>
         </div>
