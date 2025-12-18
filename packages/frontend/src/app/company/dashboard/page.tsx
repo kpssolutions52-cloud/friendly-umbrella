@@ -333,15 +333,21 @@ function DashboardContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
 
-  // Load products when filters change, tab changes, or on initial mount
+  // Reset filters when tab changes (not when filters change)
   useEffect(() => {
     // Reset filters when tab changes
     setSelectedMainCategoryId('');
     setSelectedSubCategoryId('');
     setFilters(prev => ({ ...prev, supplierId: '', category: '', serviceCategoryId: '' }));
+    setSubCategories([]);
+    setSubServiceCategories([]);
     setCurrentPage(1);
+  }, [activeTab]);
+
+  // Load products when filters change
+  useEffect(() => {
     loadProducts(1);
-  }, [loadProducts, activeTab]);
+  }, [loadProducts]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
