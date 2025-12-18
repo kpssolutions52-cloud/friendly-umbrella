@@ -27,6 +27,7 @@ interface PublicProduct {
   productImageUrl: string | null;
   ratePerHour?: number | null;
   rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null;
+  location?: string | null;
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;

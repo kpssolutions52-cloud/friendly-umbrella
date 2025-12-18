@@ -385,6 +385,7 @@ router.get(
               type: true,
               categoryId: true,
               serviceCategoryId: true,
+              metadata: true,
               ...(canIncludeCategory && {
                 category: {
                   select: {
@@ -485,6 +486,7 @@ router.get(
               type: true,
               categoryId: true,
               serviceCategoryId: true,
+              metadata: true,
               supplier: {
                 select: {
                   id: true,
@@ -626,6 +628,10 @@ router.get(
             : null;
         }
 
+        // Extract location from metadata
+        const metadata = (product as any).metadata as Record<string, any> | null;
+        const location = metadata?.location || null;
+
         return {
           id: product.id,
           sku: product.sku,
@@ -636,6 +642,7 @@ router.get(
           unit: product.unit,
           ratePerHour: product.type === 'service' ? (product.ratePerHour ? Number(product.ratePerHour) : null) : undefined,
           rateType: product.type === 'service' ? (product.rateType || null) : undefined,
+          location: location,
           supplierId: product.supplier.id,
           supplierName: product.supplier.name,
           supplierLogoUrl: product.supplier.logoUrl,

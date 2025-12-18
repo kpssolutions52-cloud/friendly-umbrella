@@ -18,6 +18,7 @@ interface ProductCardProps {
     productImageUrl: string | null;
     ratePerHour?: number | null;
     rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null;
+    location?: string | null;
     defaultPrice: {
       price: number;
       currency: string;
@@ -56,9 +57,9 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col">
-      {/* Product Image */}
-      <div className="relative w-full h-32 sm:h-36 bg-gray-100 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-row h-full">
+      {/* Product Image - 60% */}
+      <div className="relative w-[60%] bg-gray-100 overflow-hidden flex-shrink-0">
         {product.productImageUrl ? (
           <Image
             src={product.productImageUrl}
@@ -82,43 +83,51 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         )}
       </div>
 
-      {/* Product Details */}
-      <div className="p-3 flex-1 flex flex-col">
-        {/* Product Name and SKU */}
+      {/* Product Details - 40% */}
+      <div className="w-[40%] p-3 flex-1 flex flex-col">
+        {/* Product Name */}
         <div className="mb-2">
-          <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-1 leading-tight">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-2 leading-tight">
             {product.name}
           </h3>
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
-            {product.category && (
-              <span className="text-xs text-gray-500 truncate max-w-[40%]">{product.category.split('>').pop()?.trim()}</span>
-            )}
-          </div>
+          {product.category && (
+            <span className="text-xs text-gray-500 block mb-1">{product.category.split('>').pop()?.trim()}</span>
+          )}
         </div>
 
-        {/* Supplier Info - Compact */}
-        <div className="flex items-center gap-1.5 mb-2">
-          {product.supplierLogoUrl ? (
-            <div className="relative h-5 w-5 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-              <Image
-                src={product.supplierLogoUrl}
-                alt={product.supplierName}
-                fill
-                className="object-cover"
-                unoptimized
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-          ) : (
-            <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold text-gray-600 flex-shrink-0">
-              {product.supplierName.charAt(0).toUpperCase()}
+        {/* Supplier Info and Location - Compact */}
+        <div className="mb-2 space-y-1">
+          <div className="flex items-center gap-1.5">
+            {product.supplierLogoUrl ? (
+              <div className="relative h-4 w-4 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+                <Image
+                  src={product.supplierLogoUrl}
+                  alt={product.supplierName}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="h-4 w-4 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-semibold text-gray-600 flex-shrink-0">
+                {product.supplierName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <p className="text-xs text-gray-600 truncate flex-1">{product.supplierName}</p>
+          </div>
+          {product.location && (
+            <div className="flex items-center gap-1">
+              <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <p className="text-xs text-gray-500 truncate">{product.location}</p>
             </div>
           )}
-          <p className="text-xs text-gray-600 truncate flex-1">{product.supplierName}</p>
-          <span className="text-xs text-gray-400">{product.unit}</span>
+          <p className="text-xs text-gray-400">{product.unit}</p>
         </div>
 
         {/* Pricing / Rate */}
