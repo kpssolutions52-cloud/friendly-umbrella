@@ -77,6 +77,7 @@ router.get(
               id: true,
               name: true,
               logoUrl: true,
+              address: true,
             },
           },
           images: {
@@ -203,9 +204,8 @@ router.get(
           : (product as any).category || null;
       }
 
-      // Extract location from metadata
-      const metadata = (product as any).metadata as Record<string, any> | null;
-      const location = metadata?.location || null;
+      // Use supplier address as location
+      const location = product.supplier.address || null;
 
       const productWithPrices = {
         id: product.id,
@@ -633,9 +633,8 @@ router.get(
             : null;
         }
 
-        // Extract location from metadata
-        const metadata = (product as any).metadata as Record<string, any> | null;
-        const location = metadata?.location || null;
+        // Use supplier address as location
+        const location = product.supplier.address || null;
 
         return {
           id: product.id,

@@ -113,7 +113,6 @@ function DashboardContent() {
     unit: '',
     defaultPrice: '',
     currency: 'USD',
-    location: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -511,7 +510,6 @@ function DashboardContent() {
         unit: '',
         defaultPrice: '',
         currency: 'USD',
-        location: '',
       });
       setSelectedMainCategoryId('');
       setSubCategories([]);
@@ -796,7 +794,6 @@ function DashboardContent() {
         categoryId: finalCategoryId,
         unit: formData.unit,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
-        metadata: formData.location ? { location: formData.location } : undefined,
       };
 
       // Only include price if it's provided
@@ -819,18 +816,17 @@ function DashboardContent() {
         setEditingProduct(null);
         setEditIncludedSpecialPrices([]);
         setSuccess(false);
-        setFormData({
-          sku: '',
-          name: '',
-          description: '',
-          categoryId: '',
-          mainCategoryId: '',
-          unit: '',
-          defaultPrice: '',
-          currency: 'USD',
-          location: '',
-        });
-        setSelectedMainCategoryId('');
+      setFormData({
+        sku: '',
+        name: '',
+        description: '',
+        categoryId: '',
+        mainCategoryId: '',
+        unit: '',
+        defaultPrice: '',
+        currency: 'USD',
+      });
+      setSelectedMainCategoryId('');
         setSubCategories([]);
       }, 1000);
     } catch (err: any) {
@@ -1515,18 +1511,6 @@ function DashboardContent() {
                     rows={3}
                     className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Product description..."
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    placeholder="e.g., Singapore, Warehouse A, etc."
                   />
                 </div>
 
