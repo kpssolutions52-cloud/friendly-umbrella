@@ -6,9 +6,11 @@ import Link from 'next/link';
 
 interface BottomNavigationProps {
   onSearchClick?: () => void;
+  hasActiveFilters?: boolean;
+  filterCount?: number;
 }
 
-export function BottomNavigation({ onSearchClick }: BottomNavigationProps) {
+export function BottomNavigation({ onSearchClick, hasActiveFilters = false, filterCount = 0 }: BottomNavigationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -41,7 +43,7 @@ export function BottomNavigation({ onSearchClick }: BottomNavigationProps) {
           <span className="text-xs font-medium">Home</span>
         </Link>
 
-        {/* Search - Always visible on landing page */}
+        {/* Search Button - Prominent in Center */}
         <button
           onClick={() => {
             if (onSearchClick) {
@@ -60,19 +62,32 @@ export function BottomNavigation({ onSearchClick }: BottomNavigationProps) {
               }
             }
           }}
-          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-            pathname === '/' ? 'text-blue-600' : 'text-gray-500'
-          }`}
+          className="relative flex flex-col items-center justify-center flex-1 h-full transition-colors"
         >
-          <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <span className="text-xs font-medium">Search</span>
+          <div className="relative">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+              hasActiveFilters 
+                ? 'bg-blue-600 text-white shadow-lg' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            {hasActiveFilters && filterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white">{filterCount}</span>
+              </span>
+            )}
+          </div>
+          <span className={`text-xs font-medium mt-1 ${hasActiveFilters ? 'text-blue-600' : 'text-gray-600'}`}>
+            Search
+          </span>
         </button>
 
         {/* Dashboard/Account */}

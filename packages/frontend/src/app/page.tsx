@@ -1011,28 +1011,15 @@ export default function Home() {
       <Footer />
 
       {/* Bottom Navigation - Mobile Only */}
-      <BottomNavigation />
-
-      {/* Floating Action Button (FAB) - Search & Filter - Mobile Only */}
-      <button
-        onClick={() => {
+      <BottomNavigation 
+        onSearchClick={() => {
           setShowMobileSearchModal(true);
           setShowMobileFilterModal(true);
         }}
-        className="fixed bottom-20 right-4 md:hidden z-[55] bg-blue-600 text-white rounded-full w-14 h-14 shadow-xl hover:bg-blue-700 active:bg-blue-800 active:scale-95 transition-all flex items-center justify-center group"
-        aria-label="Search and Filter"
-      >
-        <div className="relative">
-          <SearchIcon className="w-6 h-6" />
-          {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 || searchQuery) && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">
-                {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000, searchQuery].filter(Boolean).length}
-              </span>
-            </span>
-          )}
-        </div>
-      </button>
+        hasActiveFilters={!!(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 || searchQuery)}
+        filterCount={[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000, searchQuery].filter(Boolean).length}
+      />
+
 
       {/* Unified Mobile Search & Filter Bottom Sheet */}
       {(showMobileSearchModal || showMobileFilterModal) && (
