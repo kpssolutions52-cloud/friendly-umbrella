@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { apiGet, getMainCategories, getSubcategories, getMainServiceCategories, getServiceSubcategories, ProductCategory, ServiceCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import Link from 'next/link';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
 import { ProductCard } from '@/components/ProductCard';
+import { Search as SearchIcon, Filter, X, ChevronDown } from 'lucide-react';
 
 interface SearchProduct {
   id: string;
@@ -591,179 +593,252 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Product/Service Filters */}
-        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Browse {activeTab === 'products' ? 'Products' : 'Services'}</h2>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setFilters({ supplierId: '', category: '', serviceCategoryId: '', search: '' });
-                setSelectedMainCategoryId('');
-                setSelectedSubCategoryId('');
-                setSubCategories([]);
-                setSubServiceCategories([]);
-                setSupplierSearchQuery('');
-                setCategorySearchQuery('');
-                setSupplierDropdownOpen(false);
-                setCategoryDropdownOpen(false);
-                setCurrentPage(1);
-              }}
-              className="touch-target w-full sm:w-auto"
-            >
-              Clear Filters
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <div className="relative supplier-dropdown-container">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search or select supplier..."
-                  value={supplierDropdownOpen ? supplierSearchQuery : (filters.supplierId ? suppliers.find(s => s.id === filters.supplierId)?.name || '' : '')}
-                  onChange={(e) => {
-                    setSupplierSearchQuery(e.target.value);
-                    if (!supplierDropdownOpen) setSupplierDropdownOpen(true);
-                  }}
-                  onFocus={() => {
-                    setSupplierDropdownOpen(true);
-                    setSupplierSearchQuery('');
-                  }}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSupplierDropdownOpen(!supplierDropdownOpen);
-                    if (!supplierDropdownOpen) setSupplierSearchQuery('');
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={supplierDropdownOpen ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
-                  </svg>
-                </button>
-                {supplierDropdownOpen && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    <div
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+        {/* Optimized Search & Filter Bar */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
+          <form onSubmit={(e) => { e.preventDefault(); }}>
+            {/* Clean Search Bar */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder={`Search ${activeTab === 'products' ? 'products' : 'services'} by name...`}
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    className="w-full pl-10 pr-4 h-11 text-base border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Active Filter Chips */}
+            {(filters.supplierId || selectedMainCategoryId || selectedSubCategoryId || filters.search) && (
+              <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 flex flex-wrap items-center gap-2">
+                {filters.supplierId && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-200">
+                    {(activeTab === 'products' ? suppliers : serviceProviders).find(s => s.id === filters.supplierId)?.name || 'Provider'}
+                    <button
+                      type="button"
                       onClick={() => {
                         handleFilterChange('supplierId', '');
                         setSupplierSearchQuery('');
                         setSupplierDropdownOpen(false);
                       }}
+                      className="hover:bg-blue-100 rounded p-0.5 transition-colors -mr-0.5"
                     >
-                      All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedMainCategoryId && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium border border-indigo-200">
+                    {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMainCategoryId('');
+                        setSelectedSubCategoryId('');
+                        setSubCategories([]);
+                        setSubServiceCategories([]);
+                        setCurrentPage(1);
+                      }}
+                      className="hover:bg-indigo-100 rounded p-0.5 transition-colors -mr-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedSubCategoryId && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-medium border border-purple-200">
+                    {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubCategoryId('');
+                        setCurrentPage(1);
+                      }}
+                      className="hover:bg-purple-100 rounded p-0.5 transition-colors -mr-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {filters.search && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium border border-gray-200">
+                    Search: {filters.search}
+                    <button
+                      type="button"
+                      onClick={() => handleFilterChange('search', '')}
+                      className="hover:bg-gray-200 rounded p-0.5 transition-colors -mr-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({ supplierId: '', category: '', serviceCategoryId: '', search: '' });
+                    setSelectedMainCategoryId('');
+                    setSelectedSubCategoryId('');
+                    setSubCategories([]);
+                    setSubServiceCategories([]);
+                    setSupplierSearchQuery('');
+                    setCategorySearchQuery('');
+                    setSupplierDropdownOpen(false);
+                    setCategoryDropdownOpen(false);
+                    setCurrentPage(1);
+                  }}
+                  className="ml-auto text-xs font-medium text-gray-500 hover:text-gray-700"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
+            {/* Simplified Filter Section */}
+            <div className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Supplier/Service Provider Filter */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
+                  </label>
+                  <div className="relative supplier-dropdown-container">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search or select..."
+                        value={supplierDropdownOpen ? supplierSearchQuery : (filters.supplierId ? suppliers.find(s => s.id === filters.supplierId)?.name || '' : '')}
+                        onChange={(e) => {
+                          setSupplierSearchQuery(e.target.value);
+                          if (!supplierDropdownOpen) setSupplierDropdownOpen(true);
+                        }}
+                        onFocus={() => {
+                          setSupplierDropdownOpen(true);
+                          setSupplierSearchQuery('');
+                        }}
+                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+                      />
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
-                    {(activeTab === 'products' ? suppliers : serviceProviders)
-                      .filter(supplier =>
-                        supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
-                      )
-                      .map((supplier) => (
+                    {supplierDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                         <div
-                          key={supplier.id}
-                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
-                            filters.supplierId === supplier.id ? 'bg-blue-50' : ''
-                          }`}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                           onClick={() => {
-                            handleFilterChange('supplierId', supplier.id);
+                            handleFilterChange('supplierId', '');
                             setSupplierSearchQuery('');
                             setSupplierDropdownOpen(false);
                           }}
                         >
-                          <div className="flex items-center gap-2">
-                            {supplier.logoUrl ? (
-                              <img
-                                src={supplier.logoUrl}
-                                alt={supplier.name}
-                                className="h-6 w-6 rounded-full object-cover border border-gray-200"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-                                {supplier.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <span>{supplier.name}</span>
-                          </div>
+                          All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}
                         </div>
-                      ))}
-                    {(activeTab === 'products' ? suppliers : serviceProviders).filter(supplier =>
-                      supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
-                    ).length === 0 && supplierSearchQuery && (
-                      <div className="px-4 py-2 text-gray-500 text-sm">
-                        No {activeTab === 'products' ? 'suppliers' : 'service providers'} found
+                        {(activeTab === 'products' ? suppliers : serviceProviders)
+                          .filter(supplier =>
+                            supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
+                          )
+                          .map((supplier) => (
+                            <div
+                              key={supplier.id}
+                              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                                filters.supplierId === supplier.id ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => {
+                                handleFilterChange('supplierId', supplier.id);
+                                setSupplierSearchQuery('');
+                                setSupplierDropdownOpen(false);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                {supplier.logoUrl ? (
+                                  <img
+                                    src={supplier.logoUrl}
+                                    alt={supplier.name}
+                                    className="h-6 w-6 rounded-full object-cover border border-gray-200"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                                    {supplier.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span>{supplier.name}</span>
+                              </div>
+                            </div>
+                          ))}
+                        {(activeTab === 'products' ? suppliers : serviceProviders).filter(supplier =>
+                          supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
+                        ).length === 0 && supplierSearchQuery && (
+                          <div className="px-4 py-2 text-gray-500 text-sm">
+                            No {activeTab === 'products' ? 'suppliers' : 'service providers'} found
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
+                </div>
+
+                {/* Main Category */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Main Category
+                  </label>
+                  <div className="relative">
+                    <select
+                      key={`main-category-${activeTab}`}
+                      value={selectedMainCategoryId}
+                      onChange={(e) => handleMainCategoryChange(e.target.value)}
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+                    >
+                      <option value="">All Categories</option>
+                      {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Sub Category */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Sub Category
+                  </label>
+                  <div className="relative">
+                    <select
+                      key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
+                      value={selectedSubCategoryId}
+                      onChange={(e) => handleSubCategoryChange(e.target.value)}
+                      disabled={!selectedMainCategoryId || loadingSubCategories}
+                      className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {loadingSubCategories 
+                          ? 'Loading...' 
+                          : !selectedMainCategoryId 
+                            ? 'Select main category first' 
+                            : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                              ? 'No subcategories' 
+                              : 'All Subcategories'}
+                      </option>
+                      {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                        <option key={subCat.id} value={subCat.id}>
+                          {subCat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
               </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Main Category
-              </label>
-              <select
-                key={`main-category-${activeTab}`}
-                value={selectedMainCategoryId}
-                onChange={(e) => handleMainCategoryChange(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
-              >
-                <option value="">All Categories</option>
-                {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sub Category
-              </label>
-              <select
-                key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
-                value={selectedSubCategoryId}
-                onChange={(e) => handleSubCategoryChange(e.target.value)}
-                disabled={!selectedMainCategoryId || loadingSubCategories}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500 cursor-pointer"
-              >
-                <option value="">
-                  {loadingSubCategories 
-                    ? 'Loading...' 
-                    : !selectedMainCategoryId 
-                      ? 'Select main category first' 
-                      : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
-                        ? 'No subcategories' 
-                        : 'All Subcategories'}
-                </option>
-                {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
-                  <option key={subCat.id} value={subCat.id}>
-                    {subCat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search by {activeTab === 'products' ? 'Product' : 'Service'} Name
-              </label>
-              <input
-                type="text"
-                placeholder={`Search by ${activeTab === 'products' ? 'product' : 'service'} name...`}
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+          </form>
         </div>
 
         {/* Products/Services List */}
