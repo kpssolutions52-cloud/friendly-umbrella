@@ -1318,6 +1318,111 @@ function DashboardContent() {
           </div>
         </div>
 
+        {/* Analytics & Insights Section */}
+        {!activeFilter && !isLoadingStats && stats.totalProducts > 0 && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Performance Metrics */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+                Performance Metrics
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Active Rate</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 transition-all duration-500"
+                        style={{ width: `${(stats.activeProducts / stats.totalProducts) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-12 text-right">
+                      {Math.round((stats.activeProducts / stats.totalProducts) * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Custom Pricing Coverage</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-purple-500 transition-all duration-500"
+                        style={{ width: `${stats.totalProducts > 0 ? (stats.productsWithPrivatePrices / stats.totalProducts) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-12 text-right">
+                      {stats.totalProducts > 0 ? Math.round((stats.productsWithPrivatePrices / stats.totalProducts) * 100) : 0}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions & Recommendations */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Package className="w-5 h-5 mr-2 text-purple-500" />
+                Recommendations
+              </h3>
+              <div className="space-y-3">
+                {stats.totalProducts - stats.activeProducts > 0 && (
+                  <div className="flex items-start p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <XCircle className="w-4 h-4 text-amber-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-900">
+                        {stats.totalProducts - stats.activeProducts} inactive service{stats.totalProducts - stats.activeProducts > 1 ? 's' : ''}
+                      </p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        Consider activating them to increase visibility
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {stats.productsWithPrivatePrices === 0 && stats.totalProducts > 0 && (
+                  <div className="flex items-start p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <DollarSign className="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900">
+                        No custom pricing set
+                      </p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        Add private prices to offer personalized rates to companies
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {stats.activeProducts === stats.totalProducts && stats.totalProducts > 0 && (
+                  <div className="flex items-start p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-900">
+                        All services active
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        Great! All your services are visible to customers
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {stats.totalProducts === 0 && (
+                  <div className="flex items-start p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <Package className="w-4 h-4 text-gray-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        Get started
+                      </p>
+                      <p className="text-xs text-gray-700 mt-1">
+                        Add your first service to begin using the platform
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Service List Section */}
         {activeFilter && (
           <div className="mt-8 bg-white shadow rounded-lg p-6">
