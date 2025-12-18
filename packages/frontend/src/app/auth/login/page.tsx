@@ -59,7 +59,7 @@ function LoginForm() {
             <div className="relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
               <Logo
                 src="/images/logo.jpg"
-                alt="ALLIED DIGITAL & EVENTS PTE. LTD."
+                alt="ConstructionGuru"
                 width={64}
                 height={64}
                 priority
@@ -67,8 +67,8 @@ function LoginForm() {
               />
             </div>
             <div className="hidden sm:block">
-              <div className="text-lg font-bold text-gray-900">ALLIED</div>
-              <div className="text-xs font-semibold text-gray-700 -mt-0.5">DIGITAL & EVENTS PTE. LTD.</div>
+              <div className="text-lg font-bold text-gray-900">ConstructionGuru</div>
+              <div className="text-xs font-semibold text-gray-700 -mt-0.5">Real-Time Pricing for Construction Professionals</div>
             </div>
           </Link>
           <Link

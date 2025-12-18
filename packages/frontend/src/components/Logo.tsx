@@ -15,7 +15,7 @@ interface LogoProps {
 
 export function Logo({
   src = '/images/logo.jpg',
-  alt = 'ALLIED DIGITAL & EVENTS PTE. LTD.',
+  alt = 'ConstructionGuru',
   width = 48,
   height = 48,
   className = 'object-contain',

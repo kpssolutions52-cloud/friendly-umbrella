@@ -21,7 +21,7 @@ export function Footer() {
             <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
               <Logo
                 src="/images/logo.jpg"
-                alt="ALLIED DIGITAL & EVENTS PTE. LTD."
+                alt="ConstructionGuru"
                 width={48}
                 height={48}
                 unoptimized
@@ -29,10 +29,10 @@ export function Footer() {
             </div>
             <div className="text-center sm:text-left">
               <div className="text-base sm:text-lg font-bold text-gray-900">
-                ALLIED
+                ConstructionGuru
               </div>
               <div className="text-xs sm:text-sm font-semibold text-gray-700 -mt-0.5">
-                DIGITAL & EVENTS PTE. LTD.
+                Real-Time Pricing for Construction Professionals
               </div>
             </div>
           </Link>

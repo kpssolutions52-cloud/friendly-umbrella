@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { Logo } from '@/components/Logo';
 
 export const metadata: Metadata = {
-  title: 'Documentation - ALLIED DIGITAL & EVENTS',
+  title: 'Documentation - ConstructionGuru',
   description: 'Complete documentation for Construction Pricing Platform',
 };
 
@@ -24,7 +24,7 @@ export default function DocsLayout({
                 <div className="relative h-8 w-8 flex-shrink-0">
                   <Logo
                     src="/images/logo.jpg"
-                    alt="ALLIED DIGITAL & EVENTS PTE. LTD."
+                    alt="ConstructionGuru"
                     width={32}
                     height={32}
                     priority
@@ -34,10 +34,10 @@ export default function DocsLayout({
                 {/* Company Name */}
                 <div>
                   <div className="text-sm font-bold text-gray-900">
-                    ALLIED
+                    ConstructionGuru
                   </div>
                   <div className="text-xs font-semibold text-gray-700 -mt-0.5">
-                    DIGITAL & EVENTS
+                    Real-Time Pricing for Construction Professionals
                   </div>
                 </div>
               </Link>

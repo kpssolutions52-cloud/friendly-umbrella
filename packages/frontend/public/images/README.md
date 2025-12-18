@@ -8,9 +8,10 @@ Place the company logo files in this directory.
 - `logo-white.png` - White version for dark backgrounds (if needed)
 
 ## Logo Specifications:
-Based on the ALLIED DIGITAL & EVENTS logo:
-- Main logo should include the stylized 'K' graphic with orange arc
-- Company name: "ALLIED DIGITAL & EVENTS PTE. LTD."
+Based on the ConstructionGuru logo:
+- Main logo should include the stylized graphic elements
+- Company name: "ConstructionGuru"
+- Tagline: "Real-Time Pricing for Construction Professionals"
 - Colors: Blue (#0066CC or similar) and Orange (#FF6600 or similar)
 
 ## Usage:

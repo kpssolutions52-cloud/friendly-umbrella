@@ -6,7 +6,7 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ALLIED DIGITAL & EVENTS - Construction Pricing Platform',
+  title: 'ConstructionGuru - Real-Time Pricing for Construction Professionals',
   description: 'Real-time pricing platform for construction suppliers and companies',
   icons: {
     icon: '/images/logo-icon.png',

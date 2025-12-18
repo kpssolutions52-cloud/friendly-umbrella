@@ -25,7 +25,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
               <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
                 <Logo
                   src="/images/logo.jpg"
-                  alt="ALLIED DIGITAL & EVENTS PTE. LTD."
+                  alt="ConstructionGuru"
                   width={48}
                   height={48}
                   priority
@@ -35,15 +35,15 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
               {/* Company Name - Hidden on very small screens, shown on sm and up */}
               <div className="hidden sm:block">
                 <div className="text-lg sm:text-xl font-bold text-gray-900">
-                  ALLIED
+                  ConstructionGuru
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-gray-700 -mt-1">
-                  DIGITAL & EVENTS PTE. LTD.
+                  Real-Time Pricing for Construction Professionals
                 </div>
               </div>
-              {/* Mobile: Just show "ALLIED" */}
+              {/* Mobile: Just show "ConstructionGuru" */}
               <div className="sm:hidden text-lg font-bold text-gray-900">
-                ALLIED
+                ConstructionGuru
               </div>
             </Link>
           </div>
