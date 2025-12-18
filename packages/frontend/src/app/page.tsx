@@ -79,7 +79,7 @@ export default function Home() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [sortBy, setSortBy] = useState<string>('default');
+  const [sortBy, setSortBy] = useState<string>('price-low-high');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [allProductsCache, setAllProductsCache] = useState<PublicProduct[]>([]);
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<NodeJS.Timeout | null>(null);
@@ -405,9 +405,9 @@ export default function Home() {
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
       case 'name-z-a':
         return sorted.sort((a, b) => b.name.localeCompare(a.name));
-      case 'default':
       default:
-        return sorted; // Keep original order
+        // Default to price low to high if sortBy is not recognized
+        return sorted.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
     }
   };
 
@@ -837,7 +837,6 @@ export default function Home() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="flex-1 sm:flex-initial rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 >
-                  <option value="default">Default</option>
                   <option value="price-low-high">Price: Low to High</option>
                   <option value="price-high-low">Price: High to Low</option>
                   <option value="name-a-z">Name: A to Z</option>
