@@ -1166,12 +1166,12 @@ function DashboardContent() {
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div 
-            className={`bg-gradient-to-br from-white to-blue-50/30 overflow-hidden shadow-sm rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border ${
+            className={`bg-gradient-to-br from-white to-blue-50/30 overflow-hidden shadow-sm rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] border touch-target ${
               activeFilter === 'all' ? 'ring-2 ring-blue-500 border-blue-200' : 'border-gray-200'
             }`}
             onClick={() => handleCardClick('all')}
           >
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
@@ -1216,7 +1216,7 @@ function DashboardContent() {
                       Active Services
                     </dt>
                   </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
@@ -1255,7 +1255,7 @@ function DashboardContent() {
                       Private Prices
                     </dt>
                   </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
@@ -1280,7 +1280,7 @@ function DashboardContent() {
           <div 
             className="bg-gradient-to-br from-white to-amber-50/30 overflow-hidden shadow-sm rounded-lg border border-gray-200"
           >
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center mb-2">
@@ -1360,8 +1360,8 @@ function DashboardContent() {
             </div>
 
             {/* Quick Actions & Recommendations */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Package className="w-5 h-5 mr-2 text-purple-500" />
                 Recommendations
               </h3>
@@ -1472,10 +1472,10 @@ function DashboardContent() {
               </div>
 
               {/* Sort and View Controls */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 {/* Sort Dropdown */}
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                  <ArrowUpDown className="w-4 h-4 text-gray-400 hidden sm:block" />
                   <select
                     value={`${sortBy}-${sortOrder}`}
                     onChange={(e) => {
@@ -1483,7 +1483,7 @@ function DashboardContent() {
                       setSortBy(by);
                       setSortOrder(order);
                     }}
-                    className="text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="text-sm border border-gray-300 rounded-md px-3 py-2 sm:py-1.5 w-full sm:w-auto touch-target focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="name-asc">Name (A-Z)</option>
                     <option value="name-desc">Name (Z-A)</option>
@@ -1686,7 +1686,7 @@ function DashboardContent() {
                           }}
                         >
                           {/* Card Header */}
-                          <div className="p-3 md:p-3 flex-1 flex flex-col">
+                          <div className="p-4 md:p-3 flex-1 flex flex-col">
                             {/* Selection Checkbox and Status Badge */}
                             <div className="flex items-center justify-between mb-2">
                               <input
@@ -1696,21 +1696,6 @@ function DashboardContent() {
                                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                                 onClick={(e) => e.stopPropagation()}
                               />
-                              <span
-                                className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
-                                  product.isActive
-                                    ? 'bg-green-50 text-green-700 border-green-200'
-                                    : 'bg-red-50 text-red-700 border-red-200'
-                                }`}
-                              >
-                                {product.isActive ? (
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                ) : (
-                                  <XCircle className="w-3 h-3 mr-1" />
-                                )}
-                                {product.isActive ? 'Active' : 'Inactive'}
-                              </span>
-                            </div>
                               <span
                                 className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
                                   product.isActive
@@ -1766,14 +1751,14 @@ function DashboardContent() {
                           </div>
 
                           {/* Card Actions */}
-                          <div className="p-3 md:p-3 pt-0 border-t border-gray-100 space-y-2">
+                          <div className="p-4 md:p-3 pt-0 border-t border-gray-100 space-y-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditProduct(product)}
-                              className="w-full h-8 md:h-8 text-xs md:text-sm px-3 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+                              className="w-full h-10 sm:h-8 md:h-8 text-sm sm:text-xs md:text-sm px-3 touch-target hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
                             >
-                              <Edit className="w-3.5 h-3.5 mr-1.5" />
+                              <Edit className="w-4 h-4 sm:w-3.5 sm:h-3.5 mr-1.5" />
                               Edit
                             </Button>
                             <div className="grid grid-cols-2 gap-2">
@@ -1781,7 +1766,7 @@ function DashboardContent() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleToggleInactive(product)}
-                                className={`h-8 text-xs md:text-sm px-2 touch-target transition-colors ${
+                                className={`h-10 sm:h-8 text-sm sm:text-xs md:text-sm px-2 touch-target transition-colors ${
                                   !product.isActive 
                                     ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
                                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
