@@ -803,6 +803,12 @@ export default function Home() {
 
         {/* Products/Services Section */}
         <div className="mb-6 flex gap-6">
+          {/* Filter Sidebar - Desktop (sticky) */}
+          {showFilterSidebar && (
+            <div className="hidden md:block w-64 flex-shrink-0">
+              {/* Sidebar content is rendered above */}
+            </div>
+          )}
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
