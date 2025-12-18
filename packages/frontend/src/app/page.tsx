@@ -11,7 +11,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
+import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -84,6 +84,10 @@ export default function Home() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [allProductsCache, setAllProductsCache] = useState<PublicProduct[]>([]);
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  // Mobile bottom tab modals
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
+  const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
+  const [showMobileSortModal, setShowMobileSortModal] = useState(false);
   const productsPerPage = 20;
 
   // Handle auth redirects - separate effect to avoid loops
@@ -426,7 +430,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32 sm:pb-0 flex flex-col">
       {/* Modern Header with Logo */}
       <Header />
 
@@ -551,9 +555,9 @@ export default function Home() {
             </form>
               </div>
               
-          {/* Active Filter Chips - Compact */}
+          {/* Active Filter Chips - Compact - Desktop Only */}
           {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || searchQuery || priceRange[0] > 0 || priceRange[1] < 10000) && (
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="flex flex-wrap items-center gap-2 mb-4 hidden md:flex">
               {searchQuery && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium">
                   <SearchIcon className="w-3.5 h-3.5" />
@@ -1008,6 +1012,314 @@ export default function Home() {
 
       {/* Bottom Navigation - Mobile Only */}
       <BottomNavigation />
+
+      {/* Mobile Bottom Tab Bar - Search, Filter, Sort */}
+      <div className="fixed bottom-16 left-0 right-0 md:hidden z-[55] bg-white border-t border-gray-200 shadow-lg">
+        <div className="flex items-center justify-around px-2 py-2">
+          {/* Search Button */}
+          <button
+            onClick={() => setShowMobileSearchModal(true)}
+            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1"
+          >
+            <div className="relative">
+              <SearchIcon className={`w-6 h-6 ${searchQuery ? 'text-blue-600' : 'text-gray-600'}`} />
+              {searchQuery && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
+              )}
+            </div>
+            <span className={`text-xs font-medium ${searchQuery ? 'text-blue-600' : 'text-gray-600'}`}>
+              Search
+            </span>
+          </button>
+
+          {/* Filter Button */}
+          <button
+            onClick={() => setShowMobileFilterModal(true)}
+            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1 relative"
+          >
+            <div className="relative">
+              <SlidersHorizontal className={`w-6 h-6 ${selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 ? 'text-blue-600' : 'text-gray-600'}`} />
+              {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white text-[10px] flex items-center justify-center text-white font-bold">
+                  {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000].filter(Boolean).length}
+                </span>
+              )}
+            </div>
+            <span className={`text-xs font-medium ${selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 ? 'text-blue-600' : 'text-gray-600'}`}>
+              Filter
+            </span>
+          </button>
+
+          {/* Sort Button */}
+          <button
+            onClick={() => setShowMobileSortModal(true)}
+            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1"
+          >
+            <ArrowUpDown className="w-6 h-6 text-gray-600" />
+            <span className="text-xs font-medium text-gray-600">Sort</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Search Bottom Sheet */}
+      {showMobileSearchModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
+            onClick={() => setShowMobileSearchModal(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] flex flex-col">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Search</h3>
+                <button
+                  onClick={() => setShowMobileSearchModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); setShowMobileSearchModal(false); }} className="relative">
+                <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-10 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-gray-50 focus:bg-white transition-all"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </form>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              {searchQuery && (
+                <div className="py-4">
+                  <p className="text-sm text-gray-500">Press Enter or tap outside to search</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile Filter Bottom Sheet */}
+      {showMobileFilterModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
+            onClick={() => setShowMobileFilterModal(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                  Filters
+                </h3>
+                <button
+                  onClick={() => setShowMobileFilterModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+              {/* Price Range Filter */}
+              {activeTab === 'products' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-3">
+                    Price Range
+                  </label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        placeholder="Min"
+                        value={priceRange[0] || ''}
+                        onChange={(e) => setPriceRange([Number(e.target.value) || 0, priceRange[1]])}
+                        className="flex-1 h-11 text-sm"
+                      />
+                      <span className="text-gray-400">-</span>
+                      <Input
+                        type="number"
+                        placeholder="Max"
+                        value={priceRange[1] === 10000 ? '' : priceRange[1]}
+                        onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 10000])}
+                        className="flex-1 h-11 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  Category
+                </label>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <select
+                      key={`mobile-main-category-${activeTab}`}
+                      value={selectedMainCategoryId}
+                      onChange={(e) => handleMainCategoryChange(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    >
+                      <option value="">All Categories</option>
+                      {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                  {selectedMainCategoryId && (
+                    <div className="relative">
+                      <select
+                        key={`mobile-sub-category-${activeTab}-${selectedMainCategoryId}`}
+                        value={selectedSubCategoryId}
+                        onChange={(e) => handleSubCategoryChange(e.target.value)}
+                        disabled={loadingSubCategories}
+                        className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
+                      >
+                        <option value="">
+                          {loadingSubCategories 
+                            ? 'Loading...' 
+                            : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                              ? 'No subcategories' 
+                              : 'All Subcategories'}
+                        </option>
+                        {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                          <option key={subCat.id} value={subCat.id}>
+                            {subCat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Supplier/Provider Filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
+                </label>
+                <div className="relative">
+                  <select
+                    key={`mobile-supplier-${activeTab}`}
+                    value={selectedSupplier}
+                    onChange={(e) => handleSupplierChange(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2.5 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  >
+                    <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                    {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-4 rounded-b-3xl">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(1);
+                    loadProducts();
+                    setShowMobileFilterModal(false);
+                  }}
+                  className="flex-1 h-11"
+                >
+                  Apply Filters
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedMainCategoryId('');
+                    setSelectedSubCategoryId('');
+                    setSelectedSupplier('');
+                    setPriceRange([0, 10000]);
+                    setSubCategories([]);
+                    setSubServiceCategories([]);
+                    setCurrentPage(1);
+                  }}
+                  className="flex-1 h-11"
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile Sort Bottom Sheet */}
+      {showMobileSortModal && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
+            onClick={() => setShowMobileSortModal(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[60vh] flex flex-col">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <ArrowUpDown className="w-5 h-5 text-blue-600" />
+                  Sort By
+                </h3>
+                <button
+                  onClick={() => setShowMobileSortModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="space-y-2">
+                {[
+                  { value: 'price-low-high', label: 'Price: Low to High' },
+                  { value: 'price-high-low', label: 'Price: High to Low' },
+                  { value: 'name-a-z', label: 'Name: A to Z' },
+                  { value: 'name-z-a', label: 'Name: Z to A' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSortBy(option.value);
+                      setShowMobileSortModal(false);
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      sortBy === option.value
+                        ? 'bg-blue-50 text-blue-600 font-medium border-2 border-blue-500'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-2 border-transparent'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
