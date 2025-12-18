@@ -76,6 +76,7 @@ export default function Home() {
   const [serviceProviders, setServiceProviders] = useState<Array<{ id: string; name: string; logoUrl: string | null }>>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<string>('default');
   const productsPerPage = 20;
@@ -152,6 +153,7 @@ export default function Home() {
         setCurrentPage(response.pagination.page);
       }
       setTotalPages(response.pagination.totalPages);
+      setTotalProducts(response.pagination.total || 0);
     } catch (error) {
       console.error('Failed to load products:', error);
       setProducts([]);
@@ -433,48 +435,72 @@ export default function Home() {
             </button>
           </div>
         </div>
-        {/* Optimized Search & Filter Bar */}
+        {/* Advanced Modern Search & Filter Bar */}
         <div id="mobile-search-trigger" className="sticky top-16 sm:top-0 sm:relative z-30 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/20 rounded-xl shadow-lg border border-gray-200/50 backdrop-blur-sm">
             <form onSubmit={handleSearch}>
-              {/* Clean Search Bar */}
-              <div className="p-4 border-b border-gray-100">
+              {/* Enhanced Search Bar */}
+              <div className="p-4 sm:p-5 border-b border-gray-200/50">
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 relative">
-                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <div className="flex-1 relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors z-10" />
                     <Input
                       id="mobile-search-input"
                       type="text"
-                      placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
+                      placeholder={activeTab === 'products' ? 'Search products by name, SKU, or category...' : 'Search services by name or category...'}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 h-11 text-base border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
+                      className="w-full pl-12 pr-4 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white/80 backdrop-blur-sm focus:bg-white transition-all shadow-sm hover:border-gray-300 relative z-10"
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   {/* Filter Toggle - Mobile Only */}
                   <button
                     type="button"
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`sm:hidden p-2.5 rounded-lg transition-colors ${
+                    className={`sm:hidden p-3 rounded-lg transition-all shadow-sm ${
                       showFilters || selectedMainCategoryId || selectedSubCategoryId || selectedSupplier
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
                     }`}
                     aria-label="Toggle filters"
                   >
                     <Filter className="w-5 h-5" />
                     {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && !showFilters && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Active Filters - Clean Chips */}
-              {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && (
-                <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 flex flex-wrap items-center gap-2">
+              {/* Active Filters - Enhanced Chips */}
+              {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || searchQuery) && (
+                <div className="px-4 sm:px-5 py-3 bg-gradient-to-r from-gray-50/80 to-blue-50/30 border-b border-gray-200/50 flex flex-wrap items-center gap-2">
+                  {searchQuery && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-xs font-semibold border border-blue-200 shadow-sm">
+                      <SearchIcon className="w-3 h-3" />
+                      {searchQuery}
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="hover:bg-blue-200 rounded p-0.5 transition-colors -mr-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
                   {selectedMainCategoryId && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-semibold border border-indigo-200 shadow-sm">
+                      <Filter className="w-3 h-3" />
                       {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
                       <button
                         type="button"
@@ -485,14 +511,15 @@ export default function Home() {
                           setSubServiceCategories([]);
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-blue-100 rounded p-0.5 transition-colors -mr-0.5"
+                        className="hover:bg-indigo-200 rounded p-0.5 transition-colors -mr-0.5"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {selectedSubCategoryId && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium border border-indigo-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-lg text-xs font-semibold border border-purple-200 shadow-sm">
+                      <Filter className="w-3 h-3" />
                       {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
                       <button
                         type="button"
@@ -500,14 +527,15 @@ export default function Home() {
                           setSelectedSubCategoryId('');
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-indigo-100 rounded p-0.5 transition-colors -mr-0.5"
+                        className="hover:bg-purple-200 rounded p-0.5 transition-colors -mr-0.5"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {selectedSupplier && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-medium border border-purple-200">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold border border-amber-200 shadow-sm">
+                      <Filter className="w-3 h-3" />
                       {(activeTab === 'products' ? suppliers : serviceProviders).find(p => p.id === selectedSupplier)?.name || 'Provider'}
                       <button
                         type="button"
@@ -515,7 +543,7 @@ export default function Home() {
                           setSelectedSupplier('');
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-purple-100 rounded p-0.5 transition-colors -mr-0.5"
+                        className="hover:bg-amber-200 rounded p-0.5 transition-colors -mr-0.5"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -524,6 +552,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => {
+                      setSearchQuery('');
                       setSelectedMainCategoryId('');
                       setSelectedSubCategoryId('');
                       setSelectedSupplier('');
@@ -531,31 +560,36 @@ export default function Home() {
                       setSubServiceCategories([]);
                       setCurrentPage(1);
                     }}
-                    className="ml-auto text-xs font-medium text-gray-500 hover:text-gray-700"
+                    className="ml-auto px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white/80 hover:bg-white rounded-lg border border-gray-200 shadow-sm transition-all"
                   >
                     Clear all
                   </button>
                 </div>
               )}
               
-              {/* Simplified Filter Section */}
+              {/* Advanced Filter Section */}
               <div
                 className={`${
                   showFilters ? 'block' : 'hidden'
-                } sm:block p-4`}
+                } sm:block p-4 sm:p-5 bg-white/50 backdrop-blur-sm`}
               >
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-gray-700">Advanced Filters</h3>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Main Category */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                       Main Category
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                       <select
                         key={`main-category-${activeTab}`}
                         value={selectedMainCategoryId}
                         onChange={(e) => handleMainCategoryChange(e.target.value)}
-                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-3 py-2.5 pr-8 text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm"
                       >
                         <option value="">All Categories</option>
                         {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
@@ -564,22 +598,23 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-gray-600 transition-colors" />
                     </div>
                   </div>
 
                   {/* Sub Category */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                       Sub Category
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                       <select
                         key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
                         value={selectedSubCategoryId}
                         onChange={(e) => handleSubCategoryChange(e.target.value)}
                         disabled={!selectedMainCategoryId || loadingSubCategories}
-                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-3 py-2.5 pr-8 text-sm font-medium text-gray-900 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed disabled:border-gray-200"
                       >
                         <option value="">
                           {loadingSubCategories 
@@ -596,21 +631,22 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-gray-600 transition-colors" />
                     </div>
                   </div>
 
                   {/* Supplier/Service Provider */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                       {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                       <select
                         key={`supplier-${activeTab}`}
                         value={selectedSupplier}
                         onChange={(e) => handleSupplierChange(e.target.value)}
-                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
+                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-3 py-2.5 pr-8 text-sm font-medium text-gray-900 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm"
                       >
                         <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
                         {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
@@ -619,7 +655,7 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-gray-600 transition-colors" />
                     </div>
                   </div>
                 </div>
@@ -688,13 +724,23 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Pagination - Mobile Optimized */}
-              {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    Page <span className="font-semibold text-gray-900">{currentPage}</span> of <span className="font-semibold text-gray-900">{totalPages}</span>
-                  </div>
-                  <div className="flex gap-2">
+              {/* Enhanced Pagination */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                {/* Pagination Info - Always show */}
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
+                  <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
+                  <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
+                  {totalPages > 1 && (
+                    <span className="ml-2 text-gray-500">
+                      (Page {currentPage} of {totalPages})
+                    </span>
+                  )}
+                </div>
+
+                {/* Pagination Controls - Only show when multiple pages */}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
@@ -702,10 +748,89 @@ export default function Home() {
                         setCurrentPage(currentPage - 1);
                       }}
                       disabled={currentPage === 1}
-                      className="min-w-[80px] sm:min-w-[100px]"
+                      className="min-w-[80px]"
                     >
                       Previous
                     </Button>
+
+                    {/* Page Numbers with Ellipsis */}
+                    <div className="flex items-center gap-1">
+                      {/* Always show first page */}
+                      {currentPage > 3 && totalPages > 7 && (
+                        <>
+                          <Button
+                            variant={currentPage === 1 ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(1);
+                            }}
+                            className="min-w-[40px]"
+                          >
+                            1
+                          </Button>
+                          {currentPage > 4 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Dynamic page numbers */}
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 7) {
+                          // Show all pages if 7 or fewer
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          // Show first 5 pages
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          // Show last 5 pages
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          // Show 2 pages before and after current
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        // Skip if already shown (first page)
+                        if (currentPage > 3 && totalPages > 7 && pageNum === 1) {
+                          return null;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(pageNum);
+                            }}
+                            className="min-w-[40px]"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+
+                      {/* Show ellipsis and last page if needed */}
+                      {currentPage < totalPages - 3 && totalPages > 7 && (
+                        <>
+                          {currentPage < totalPages - 4 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === totalPages ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(totalPages);
+                            }}
+                            className="min-w-[40px]"
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -713,13 +838,13 @@ export default function Home() {
                         setCurrentPage(currentPage + 1);
                       }}
                       disabled={currentPage === totalPages}
-                      className="min-w-[80px] sm:min-w-[100px]"
+                      className="min-w-[80px]"
                     >
                       Next
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>

@@ -125,7 +125,8 @@ function DashboardContent() {
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const productsPerPage = 10;
+  const [totalProducts, setTotalProducts] = useState(0);
+  const productsPerPage = 20;
   
   // Searchable dropdown states
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
@@ -186,6 +187,7 @@ function DashboardContent() {
       setFilteredProducts(sortedProducts);
       setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
+      setTotalProducts(response.pagination.total || filteredProducts.length);
     } catch (error: any) {
       console.error('Failed to load products:', error);
       console.error('Error details:', {
@@ -882,9 +884,25 @@ function DashboardContent() {
           </div>
 
           {isLoadingProducts ? (
-            <div className="text-center py-8">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-2 text-gray-500">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col h-full animate-pulse">
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex justify-end mb-2">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-3 w-3/4 mb-3" />
+                    <Skeleton className="h-20 w-full mb-3 rounded-md" />
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <Skeleton className="h-3 w-2/3 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-2" />
+                  </div>
+                  <div className="p-4 pt-0 border-t border-gray-100">
+                    <Skeleton className="h-10 w-full rounded-md" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-16 animate-in fade-in duration-500">
@@ -938,32 +956,112 @@ function DashboardContent() {
                 })}
               </div>
 
-              {/* Pagination for Grid View */}
-              {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <div className="flex gap-2">
+              {/* Enhanced Pagination */}
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                {/* Pagination Info - Always show */}
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-medium text-gray-900">{filteredProducts.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
+                  <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
+                  <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
+                  {totalPages > 1 && (
+                    <span className="ml-2 text-gray-500">
+                      (Page {currentPage} of {totalPages})
+                    </span>
+                  )}
+                </div>
+
+                {/* Pagination Controls - Only show when multiple pages */}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => loadProducts(currentPage - 1)}
                       disabled={currentPage === 1}
+                      className="min-w-[80px]"
                     >
                       Previous
                     </Button>
+
+                    {/* Page Numbers with Ellipsis */}
+                    <div className="flex items-center gap-1">
+                      {/* Always show first page */}
+                      {currentPage > 3 && totalPages > 7 && (
+                        <>
+                          <Button
+                            variant={currentPage === 1 ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => loadProducts(1)}
+                            className="min-w-[40px]"
+                          >
+                            1
+                          </Button>
+                          {currentPage > 4 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Dynamic page numbers */}
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
+                        if (totalPages <= 7) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        if (currentPage > 3 && totalPages > 7 && pageNum === 1) {
+                          return null;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => loadProducts(pageNum)}
+                            className="min-w-[40px]"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+
+                      {/* Show ellipsis and last page if needed */}
+                      {currentPage < totalPages - 3 && totalPages > 7 && (
+                        <>
+                          {currentPage < totalPages - 4 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === totalPages ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => loadProducts(totalPages)}
+                            className="min-w-[40px]"
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => loadProducts(currentPage + 1)}
                       disabled={currentPage === totalPages}
+                      className="min-w-[80px]"
                     >
                       Next
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           ) : (
             <>

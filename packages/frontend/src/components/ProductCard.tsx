@@ -56,9 +56,9 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex flex-col">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col">
       {/* Product Image */}
-      <div className="relative w-full h-48 sm:h-56 bg-gray-100 overflow-hidden">
+      <div className="relative w-full h-32 sm:h-36 bg-gray-100 overflow-hidden">
         {product.productImageUrl ? (
           <Image
             src={product.productImageUrl}
@@ -83,19 +83,24 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
       </div>
 
       {/* Product Details */}
-      <div className="p-4 sm:p-5 flex-1 flex flex-col">
+      <div className="p-3 flex-1 flex flex-col">
         {/* Product Name and SKU */}
-        <div className="mb-3 flex-1">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2 mb-1.5 leading-tight">
+        <div className="mb-2">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-1 leading-tight">
             {product.name}
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 font-medium">SKU: {product.sku}</p>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+            {product.category && (
+              <span className="text-xs text-gray-500 truncate max-w-[40%]">{product.category.split('>').pop()?.trim()}</span>
+            )}
+          </div>
         </div>
 
-        {/* Supplier Info */}
-        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+        {/* Supplier Info - Compact */}
+        <div className="flex items-center gap-1.5 mb-2">
           {product.supplierLogoUrl ? (
-            <div className="relative h-6 w-6 rounded-full overflow-hidden border border-gray-200">
+            <div className="relative h-5 w-5 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
               <Image
                 src={product.supplierLogoUrl}
                 alt={product.supplierName}
@@ -108,42 +113,29 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
               />
             </div>
           ) : (
-            <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600">
+            <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold text-gray-600 flex-shrink-0">
               {product.supplierName.charAt(0).toUpperCase()}
             </div>
           )}
           <p className="text-xs text-gray-600 truncate flex-1">{product.supplierName}</p>
-        </div>
-
-        {/* Category and Unit */}
-        <div className="flex items-center gap-3 mb-3 text-xs text-gray-500">
-          {product.category && (
-            <span className="px-2 py-1 bg-gray-100 rounded">{product.category}</span>
-          )}
-          <span>{product.unit}</span>
+          <span className="text-xs text-gray-400">{product.unit}</span>
         </div>
 
         {/* Pricing / Rate */}
-        <div className="mb-4">
+        <div className="mb-2.5 mt-auto">
           {isService ? (
             // Service Card: Show rate per hour
             ratePerHour !== null ? (
               <div>
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="text-xl sm:text-2xl font-bold text-blue-600">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-blue-600">
                     {rateType === 'per_hour' && `$${ratePerHour.toFixed(2)}/hr`}
-                    {rateType === 'per_project' && `$${ratePerHour.toFixed(2)}/project`}
+                    {rateType === 'per_project' && `$${ratePerHour.toFixed(2)}/proj`}
                     {rateType === 'fixed' && `$${ratePerHour.toFixed(2)}`}
                     {rateType === 'negotiable' && `From $${ratePerHour.toFixed(2)}/hr`}
                     {!rateType && `$${ratePerHour.toFixed(2)}/hr`}
                   </span>
                 </div>
-                {rateType === 'negotiable' && (
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1.5">Negotiable rates available</p>
-                )}
-                {rateType === 'per_project' && (
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1.5">Project-based pricing</p>
-                )}
               </div>
             ) : (
               <p className="text-sm text-gray-400">Rate not set</p>
@@ -152,27 +144,24 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
             // Product Card: Show price
             displayPrice !== null ? (
               <div>
-                <div className="flex items-baseline gap-2 flex-wrap">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
                   {hasSpecialPrice && product.defaultPrice && (
-                    <span className="text-xs sm:text-sm text-gray-400 line-through">
+                    <span className="text-xs text-gray-400 line-through">
                       {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
                     </span>
                   )}
-                  <span className="text-xl sm:text-2xl font-bold text-gray-900">
+                  <span className="text-lg font-bold text-gray-900">
                     {priceCurrency} {displayPrice.toFixed(2)}
                   </span>
+                  {hasSpecialPrice && discountPercentage !== null && (
+                    <span className="text-xs text-green-600 font-semibold">
+                      ({discountPercentage.toFixed(0)}% off)
+                    </span>
+                  )}
+                  {hasSpecialPrice && discountPercentage === null && (
+                    <span className="text-xs text-green-600 font-semibold">Special</span>
+                  )}
                 </div>
-                {hasSpecialPrice && discountPercentage !== null && (
-                  <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    {discountPercentage.toFixed(1)}% savings
-                  </p>
-                )}
-                {hasSpecialPrice && discountPercentage === null && (
-                  <p className="text-xs sm:text-sm text-green-600 font-semibold mt-1.5">Special rate</p>
-                )}
               </div>
             ) : (
               <p className="text-sm text-gray-400">Price not available</p>
@@ -180,17 +169,10 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
           )}
         </div>
         
-        {/* Service Description */}
-        {isService && product.description && (
-          <div className="mb-3">
-            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{product.description}</p>
-          </div>
-        )}
-
         {/* View Details Button */}
         <Button
           onClick={onViewDetails}
-          className={`w-full touch-target h-11 sm:h-12 text-sm sm:text-base font-semibold ${
+          className={`w-full h-9 text-xs font-medium ${
             isService ? 'bg-blue-600 hover:bg-blue-700' : ''
           }`}
           variant={isService ? 'default' : 'default'}
