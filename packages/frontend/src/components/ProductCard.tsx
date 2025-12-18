@@ -84,6 +84,21 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
             </div>
           </div>
         )}
+        {/* View Details Button - Top Right Overlay */}
+        <div className="absolute top-2 right-2 z-10">
+          <Button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent card click when button is clicked
+              onViewDetails();
+            }}
+            className={`h-7 px-3 text-xs font-medium shadow-md hover:shadow-lg transition-all ${
+              isService ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300'
+            }`}
+            variant={isService ? 'default' : 'outline'}
+          >
+            {isService ? 'View Service' : 'View Details'}
+          </Button>
+        </div>
       </div>
 
       {/* Product Details - 50% */}
@@ -134,7 +149,7 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         </div>
 
         {/* Pricing / Rate */}
-        <div className="mb-2 mt-auto flex-shrink-0">
+        <div className="mt-auto flex-shrink-0">
           {isService ? (
             // Service Card: Show rate per hour
             ratePerHour !== null ? (
@@ -180,20 +195,6 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
             )
           )}
         </div>
-        
-        {/* View Details Button */}
-        <Button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent card click when button is clicked
-            onViewDetails();
-          }}
-          className={`w-full h-8 sm:h-9 text-xs font-medium flex-shrink-0 ${
-            isService ? 'bg-blue-600 hover:bg-blue-700' : ''
-          }`}
-          variant={isService ? 'default' : 'default'}
-        >
-          {isService ? 'View Service' : 'View Details'}
-        </Button>
       </div>
     </div>
   );
