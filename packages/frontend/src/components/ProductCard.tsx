@@ -57,7 +57,10 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full min-h-[320px]">
+    <div 
+      onClick={onViewDetails}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full min-h-[320px] cursor-pointer"
+    >
       {/* Product Image - 50% */}
       <div className="relative w-full h-[50%] min-h-[160px] bg-gray-100 overflow-hidden flex-shrink-0">
         {product.productImageUrl ? (
@@ -180,7 +183,10 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         
         {/* View Details Button */}
         <Button
-          onClick={onViewDetails}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click when button is clicked
+            onViewDetails();
+          }}
           className={`w-full h-8 sm:h-9 text-xs font-medium flex-shrink-0 ${
             isService ? 'bg-blue-600 hover:bg-blue-700' : ''
           }`}
