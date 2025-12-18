@@ -438,7 +438,7 @@ export default function Home() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Find the Best Construction Materials & Services</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Real-Time Pricing for Construction Professionals</h2>
             <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto">
               Compare prices from multiple suppliers and service providers
             </p>

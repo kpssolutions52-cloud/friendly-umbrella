@@ -38,9 +38,6 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                 <div className="text-lg sm:text-xl font-bold text-gray-900">
                   ConstructionGuru
                 </div>
-                <div className="text-xs sm:text-sm font-semibold text-gray-700 -mt-1">
-                  Real-Time Pricing for Construction Professionals
-                </div>
               </div>
               {/* Mobile: Just show "ConstructionGuru" */}
               <div className="sm:hidden text-lg font-bold text-gray-900">
