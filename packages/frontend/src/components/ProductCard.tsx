@@ -57,9 +57,9 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-row h-full">
-      {/* Product Image - 60% */}
-      <div className="relative w-[60%] bg-gray-100 overflow-hidden flex-shrink-0">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full">
+      {/* Product Image - 50% */}
+      <div className="relative w-full h-[50%] bg-gray-100 overflow-hidden flex-shrink-0">
         {product.productImageUrl ? (
           <Image
             src={product.productImageUrl}
@@ -83,8 +83,8 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         )}
       </div>
 
-      {/* Product Details - 40% */}
-      <div className="w-[40%] p-3 flex-1 flex flex-col">
+      {/* Product Details - 50% */}
+      <div className="w-full h-[50%] p-3 flex-1 flex flex-col">
         {/* Product Name */}
         <div className="mb-2">
           <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-2 leading-tight">

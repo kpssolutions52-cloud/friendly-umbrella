@@ -1369,7 +1369,6 @@ function DashboardContent() {
                           <tr className="hover:bg-gray-50">
                             <td className="px-6 py-4">
                               <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                              <div className="text-sm text-gray-500">SKU: {product.sku}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               <div className="flex items-center gap-2">
@@ -1494,6 +1493,10 @@ function DashboardContent() {
                                       <div>
                                         <p className="text-sm font-medium text-gray-500">Product Name</p>
                                         <p className="text-base text-gray-900 mt-1">{product.name}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-500">SKU</p>
+                                        <p className="text-base text-gray-900 mt-1">{product.sku}</p>
                                       </div>
                                       {product.description && (
                                         <div className="md:col-span-2">
@@ -1715,10 +1718,6 @@ function DashboardContent() {
                       <div>
                         <p className="text-sm font-medium text-gray-500">Product Name</p>
                         <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.name}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">SKU</p>
-                        <p className="text-base text-gray-900 mt-1">{selectedProductForDetails.sku}</p>
                       </div>
                       {selectedProductForDetails.description && (
                         <div className="md:col-span-2">
