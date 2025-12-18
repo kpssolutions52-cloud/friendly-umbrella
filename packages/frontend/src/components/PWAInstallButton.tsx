@@ -13,8 +13,19 @@ export function PWAInstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    // Detect iOS devices
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(iOS);
+
+    // Don't show install button on iOS (uses "Add to Home Screen" instead)
+    if (iOS) {
+      return;
+    }
+
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
@@ -78,8 +89,8 @@ export function PWAInstallButton() {
     localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
 
-  // Don't show if already installed or not installable
-  if (isInstalled || !showInstallButton || !deferredPrompt) {
+  // Don't show on iOS or if already installed or not installable
+  if (isIOS || isInstalled || !showInstallButton || !deferredPrompt) {
     return null;
   }
 
