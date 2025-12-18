@@ -433,55 +433,48 @@ export default function Home() {
             </button>
           </div>
         </div>
-        {/* Advanced Modern Search & Filter Bar */}
+        {/* Optimized Search & Filter Bar */}
         <div id="mobile-search-trigger" className="sticky top-16 sm:top-0 sm:relative z-30 mb-6">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            <form onSubmit={handleSearch} className="space-y-0">
-              {/* Search Bar with Modern Design */}
-              <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border-b border-gray-200">
-                <div className="flex-1 relative">
-                  <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    id="mobile-search-input"
-                    type="text"
-                    placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white rounded-lg transition-all shadow-sm hover:border-gray-300"
-                  />
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <form onSubmit={handleSearch}>
+              {/* Clean Search Bar */}
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 relative">
+                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="mobile-search-input"
+                      type="text"
+                      placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 h-11 text-base border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
+                    />
+                  </div>
+                  {/* Filter Toggle - Mobile Only */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`sm:hidden p-2.5 rounded-lg transition-colors ${
+                      showFilters || selectedMainCategoryId || selectedSubCategoryId || selectedSupplier
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    aria-label="Toggle filters"
+                  >
+                    <Filter className="w-5 h-5" />
+                    {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && !showFilters && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    )}
+                  </button>
                 </div>
-                {/* Filter Toggle Button - Mobile Only */}
-                <button
-                  type="button"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`sm:hidden relative p-3 rounded-lg transition-all ${
-                    showFilters || selectedMainCategoryId || selectedSubCategoryId || selectedSupplier
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200'
-                  }`}
-                  aria-label="Toggle filters"
-                >
-                  <Filter className="w-5 h-5" />
-                  {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && !showFilters && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                  )}
-                </button>
-                {/* Search Button - Mobile */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="sm:hidden h-12 px-4 flex-shrink-0 bg-blue-600 hover:bg-blue-700 shadow-md"
-                >
-                  <SearchIcon className="w-5 h-5" />
-                </Button>
               </div>
 
-              {/* Active Filter Chips - Always Visible */}
+              {/* Active Filters - Clean Chips */}
               {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier) && (
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Filters:</span>
+                <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 flex flex-wrap items-center gap-2">
                   {selectedMainCategoryId && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-200">
                       {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
                       <button
                         type="button"
@@ -492,14 +485,14 @@ export default function Home() {
                           setSubServiceCategories([]);
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-blue-100 rounded p-0.5 transition-colors -mr-0.5"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {selectedSubCategoryId && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium border border-indigo-200">
                       {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
                       <button
                         type="button"
@@ -507,14 +500,14 @@ export default function Home() {
                           setSelectedSubCategoryId('');
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-indigo-200 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-indigo-100 rounded p-0.5 transition-colors -mr-0.5"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
                   {selectedSupplier && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-medium border border-purple-200">
                       {(activeTab === 'products' ? suppliers : serviceProviders).find(p => p.id === selectedSupplier)?.name || 'Provider'}
                       <button
                         type="button"
@@ -522,9 +515,9 @@ export default function Home() {
                           setSelectedSupplier('');
                           setCurrentPage(1);
                         }}
-                        className="hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-purple-100 rounded p-0.5 transition-colors -mr-0.5"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   )}
@@ -538,24 +531,23 @@ export default function Home() {
                       setSubServiceCategories([]);
                       setCurrentPage(1);
                     }}
-                    className="ml-auto text-xs font-medium text-gray-600 hover:text-gray-900 underline"
+                    className="ml-auto text-xs font-medium text-gray-500 hover:text-gray-700"
                   >
-                    Clear All
+                    Clear all
                   </button>
                 </div>
               )}
               
-              {/* Advanced Filter Section - Collapsible on Mobile, Always Visible on Desktop */}
+              {/* Simplified Filter Section */}
               <div
                 className={`${
                   showFilters ? 'block' : 'hidden'
-                } sm:block bg-white p-4 sm:p-6`}
+                } sm:block p-4`}
               >
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Main Category Filter */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                      <Filter className="w-4 h-4 text-blue-600" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Main Category */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Main Category
                     </label>
                     <div className="relative">
@@ -563,7 +555,7 @@ export default function Home() {
                         key={`main-category-${activeTab}`}
                         value={selectedMainCategoryId}
                         onChange={(e) => handleMainCategoryChange(e.target.value)}
-                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-4 py-3 pr-10 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm"
+                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
                       >
                         <option value="">All Categories</option>
                         {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
@@ -572,14 +564,13 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* Sub Category Filter */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                      <Filter className="w-4 h-4 text-indigo-600" />
+                  {/* Sub Category */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Sub Category
                     </label>
                     <div className="relative">
@@ -588,7 +579,7 @@ export default function Home() {
                         value={selectedSubCategoryId}
                         onChange={(e) => handleSubCategoryChange(e.target.value)}
                         disabled={!selectedMainCategoryId || loadingSubCategories}
-                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-4 py-3 pr-10 text-sm font-medium text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-200"
+                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
                       >
                         <option value="">
                           {loadingSubCategories 
@@ -605,14 +596,13 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
 
-                  {/* Supplier/Service Provider Filter */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                      <Filter className="w-4 h-4 text-purple-600" />
+                  {/* Supplier/Service Provider */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
                     </label>
                     <div className="relative">
@@ -620,7 +610,7 @@ export default function Home() {
                         key={`supplier-${activeTab}`}
                         value={selectedSupplier}
                         onChange={(e) => handleSupplierChange(e.target.value)}
-                        className="w-full appearance-none rounded-lg border-2 border-gray-200 bg-white px-4 py-3 pr-10 text-sm font-medium text-gray-900 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all cursor-pointer hover:border-gray-300 shadow-sm"
+                        className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
                       >
                         <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
                         {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
@@ -629,7 +619,7 @@ export default function Home() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
                 </div>

@@ -1177,18 +1177,18 @@ function DashboardContent() {
                   <div className="flex items-center mb-2">
                     <div className="p-2 bg-blue-100 rounded-lg mr-3">
                       <Package className="w-5 h-5 text-blue-600" />
-                    </div>
+                  </div>
                     <dt className="text-sm font-medium text-gray-600">
                       Total Services
                     </dt>
-                  </div>
+                </div>
                   <div className="text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
                       stats.totalProducts
                     )}
-                  </div>
+              </div>
                   {!isLoadingStats && stats.totalProducts > 0 && (
                     <div className="flex items-center text-xs text-gray-500">
                       <span>All your services</span>
@@ -1211,18 +1211,18 @@ function DashboardContent() {
                   <div className="flex items-center mb-2">
                     <div className="p-2 bg-green-100 rounded-lg mr-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
+                  </div>
                     <dt className="text-sm font-medium text-gray-600">
                       Active Services
                     </dt>
-                  </div>
+                </div>
                   <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
                       stats.activeProducts
                     )}
-                  </div>
+              </div>
                   {!isLoadingStats && stats.totalProducts > 0 && (
                     <div className="flex items-center text-xs text-gray-500">
                       <span>
@@ -1250,18 +1250,18 @@ function DashboardContent() {
                   <div className="flex items-center mb-2">
                     <div className="p-2 bg-purple-100 rounded-lg mr-3">
                       <DollarSign className="w-5 h-5 text-purple-600" />
-                    </div>
+                  </div>
                     <dt className="text-sm font-medium text-gray-600">
                       Private Prices
                     </dt>
-                  </div>
+                </div>
                   <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? (
                       <Skeleton className="h-8 w-16" />
                     ) : (
                       stats.productsWithPrivatePrices
                     )}
-                  </div>
+              </div>
                   {!isLoadingStats && stats.totalProducts > 0 && (
                     <div className="flex items-center text-xs text-gray-500">
                       <span>
@@ -1272,9 +1272,9 @@ function DashboardContent() {
                     </div>
                   )}
                 </div>
-              </div>
             </div>
           </div>
+        </div>
 
           {/* Quick Insights Card */}
           <div 
@@ -1449,7 +1449,7 @@ function DashboardContent() {
 
             {/* Toolbar: Search, Sort, View Toggle */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              {/* Search Bar */}
+            {/* Search Bar */}
               <div className="relative flex-1 max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
@@ -1492,7 +1492,7 @@ function DashboardContent() {
                     <option value="status-asc">Status (Active First)</option>
                     <option value="status-desc">Status (Inactive First)</option>
                   </select>
-                </div>
+            </div>
 
                 {/* View Toggle */}
                 <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
@@ -1582,13 +1582,13 @@ function DashboardContent() {
                     <div className="p-3 flex-1 flex flex-col">
                       <div className="flex justify-end mb-2">
                         <Skeleton className="h-5 w-16 rounded-full" />
-                      </div>
+              </div>
                       <Skeleton className="h-4 w-full mb-2" />
                       <Skeleton className="h-3 w-3/4 mb-3" />
                       <Skeleton className="h-3 w-full mb-2" />
                       <Skeleton className="h-3 w-2/3 mb-2" />
                       <Skeleton className="h-4 w-1/2 mb-2" />
-                    </div>
+              </div>
                     <div className="p-3 pt-0 border-t border-gray-100 space-y-2">
                       <Skeleton className="h-8 w-full rounded-md" />
                       <div className="grid grid-cols-2 gap-2">
@@ -1696,20 +1696,20 @@ function DashboardContent() {
                                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                                 onClick={(e) => e.stopPropagation()}
                               />
-                              <span
+                          <span
                                 className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
-                                  product.isActive
+                              product.isActive
                                     ? 'bg-green-50 text-green-700 border-green-200'
                                     : 'bg-red-50 text-red-700 border-red-200'
-                                }`}
-                              >
+                            }`}
+                          >
                                 {product.isActive ? (
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                 ) : (
                                   <XCircle className="w-3 h-3 mr-1" />
                                 )}
-                                {product.isActive ? 'Active' : 'Inactive'}
-                              </span>
+                            {product.isActive ? 'Active' : 'Inactive'}
+                          </span>
                             </div>
 
                             {/* Service Name */}
@@ -1762,31 +1762,31 @@ function DashboardContent() {
                               Edit
                             </Button>
                             <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleToggleInactive(product)}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleToggleInactive(product)}
                                 className={`h-10 sm:h-8 text-sm sm:text-xs md:text-sm px-2 touch-target transition-colors ${
                                   !product.isActive 
                                     ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
                                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
-                                }`}
-                              >
+                              }`}
+                            >
                                 {product.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
-                              {user?.role === 'service_provider_admin' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setDeleteConfirm(product.id)}
+                            </Button>
+                            {user?.role === 'service_provider_admin' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDeleteConfirm(product.id)}
                                   className="h-8 text-xs md:text-sm px-2 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target transition-colors"
-                                >
+                              >
                                   <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                  Delete
-                                </Button>
-                              )}
-                            </div>
+                                Delete
+                              </Button>
+                            )}
                           </div>
+                </div>
                         </div>
                       );
                     })}
@@ -1850,26 +1850,26 @@ function DashboardContent() {
                             />
 
                             {/* Service Info */}
-                            <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
                                 <h3 className="text-base font-semibold text-gray-900 truncate">
                                   {product.name}
                                 </h3>
-                                <span
+                        <span
                                   className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ml-2 flex-shrink-0 ${
-                                    product.isActive
+                            product.isActive
                                       ? 'bg-green-50 text-green-700 border-green-200'
                                       : 'bg-red-50 text-red-700 border-red-200'
-                                  }`}
-                                >
+                          }`}
+                        >
                                   {product.isActive ? (
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                   ) : (
                                     <XCircle className="w-3 h-3 mr-1" />
                                   )}
-                                  {product.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                              </div>
+                          {product.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
                                 <div className="flex items-center">
                                   <Package className="w-4 h-4 mr-1.5 text-gray-400" />
@@ -1878,61 +1878,61 @@ function DashboardContent() {
                                 </div>
                                 <div className="flex items-center">
                                   <Tag className="w-4 h-4 mr-1.5 text-gray-400" />
-                                  <span className="text-gray-500">Category:</span>
+                          <span className="text-gray-500">Category:</span>
                                   <span className="ml-1 text-gray-900 font-medium truncate">{categoryText}</span>
-                                </div>
+                        </div>
                                 <div className="flex items-center">
-                                  <span className="text-gray-500">Unit:</span>
+                          <span className="text-gray-500">Unit:</span>
                                   <span className="ml-1 text-gray-900 font-medium">{product.unit}</span>
-                                </div>
+                        </div>
                                 <div className="flex items-center">
                                   <DollarSign className="w-4 h-4 mr-1.5 text-gray-400" />
-                                  <span className="text-gray-500">Rate:</span>
+                          <span className="text-gray-500">Rate:</span>
                                   <span className={`ml-1 font-semibold ${priceInfo.className}`}>{priceInfo.text}</span>
-                                </div>
-                              </div>
-                            </div>
+                        </div>
+                          </div>
+                      </div>
 
                             {/* Actions */}
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <Button
+                        <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => handleEditProduct(product)}
+                          variant="outline"
+                          onClick={() => handleEditProduct(product)}
                                 className="h-8 text-xs"
-                              >
+                        >
                                 <Edit className="w-3.5 h-3.5 mr-1" />
-                                Edit
-                              </Button>
-                              <Button
+                          Edit
+                        </Button>
+                          <Button
                                 size="sm"
-                                variant="outline"
-                                onClick={() => handleToggleInactive(product)}
+                            variant="outline"
+                            onClick={() => handleToggleInactive(product)}
                                 className={`h-8 text-xs ${
                                   !product.isActive 
                                     ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
                                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                }`}
-                              >
-                                {product.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
-                              {user?.role === 'service_provider_admin' && (
-                                <Button
+                            }`}
+                          >
+                            {product.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          {user?.role === 'service_provider_admin' && (
+                            <Button
                                   size="sm"
-                                  variant="outline"
-                                  onClick={() => setDeleteConfirm(product.id)}
+                              variant="outline"
+                              onClick={() => setDeleteConfirm(product.id)}
                                   className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                                >
+                            >
                                   <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                  Delete
-                                </Button>
-                              )}
-                            </div>
-                          </div>
+                              Delete
+                            </Button>
+                          )}
                         </div>
+                      </div>
+                    </div>
                       );
                     })}
-                  </div>
+                </div>
                 )}
 
                 {/* Enhanced Pagination */}
@@ -1942,7 +1942,7 @@ function DashboardContent() {
                     Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
                     <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
                     <span className="font-medium text-gray-900">{totalProducts}</span> services
-                    {totalPages > 1 && (
+                {totalPages > 1 && (
                       <span className="ml-2 text-gray-500">
                         (Page {currentPage} of {totalPages})
                       </span>
@@ -1952,22 +1952,22 @@ function DashboardContent() {
                   {/* Pagination Controls - Only show when multiple pages */}
                   {totalPages > 1 && (
                     <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newPage = currentPage - 1;
-                          setCurrentPage(newPage);
-                          fetchProducts(activeFilter, newPage);
-                        }}
-                        disabled={currentPage === 1 || isLoadingProducts}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newPage = currentPage - 1;
+                        setCurrentPage(newPage);
+                        fetchProducts(activeFilter, newPage);
+                      }}
+                      disabled={currentPage === 1 || isLoadingProducts}
                         className="min-w-[80px]"
-                      >
-                        Previous
-                      </Button>
+                    >
+                      Previous
+                    </Button>
 
                       {/* Page Numbers with Ellipsis */}
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
                         {/* Always show first page */}
                         {currentPage > 3 && totalPages > 7 && (
                           <>
@@ -1990,43 +1990,43 @@ function DashboardContent() {
                         )}
 
                         {/* Dynamic page numbers */}
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum: number;
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum: number;
                           if (totalPages <= 7) {
                             // Show all pages if 7 or fewer
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
                             // Show first 5 pages
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
                             // Show last 5 pages
-                            pageNum = totalPages - 4 + i;
-                          } else {
+                          pageNum = totalPages - 4 + i;
+                        } else {
                             // Show 2 pages before and after current
-                            pageNum = currentPage - 2 + i;
-                          }
+                          pageNum = currentPage - 2 + i;
+                        }
 
                           // Skip if already shown (first page)
                           if (pageNum === 1 && currentPage > 3 && totalPages > 7) {
                             return null;
                           }
 
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={currentPage === pageNum ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => {
-                                setCurrentPage(pageNum);
-                                fetchProducts(activeFilter, pageNum);
-                              }}
-                              disabled={isLoadingProducts}
-                              className="min-w-[40px]"
-                            >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setCurrentPage(pageNum);
+                              fetchProducts(activeFilter, pageNum);
+                            }}
+                            disabled={isLoadingProducts}
+                            className="min-w-[40px]"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
 
                         {/* Show ellipsis and last page if needed */}
                         {currentPage < totalPages - 2 && totalPages > 7 && (
@@ -2048,23 +2048,23 @@ function DashboardContent() {
                             </Button>
                           </>
                         )}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newPage = currentPage + 1;
-                          setCurrentPage(newPage);
-                          fetchProducts(activeFilter, newPage);
-                        }}
-                        disabled={currentPage === totalPages || isLoadingProducts}
-                        className="min-w-[80px]"
-                      >
-                        Next
-                      </Button>
                     </div>
-                  )}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newPage = currentPage + 1;
+                        setCurrentPage(newPage);
+                        fetchProducts(activeFilter, newPage);
+                      }}
+                      disabled={currentPage === totalPages || isLoadingProducts}
+                        className="min-w-[80px]"
+                    >
+                      Next
+                    </Button>
+                </div>
+                )}
                 </div>
               </>
             )}
