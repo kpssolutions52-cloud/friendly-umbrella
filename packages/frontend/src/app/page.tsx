@@ -11,7 +11,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Filter, X, ChevronDown, Search as SearchIcon } from 'lucide-react';
+import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -230,20 +230,23 @@ export default function Home() {
 
   // Debounced search - optimize API calls
   useEffect(() => {
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
+    if (!authLoading && !user) {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+
+      const timer = setTimeout(() => {
+        setCurrentPage(1);
+        loadProducts();
+      }, 500); // 500ms debounce
+
+      setSearchDebounceTimer(timer);
+
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
     }
-
-    const timer = setTimeout(() => {
-      setCurrentPage(1);
-      loadProducts();
-    }, 500); // 500ms debounce
-
-    setSearchDebounceTimer(timer);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Load products/services when filters/tab change (not search - handled by debounce)
@@ -379,7 +382,7 @@ export default function Home() {
     }
 
     return filtered;
-  }, [priceRange, activeTab, getEffectivePrice]);
+  }, [priceRange, activeTab]);
 
   const sortProducts = (productsToSort: PublicProduct[]): PublicProduct[] => {
     const sorted = [...productsToSort];
@@ -645,8 +648,8 @@ export default function Home() {
               onClick={() => setShowFilterSidebar(false)}
             />
             {/* Filter Sidebar */}
-            <div className={`fixed md:sticky top-0 left-0 h-full md:h-auto w-80 md:w-64 bg-white border-r md:border-r-0 md:border border-gray-200 shadow-xl md:shadow-sm z-50 md:z-auto overflow-y-auto ${
-              showFilterSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:block'
+            <div className={`fixed md:sticky top-20 left-0 h-full md:h-auto w-80 md:w-64 bg-white border-r md:border border-gray-200 shadow-xl md:shadow-sm z-50 md:z-10 overflow-y-auto ${
+              showFilterSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
             } transition-transform duration-300`}>
               <div className="p-4 md:p-5">
                 {/* Header */}
@@ -803,12 +806,6 @@ export default function Home() {
 
         {/* Products/Services Section */}
         <div className="mb-6 flex gap-6">
-          {/* Filter Sidebar - Desktop (sticky) */}
-          {showFilterSidebar && (
-            <div className="hidden md:block w-64 flex-shrink-0">
-              {/* Sidebar content is rendered above */}
-            </div>
-          )}
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
@@ -991,7 +988,6 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            </div>
             </>
           )}
         </div>
