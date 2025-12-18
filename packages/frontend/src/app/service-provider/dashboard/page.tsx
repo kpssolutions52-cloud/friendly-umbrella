@@ -22,7 +22,12 @@ import {
   DollarSign,
   Package,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Grid3x3,
+  List,
+  MoreVertical,
+  ArrowUpDown,
+  X
 } from 'lucide-react';
 
 export default function ServiceProviderDashboardPage() {
@@ -119,6 +124,12 @@ function DashboardContent() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 18;
+  
+  // Phase 2: Bulk selection, sorting, and view mode
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'date' | 'status'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -273,13 +284,114 @@ function DashboardContent() {
       setCurrentPage(1);
       setTotalPages(1);
       setTotalProducts(0);
+      setSelectedProducts(new Set()); // Clear selection
     } else {
       // Reset to first page when changing filter
       setCurrentPage(1);
       setSearchQuery(''); // Clear search when changing filter
       setActiveFilter(filter);
+      setSelectedProducts(new Set()); // Clear selection
       fetchProducts(filter, 1);
     }
+  };
+
+  // Phase 2: Bulk selection handlers
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const filteredProducts = products.filter(product => 
+      searchQuery === '' || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedProducts.size} service(s)?`)) {
+      return;
+    }
+    
+    try {
+      setIsLoadingProducts(true);
+      const deletePromises = Array.from(selectedProducts).map(id => apiDelete(`/api/v1/products/${id}`));
+      await Promise.all(deletePromises);
+      setSelectedProducts(new Set());
+      await fetchProducts(activeFilter, currentPage);
+      await fetchStats();
+    } catch (err) {
+      console.error('Failed to delete services:', err);
+      alert('Failed to delete some services. Please try again.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const handleBulkToggleActive = async () => {
+    try {
+      setIsLoadingProducts(true);
+      const togglePromises = Array.from(selectedProducts).map(async (id) => {
+        const product = products.find(p => p.id === id);
+        if (product) {
+          return apiPut(`/api/v1/products/${id}`, { isActive: !product.isActive });
+        }
+      });
+      await Promise.all(togglePromises);
+      setSelectedProducts(new Set());
+      await fetchProducts(activeFilter, currentPage);
+      await fetchStats();
+    } catch (err) {
+      console.error('Failed to toggle services:', err);
+      alert('Failed to update some services. Please try again.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  // Phase 2: Sorting function
+  const getSortedProducts = (productsToSort: Product[]) => {
+    const filtered = productsToSort.filter(product => 
+      searchQuery === '' || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'price':
+          const priceA = a.ratePerHour || 0;
+          const priceB = b.ratePerHour || 0;
+          comparison = priceA - priceB;
+          break;
+        case 'status':
+          comparison = (a.isActive ? 1 : 0) - (b.isActive ? 1 : 0);
+          break;
+        case 'date':
+          // Assuming products have createdAt or similar - using id as fallback
+          comparison = a.id.localeCompare(b.id);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
   };
 
   const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -1103,9 +1215,10 @@ function DashboardContent() {
               </button>
             </div>
 
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className="relative">
+            {/* Toolbar: Search, Sort, View Toggle */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
                 </div>
@@ -1114,7 +1227,7 @@ function DashboardContent() {
                   placeholder="Search services by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-full max-w-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="pl-10 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 {searchQuery && (
                   <button
@@ -1125,7 +1238,110 @@ function DashboardContent() {
                   </button>
                 )}
               </div>
+
+              {/* Sort and View Controls */}
+              <div className="flex items-center gap-2">
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [by, order] = e.target.value.split('-') as [typeof sortBy, typeof sortOrder];
+                      setSortBy(by);
+                      setSortOrder(order);
+                    }}
+                    className="text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="price-asc">Price (Low-High)</option>
+                    <option value="price-desc">Price (High-Low)</option>
+                    <option value="status-asc">Status (Active First)</option>
+                    <option value="status-desc">Status (Inactive First)</option>
+                  </select>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 transition-colors ${
+                      viewMode === 'grid' 
+                        ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 transition-colors border-l border-gray-300 ${
+                      viewMode === 'list' 
+                        ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Select All Checkbox */}
+            {getSortedProducts(products).length > 0 && (
+              <div className="mb-3 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={getSortedProducts(products).length > 0 && getSortedProducts(products).every(p => selectedProducts.has(p.id))}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                />
+                <label className="text-sm text-gray-700 cursor-pointer">
+                  Select all ({getSortedProducts(products).length} services)
+                </label>
+              </div>
+            )}
+
+            {/* Bulk Action Toolbar */}
+            {selectedProducts.size > 0 && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedProducts.size} service{selectedProducts.size > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedProducts(new Set())}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkToggleActive}
+                    disabled={isLoadingProducts}
+                    className="text-xs"
+                  >
+                    {products.find(p => selectedProducts.has(p.id))?.isActive ? 'Deactivate' : 'Activate'} Selected
+                  </Button>
+                  {user?.role === 'service_provider_admin' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleBulkDelete}
+                      disabled={isLoadingProducts}
+                      className="text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      Delete Selected
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {isLoadingProducts ? (
               <div className="text-center py-12">
@@ -1155,14 +1371,10 @@ function DashboardContent() {
               </div>
             ) : (
               <>
-                {/* Responsive Grid Layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 md:gap-2">
-                  {products
-                    .filter(product => 
-                      searchQuery === '' || 
-                      product.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .map((product) => {
+                {/* Responsive Grid/List Layout */}
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 md:gap-2">
+                    {getSortedProducts(products).map((product) => {
                       // Format price/rate display
                       const formatPrice = () => {
                         if (product.ratePerHour === null || product.ratePerHour === undefined) {
@@ -1191,15 +1403,43 @@ function DashboardContent() {
                           : product.serviceCategory.name) 
                         : '-';
 
+                      const isSelected = selectedProducts.has(product.id);
+
                       return (
                         <div
                           key={product.id}
-                          className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-200 flex flex-col h-full group"
+                          className={`bg-gradient-to-br from-white to-gray-50/50 rounded-lg border shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col h-full group ${
+                            isSelected 
+                              ? 'border-blue-500 ring-2 ring-blue-200' 
+                              : 'border-gray-200 hover:border-blue-200'
+                          }`}
                         >
                           {/* Card Header */}
                           <div className="p-3 md:p-3 flex-1 flex flex-col">
-                            {/* Status Badge */}
-                            <div className="flex justify-end mb-2">
+                            {/* Selection Checkbox and Status Badge */}
+                            <div className="flex items-center justify-between mb-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleSelectProduct(product.id)}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <span
+                                className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
+                                  product.isActive
+                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                    : 'bg-red-50 text-red-700 border-red-200'
+                                }`}
+                              >
+                                {product.isActive ? (
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                )}
+                                {product.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
                               <span
                                 className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
                                   product.isActive
@@ -1294,7 +1534,143 @@ function DashboardContent() {
                         </div>
                       );
                     })}
-                </div>
+                  </div>
+                ) : (
+                  /* List View */
+                  <div className="space-y-2">
+                    {getSortedProducts(products).map((product) => {
+                      const isSelected = selectedProducts.has(product.id);
+                      const formatPrice = () => {
+                        if (product.ratePerHour === null || product.ratePerHour === undefined) {
+                          return { text: 'Rate not set', className: 'text-gray-400' };
+                        }
+                        const rate = Number(product.ratePerHour).toFixed(2);
+                        const currency = formData.currency || 'USD';
+                        switch (product.rateType) {
+                          case 'per_hour':
+                            return { text: `${rate}/hr`, className: 'text-gray-900' };
+                          case 'per_project':
+                            return { text: `${rate}/project`, className: 'text-gray-900' };
+                          case 'fixed':
+                            return { text: `${currency} ${rate}`, className: 'text-gray-900' };
+                          case 'negotiable':
+                            return { text: `From ${rate}/hr`, className: 'text-gray-900' };
+                          default:
+                            return { text: `${rate}/hr`, className: 'text-gray-900' };
+                        }
+                      };
+
+                      const priceInfo = formatPrice();
+                      const categoryText = product.serviceCategory 
+                        ? (product.serviceCategory.parent 
+                          ? `${product.serviceCategory.parent.name} > ${product.serviceCategory.name}` 
+                          : product.serviceCategory.name) 
+                        : '-';
+
+                      return (
+                        <div
+                          key={product.id}
+                          className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 ${
+                            isSelected 
+                              ? 'border-blue-500 ring-2 ring-blue-200' 
+                              : 'border-gray-200 hover:border-blue-200'
+                          }`}
+                        >
+                          <div className="p-4 flex items-center gap-4">
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSelectProduct(product.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+
+                            {/* Service Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h3 className="text-base font-semibold text-gray-900 truncate">
+                                  {product.name}
+                                </h3>
+                                <span
+                                  className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ml-2 flex-shrink-0 ${
+                                    product.isActive
+                                      ? 'bg-green-50 text-green-700 border-green-200'
+                                      : 'bg-red-50 text-red-700 border-red-200'
+                                  }`}
+                                >
+                                  {product.isActive ? (
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                  ) : (
+                                    <XCircle className="w-3 h-3 mr-1" />
+                                  )}
+                                  {product.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
+                                <div className="flex items-center">
+                                  <Package className="w-4 h-4 mr-1.5 text-gray-400" />
+                                  <span className="text-gray-500">SKU:</span>
+                                  <span className="ml-1 text-gray-900 font-medium">{product.sku}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Tag className="w-4 h-4 mr-1.5 text-gray-400" />
+                                  <span className="text-gray-500">Category:</span>
+                                  <span className="ml-1 text-gray-900 font-medium truncate">{categoryText}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="text-gray-500">Unit:</span>
+                                  <span className="ml-1 text-gray-900 font-medium">{product.unit}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <DollarSign className="w-4 h-4 mr-1.5 text-gray-400" />
+                                  <span className="text-gray-500">Rate:</span>
+                                  <span className={`ml-1 font-semibold ${priceInfo.className}`}>{priceInfo.text}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditProduct(product)}
+                                className="h-8 text-xs"
+                              >
+                                <Edit className="w-3.5 h-3.5 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleInactive(product)}
+                                className={`h-8 text-xs ${
+                                  !product.isActive 
+                                    ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
+                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                {product.isActive ? 'Deactivate' : 'Activate'}
+                              </Button>
+                              {user?.role === 'service_provider_admin' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setDeleteConfirm(product.id)}
+                                  className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Enhanced Pagination */}
                 <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
