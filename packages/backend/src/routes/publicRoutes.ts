@@ -203,6 +203,10 @@ router.get(
           : (product as any).category || null;
       }
 
+      // Extract location from metadata
+      const metadata = (product as any).metadata as Record<string, any> | null;
+      const location = metadata?.location || null;
+
       const productWithPrices = {
         id: product.id,
         sku: product.sku,
@@ -213,6 +217,7 @@ router.get(
         unit: product.unit,
         ratePerHour: (product as any).type === 'service' ? ((product as any).ratePerHour ? Number((product as any).ratePerHour) : null) : undefined,
         rateType: (product as any).type === 'service' ? ((product as any).rateType || null) : undefined,
+        location: location,
         supplierId: product.supplier.id,
         supplierName: product.supplier.name,
         supplierLogoUrl: product.supplier.logoUrl,
