@@ -430,7 +430,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32 sm:pb-0 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0 flex flex-col">
       {/* Modern Header with Logo */}
       <Header />
 
@@ -491,9 +491,9 @@ export default function Home() {
             </button>
           </div>
         </div>
-        {/* Market-Standard Search & Filter Bar */}
-        <div className="mb-6">
-          {/* Search Bar - Always Visible */}
+        {/* Market-Standard Search & Filter Bar - Desktop Only */}
+        <div className="mb-6 hidden md:block">
+          {/* Search Bar - Desktop Only */}
           <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-4">
             <form onSubmit={handleSearch} className="p-4">
               <div className="flex items-center gap-3">
@@ -1013,73 +1013,49 @@ export default function Home() {
       {/* Bottom Navigation - Mobile Only */}
       <BottomNavigation />
 
-      {/* Mobile Bottom Tab Bar - Search, Filter, Sort */}
-      <div className="fixed bottom-16 left-0 right-0 md:hidden z-[55] bg-white border-t border-gray-200 shadow-lg">
-        <div className="flex items-center justify-around px-2 py-2">
-          {/* Search Button */}
-          <button
-            onClick={() => setShowMobileSearchModal(true)}
-            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1"
-          >
-            <div className="relative">
-              <SearchIcon className={`w-6 h-6 ${searchQuery ? 'text-blue-600' : 'text-gray-600'}`} />
-              {searchQuery && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
-              )}
-            </div>
-            <span className={`text-xs font-medium ${searchQuery ? 'text-blue-600' : 'text-gray-600'}`}>
-              Search
-            </span>
-          </button>
+      {/* Floating Filter Button - Mobile Only (when filters are active) */}
+      {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 || searchQuery) && (
+        <button
+          onClick={() => setShowMobileFilterModal(true)}
+          className="fixed bottom-20 right-4 md:hidden z-[55] bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-all flex items-center gap-2"
+        >
+          <SlidersHorizontal className="w-5 h-5" />
+          <span className="text-sm font-semibold">Filters</span>
+          <span className="bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+            {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000, searchQuery].filter(Boolean).length}
+          </span>
+        </button>
+      )}
 
-          {/* Filter Button */}
-          <button
-            onClick={() => setShowMobileFilterModal(true)}
-            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1 relative"
-          >
-            <div className="relative">
-              <SlidersHorizontal className={`w-6 h-6 ${selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 ? 'text-blue-600' : 'text-gray-600'}`} />
-              {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000) && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white text-[10px] flex items-center justify-center text-white font-bold">
-                  {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000].filter(Boolean).length}
-                </span>
-              )}
-            </div>
-            <span className={`text-xs font-medium ${selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 ? 'text-blue-600' : 'text-gray-600'}`}>
-              Filter
-            </span>
-          </button>
-
-          {/* Sort Button */}
-          <button
-            onClick={() => setShowMobileSortModal(true)}
-            className="flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200 flex-1"
-          >
-            <ArrowUpDown className="w-6 h-6 text-gray-600" />
-            <span className="text-xs font-medium text-gray-600">Sort</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Search Bottom Sheet */}
-      {showMobileSearchModal && (
+      {/* Unified Mobile Search & Filter Bottom Sheet */}
+      {(showMobileSearchModal || showMobileFilterModal) && (
         <>
           <div 
             className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
-            onClick={() => setShowMobileSearchModal(false)}
+            onClick={() => {
+              setShowMobileSearchModal(false);
+              setShowMobileFilterModal(false);
+            }}
           />
-          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] flex flex-col">
+          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] flex flex-col">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Search</h3>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <SearchIcon className="w-5 h-5 text-blue-600" />
+                  Search & Filter
+                </h3>
                 <button
-                  onClick={() => setShowMobileSearchModal(false)}
+                  onClick={() => {
+                    setShowMobileSearchModal(false);
+                    setShowMobileFilterModal(false);
+                  }}
                   className="p-2 rounded-lg hover:bg-gray-100"
                 >
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
-              <form onSubmit={(e) => { handleSearch(e); setShowMobileSearchModal(false); }} className="relative">
+              {/* Search Input */}
+              <form onSubmit={(e) => { handleSearch(e); setShowMobileSearchModal(false); setShowMobileFilterModal(false); }} className="relative mb-4">
                 <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
                   type="text"
@@ -1100,40 +1076,34 @@ export default function Home() {
                 )}
               </form>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
-              {searchQuery && (
-                <div className="py-4">
-                  <p className="text-sm text-gray-500">Press Enter or tap outside to search</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Mobile Filter Bottom Sheet */}
-      {showMobileFilterModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
-            onClick={() => setShowMobileFilterModal(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <SlidersHorizontal className="w-5 h-5 text-blue-600" />
-                  Filters
-                </h3>
-                <button
-                  onClick={() => setShowMobileFilterModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+              {/* Sort Section */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  Sort By
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'price-low-high', label: 'Price: Low to High' },
+                    { value: 'price-high-low', label: 'Price: High to Low' },
+                    { value: 'name-a-z', label: 'Name: A to Z' },
+                    { value: 'name-z-a', label: 'Name: Z to A' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSortBy(option.value)}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                        sortBy === option.value
+                          ? 'bg-blue-50 text-blue-600 font-medium border-2 border-blue-500'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-2 border-transparent'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Price Range Filter */}
               {activeTab === 'products' && (
                 <div>
@@ -1242,16 +1212,18 @@ export default function Home() {
                   onClick={() => {
                     setCurrentPage(1);
                     loadProducts();
+                    setShowMobileSearchModal(false);
                     setShowMobileFilterModal(false);
                   }}
                   className="flex-1 h-11"
                 >
-                  Apply Filters
+                  Apply
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
+                    setSearchQuery('');
                     setSelectedMainCategoryId('');
                     setSelectedSubCategoryId('');
                     setSelectedSupplier('');
@@ -1262,7 +1234,7 @@ export default function Home() {
                   }}
                   className="flex-1 h-11"
                 >
-                  Clear
+                  Clear All
                 </Button>
               </div>
             </div>
@@ -1270,56 +1242,6 @@ export default function Home() {
         </>
       )}
 
-      {/* Mobile Sort Bottom Sheet */}
-      {showMobileSortModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
-            onClick={() => setShowMobileSortModal(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 md:hidden z-[70] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[60vh] flex flex-col">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 rounded-t-3xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <ArrowUpDown className="w-5 h-5 text-blue-600" />
-                  Sort By
-                </h3>
-                <button
-                  onClick={() => setShowMobileSortModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              <div className="space-y-2">
-                {[
-                  { value: 'price-low-high', label: 'Price: Low to High' },
-                  { value: 'price-high-low', label: 'Price: High to Low' },
-                  { value: 'name-a-z', label: 'Name: A to Z' },
-                  { value: 'name-z-a', label: 'Name: Z to A' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSortBy(option.value);
-                      setShowMobileSortModal(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                      sortBy === option.value
-                        ? 'bg-blue-50 text-blue-600 font-medium border-2 border-blue-500'
-                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-2 border-transparent'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

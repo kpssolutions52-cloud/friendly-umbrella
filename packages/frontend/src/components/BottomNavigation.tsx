@@ -4,7 +4,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
-export function BottomNavigation() {
+interface BottomNavigationProps {
+  onSearchClick?: () => void;
+}
+
+export function BottomNavigation({ onSearchClick }: BottomNavigationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -40,15 +44,20 @@ export function BottomNavigation() {
         {/* Search - Always visible on landing page */}
         <button
           onClick={() => {
-            const searchElement = document.getElementById('mobile-search-trigger');
-            if (searchElement) {
-              searchElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              setTimeout(() => {
-                const input = document.getElementById('mobile-search-input') as HTMLInputElement;
-                if (input) {
-                  input.focus();
-                }
-              }, 300);
+            if (onSearchClick) {
+              onSearchClick();
+            } else {
+              // Fallback: scroll to search if no handler provided
+              const searchElement = document.getElementById('mobile-search-trigger');
+              if (searchElement) {
+                searchElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => {
+                  const input = document.getElementById('mobile-search-input') as HTMLInputElement;
+                  if (input) {
+                    input.focus();
+                  }
+                }, 300);
+              }
             }
           }}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
