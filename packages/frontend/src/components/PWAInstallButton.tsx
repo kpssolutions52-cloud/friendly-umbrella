@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X } from 'lucide-react';
+import { Download, X, Share } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -14,6 +14,7 @@ export function PWAInstallButton() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
   useEffect(() => {
     // Detect iOS devices
@@ -21,14 +22,24 @@ export function PWAInstallButton() {
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     setIsIOS(iOS);
 
-    // Don't show install button on iOS (uses "Add to Home Screen" instead)
-    if (iOS) {
-      return;
-    }
-
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
+      return;
+    }
+
+    // For iOS, show install button (with custom instructions)
+    if (iOS) {
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      if (dismissed) {
+        const dismissedTime = parseInt(dismissed, 10);
+        const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
+        // Show again after 7 days
+        if (daysSinceDismissed < 7) {
+          return;
+        }
+      }
+      setShowInstallButton(true);
       return;
     }
 
