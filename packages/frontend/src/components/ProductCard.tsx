@@ -1,8 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
 
 interface ProductCardProps {
   product: {
@@ -60,7 +58,8 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   return (
     <div 
       onClick={onViewDetails}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full min-h-[320px] cursor-pointer"
+      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:border-blue-400 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex flex-col h-full min-h-[320px] cursor-pointer group"
+      title={isService ? 'Click to view service details' : 'Click to view product details'}
     >
       {/* Product Image - 50% */}
       <div className="relative w-full h-[50%] min-h-[160px] bg-gray-100 overflow-hidden flex-shrink-0">
