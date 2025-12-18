@@ -104,7 +104,16 @@ function DashboardContent() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 10;
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    sku: string;
+    name: string;
+    description: string;
+    categoryId: string;
+    mainCategoryId: string;
+    unit: string;
+    defaultPrice: string;
+    currency: string;
+  }>({
     sku: '',
     name: '',
     description: '',

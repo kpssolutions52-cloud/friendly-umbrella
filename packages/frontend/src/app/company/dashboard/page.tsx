@@ -1086,7 +1086,6 @@ function DashboardContent() {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h3 className="text-base font-semibold text-gray-900 mb-1">{product.name}</h3>
-                            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
                           </div>
                           <Button
                             variant="outline"
@@ -1197,10 +1196,6 @@ function DashboardContent() {
                               <div>
                                 <p className="text-xs font-medium text-gray-500">Product Name</p>
                                 <p className="text-sm text-gray-900 mt-1">{product.name}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs font-medium text-gray-500">SKU</p>
-                                <p className="text-sm text-gray-900 mt-1">{product.sku}</p>
                               </div>
                               {product.description && (
                                 <div>
@@ -1499,10 +1494,6 @@ function DashboardContent() {
                                       <div>
                                         <p className="text-sm font-medium text-gray-500">Product Name</p>
                                         <p className="text-base text-gray-900 mt-1">{product.name}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500">SKU</p>
-                                        <p className="text-base text-gray-900 mt-1">{product.sku}</p>
                                       </div>
                                       {product.description && (
                                         <div className="md:col-span-2">

@@ -495,7 +495,6 @@ function DashboardContent() {
                     </div>
                     <div className="p-4">
                       <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
-                      <p className="text-xs text-gray-500 mb-2">SKU: {product.sku}</p>
                       <div className="flex items-center gap-2 mb-2">
                         {product.supplierLogoUrl ? (
                           <img
@@ -571,7 +570,6 @@ function DashboardContent() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg text-gray-900 mb-1">{product.name}</h3>
-                        <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
                         <div className="flex items-center gap-2 mb-2">
                           {product.supplierLogoUrl ? (
                             <img

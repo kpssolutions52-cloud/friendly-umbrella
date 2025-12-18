@@ -1717,11 +1717,6 @@ function DashboardContent() {
                               {product.name}
                             </h3>
 
-                            {/* SKU */}
-                            <div className="flex items-center mb-2">
-                              <Package className="w-3 h-3 mr-1 text-gray-400" />
-                              <p className="text-xs text-gray-500">SKU: {product.sku}</p>
-                            </div>
 
                             {/* Category */}
                             <div className="mb-2">
@@ -1870,12 +1865,7 @@ function DashboardContent() {
                           {product.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-gray-600">
-                                <div className="flex items-center">
-                                  <Package className="w-4 h-4 mr-1.5 text-gray-400" />
-                                  <span className="text-gray-500">SKU:</span>
-                                  <span className="ml-1 text-gray-900 font-medium">{product.sku}</span>
-                                </div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-gray-600">
                                 <div className="flex items-center">
                                   <Tag className="w-4 h-4 mr-1.5 text-gray-400" />
                           <span className="text-gray-500">Category:</span>
