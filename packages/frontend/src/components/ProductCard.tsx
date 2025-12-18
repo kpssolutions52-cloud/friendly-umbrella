@@ -57,9 +57,9 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
   const rateType = isService ? (product.rateType || 'per_hour') : null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md hover:border-blue-300 transition-all duration-200 flex flex-col h-full min-h-[320px]">
       {/* Product Image - 50% */}
-      <div className="relative w-full h-[50%] bg-gray-100 overflow-hidden flex-shrink-0">
+      <div className="relative w-full h-[50%] min-h-[160px] bg-gray-100 overflow-hidden flex-shrink-0">
         {product.productImageUrl ? (
           <Image
             src={product.productImageUrl}
@@ -84,22 +84,22 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
       </div>
 
       {/* Product Details - 50% */}
-      <div className="w-full h-[50%] p-3 flex-1 flex flex-col">
+      <div className="w-full h-[50%] min-h-[160px] p-2.5 sm:p-3 flex flex-col flex-shrink-0">
         {/* Product Name */}
-        <div className="mb-2">
-          <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-2 leading-tight">
+        <div className="mb-1.5 flex-shrink-0">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 line-clamp-2 mb-1 leading-tight">
             {product.name}
           </h3>
           {product.category && (
-            <span className="text-xs text-gray-500 block mb-1">{product.category.split('>').pop()?.trim()}</span>
+            <span className="text-xs text-gray-500 block">{product.category.split('>').pop()?.trim()}</span>
           )}
         </div>
 
         {/* Supplier Info and Location - Compact */}
-        <div className="mb-2 space-y-1">
+        <div className="mb-1.5 space-y-0.5 flex-shrink-0">
           <div className="flex items-center gap-1.5">
             {product.supplierLogoUrl ? (
-              <div className="relative h-4 w-4 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
+              <div className="relative h-3.5 w-3.5 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
                 <Image
                   src={product.supplierLogoUrl}
                   alt={product.supplierName}
@@ -112,7 +112,7 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
                 />
               </div>
             ) : (
-              <div className="h-4 w-4 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-semibold text-gray-600 flex-shrink-0">
+              <div className="h-3.5 w-3.5 rounded-full bg-gray-200 flex items-center justify-center text-[7px] font-semibold text-gray-600 flex-shrink-0">
                 {product.supplierName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -131,7 +131,7 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         </div>
 
         {/* Pricing / Rate */}
-        <div className="mb-2.5 mt-auto">
+        <div className="mb-2 mt-auto flex-shrink-0">
           {isService ? (
             // Service Card: Show rate per hour
             ratePerHour !== null ? (
@@ -181,7 +181,7 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         {/* View Details Button */}
         <Button
           onClick={onViewDetails}
-          className={`w-full h-9 text-xs font-medium ${
+          className={`w-full h-8 sm:h-9 text-xs font-medium flex-shrink-0 ${
             isService ? 'bg-blue-600 hover:bg-blue-700' : ''
           }`}
           variant={isService ? 'default' : 'default'}
