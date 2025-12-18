@@ -11,6 +11,19 @@ import { apiPost, apiGet, apiPut, apiDelete, getMainServiceCategories, getServic
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import Link from 'next/link';
+import { 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  Search, 
+  Filter,
+  Tag,
+  DollarSign,
+  Package,
+  TrendingUp,
+  TrendingDown
+} from 'lucide-react';
 
 export default function ServiceProviderDashboardPage() {
   return (
@@ -991,8 +1004,8 @@ function DashboardContent() {
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div 
-            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
-              activeFilter === 'all' ? 'ring-2 ring-blue-500' : ''
+            className={`bg-gradient-to-br from-white to-blue-50/30 overflow-hidden shadow-sm rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border ${
+              activeFilter === 'all' ? 'ring-2 ring-blue-500 border-blue-200' : 'border-gray-200'
             }`}
             onClick={() => handleCardClick('all')}
           >
@@ -1005,7 +1018,8 @@ function DashboardContent() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
+                      <Package className="w-4 h-4 mr-1.5 text-blue-500" />
                       Total Services
                     </dt>
                   </dl>
@@ -1015,8 +1029,8 @@ function DashboardContent() {
           </div>
 
           <div 
-            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
-              activeFilter === 'active' ? 'ring-2 ring-blue-500' : ''
+            className={`bg-gradient-to-br from-white to-green-50/30 overflow-hidden shadow-sm rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border ${
+              activeFilter === 'active' ? 'ring-2 ring-green-500 border-green-200' : 'border-gray-200'
             }`}
             onClick={() => handleCardClick('active')}
           >
@@ -1029,7 +1043,8 @@ function DashboardContent() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-1.5 text-green-500" />
                       Active Services
                     </dt>
                   </dl>
@@ -1039,8 +1054,8 @@ function DashboardContent() {
           </div>
 
           <div 
-            className={`bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg ${
-              activeFilter === 'withPrivatePrices' ? 'ring-2 ring-blue-500' : ''
+            className={`bg-gradient-to-br from-white to-purple-50/30 overflow-hidden shadow-sm rounded-lg cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] border ${
+              activeFilter === 'withPrivatePrices' ? 'ring-2 ring-purple-500 border-purple-200' : 'border-gray-200'
             }`}
             onClick={() => handleCardClick('withPrivatePrices')}
           >
@@ -1053,7 +1068,8 @@ function DashboardContent() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-gray-600 truncate flex items-center">
+                      <DollarSign className="w-4 h-4 mr-1.5 text-purple-500" />
                       Private Prices
                     </dt>
                   </dl>
@@ -1081,11 +1097,9 @@ function DashboardContent() {
                   setProducts([]);
                   setSearchQuery('');
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
 
@@ -1093,25 +1107,21 @@ function DashboardContent() {
             <div className="mb-4">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="h-5 w-5 text-gray-400" />
                 </div>
                 <Input
                   type="text"
                   placeholder="Search services by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-full max-w-md"
+                  className="pl-10 w-full max-w-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <XCircle className="h-5 w-5" />
                   </button>
                 )}
               </div>
@@ -1125,27 +1135,21 @@ function DashboardContent() {
               </div>
             ) : (searchQuery ? products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())) : products).length === 0 ? (
               <div className="text-center py-12">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                  />
-                </svg>
-                <h3 className="mt-4 text-sm font-medium text-gray-900">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  {searchQuery ? (
+                    <Search className="h-8 w-8 text-gray-400" />
+                  ) : (
+                    <Package className="h-8 w-8 text-gray-400" />
+                  )}
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-gray-900">
                   {searchQuery ? 'No services found' : 'No services available'}
                 </h3>
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
                   {searchQuery ? (
-                    <>No services match &quot;{searchQuery}&quot;. Try adjusting your search terms.</>
+                    <>No services match &quot;<span className="font-medium text-gray-700">{searchQuery}</span>&quot;. Try adjusting your search terms.</>
                   ) : (
-                    <>Get started by adding your first service using the &quot;Add Service&quot; button.</>
+                    <>Get started by adding your first service using the &quot;Add Service&quot; button below.</>
                   )}
                 </p>
               </div>
@@ -1190,71 +1194,86 @@ function DashboardContent() {
                       return (
                         <div
                           key={product.id}
-                          className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
+                          className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all duration-200 flex flex-col h-full group"
                         >
                           {/* Card Header */}
-                          <div className="p-3 md:p-2 flex-1 flex flex-col">
+                          <div className="p-3 md:p-3 flex-1 flex flex-col">
                             {/* Status Badge */}
-                            <div className="flex justify-end mb-1.5 md:mb-1">
+                            <div className="flex justify-end mb-2">
                               <span
-                                className={`inline-flex px-1.5 py-0.5 md:px-1 md:py-0.5 text-[10px] md:text-[9px] font-semibold rounded-full ${
+                                className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${
                                   product.isActive
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                    ? 'bg-green-50 text-green-700 border-green-200'
+                                    : 'bg-red-50 text-red-700 border-red-200'
                                 }`}
                               >
+                                {product.isActive ? (
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                )}
                                 {product.isActive ? 'Active' : 'Inactive'}
                               </span>
                             </div>
 
                             {/* Service Name */}
-                            <h3 className="text-xs md:text-[11px] font-semibold text-gray-900 mb-1 md:mb-0.5 line-clamp-2 min-h-[2rem] md:min-h-[1.75rem]">
+                            <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem]">
                               {product.name}
                             </h3>
 
                             {/* SKU */}
-                            <p className="text-[10px] md:text-[9px] text-gray-500 mb-2 md:mb-1.5">SKU: {product.sku}</p>
+                            <div className="flex items-center mb-2">
+                              <Package className="w-3 h-3 mr-1 text-gray-400" />
+                              <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                            </div>
 
                             {/* Category */}
-                            <div className="mb-1.5 md:mb-1">
-                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Category</p>
-                              <p className="text-[10px] md:text-[9px] text-gray-900 font-medium line-clamp-1">{categoryText}</p>
+                            <div className="mb-2">
+                              <div className="flex items-center mb-0.5">
+                                <Tag className="w-3 h-3 mr-1 text-gray-400" />
+                                <p className="text-xs text-gray-500">Category</p>
+                              </div>
+                              <p className="text-xs text-gray-900 font-medium line-clamp-1 ml-4">{categoryText}</p>
                             </div>
 
                             {/* Unit */}
-                            <div className="mb-1.5 md:mb-1">
-                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Unit</p>
-                              <p className="text-[10px] md:text-[9px] text-gray-900 font-medium">{product.unit}</p>
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-500 mb-0.5">Unit</p>
+                              <p className="text-xs text-gray-900 font-medium">{product.unit}</p>
                             </div>
 
                             {/* Pricing/Rate */}
-                            <div className="mb-2 md:mb-1.5">
-                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Rate</p>
-                              <p className={`text-xs md:text-[11px] font-semibold ${priceInfo.className}`}>
+                            <div className="mb-2">
+                              <div className="flex items-center mb-0.5">
+                                <DollarSign className="w-3 h-3 mr-1 text-gray-400" />
+                                <p className="text-xs text-gray-500">Rate</p>
+                              </div>
+                              <p className={`text-sm md:text-base font-semibold ml-4 ${priceInfo.className}`}>
                                 {priceInfo.text}
                               </p>
                             </div>
                           </div>
 
                           {/* Card Actions */}
-                          <div className="p-3 md:p-2 pt-0 border-t border-gray-100 space-y-1.5 md:space-y-1">
+                          <div className="p-3 md:p-3 pt-0 border-t border-gray-100 space-y-2">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditProduct(product)}
-                              className="w-full h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1.5 touch-target"
+                              className="w-full h-8 md:h-8 text-xs md:text-sm px-3 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
                             >
+                              <Edit className="w-3.5 h-3.5 mr-1.5" />
                               Edit
                             </Button>
-                            <div className="grid grid-cols-2 gap-1.5 md:gap-1">
+                            <div className="grid grid-cols-2 gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleToggleInactive(product)}
-                                className={`h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1 touch-target ${
+                                className={`h-8 text-xs md:text-sm px-2 touch-target transition-colors ${
                                   !product.isActive 
                                     ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
-                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
                                 }`}
                               >
                                 {product.isActive ? 'Deactivate' : 'Activate'}
@@ -1264,8 +1283,9 @@ function DashboardContent() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setDeleteConfirm(product.id)}
-                                  className="h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target"
+                                  className="h-8 text-xs md:text-sm px-2 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target transition-colors"
                                 >
+                                  <Trash2 className="w-3.5 h-3.5 mr-1" />
                                   Delete
                                 </Button>
                               )}
