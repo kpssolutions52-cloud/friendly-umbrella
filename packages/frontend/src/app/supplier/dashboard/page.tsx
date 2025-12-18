@@ -491,7 +491,6 @@ function DashboardContent() {
         defaultPrice: formData.defaultPrice ? parseFloat(formData.defaultPrice) : undefined,
         currency: formData.currency,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
-        metadata: formData.location ? { location: formData.location } : undefined,
       };
 
       const response = await apiPost<{ product: { id: string } }>('/api/v1/products', payload);
