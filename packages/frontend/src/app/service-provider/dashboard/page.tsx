@@ -1152,7 +1152,7 @@ function DashboardContent() {
             ) : (
               <>
                 {/* Responsive Grid Layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 md:gap-2">
                   {products
                     .filter(product => 
                       searchQuery === '' || 
@@ -1193,11 +1193,11 @@ function DashboardContent() {
                           className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
                         >
                           {/* Card Header */}
-                          <div className="p-4 flex-1 flex flex-col">
+                          <div className="p-3 md:p-2 flex-1 flex flex-col">
                             {/* Status Badge */}
-                            <div className="flex justify-end mb-2">
+                            <div className="flex justify-end mb-1.5 md:mb-1">
                               <span
-                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                className={`inline-flex px-1.5 py-0.5 md:px-1 md:py-0.5 text-[10px] md:text-[9px] font-semibold rounded-full ${
                                   product.isActive
                                     ? 'bg-green-100 text-green-800'
                                     : 'bg-red-100 text-red-800'
@@ -1208,50 +1208,50 @@ function DashboardContent() {
                             </div>
 
                             {/* Service Name */}
-                            <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem]">
+                            <h3 className="text-xs md:text-[11px] font-semibold text-gray-900 mb-1 md:mb-0.5 line-clamp-2 min-h-[2rem] md:min-h-[1.75rem]">
                               {product.name}
                             </h3>
 
                             {/* SKU */}
-                            <p className="text-xs text-gray-500 mb-3">SKU: {product.sku}</p>
+                            <p className="text-[10px] md:text-[9px] text-gray-500 mb-2 md:mb-1.5">SKU: {product.sku}</p>
 
                             {/* Category */}
-                            <div className="mb-2">
-                              <p className="text-xs text-gray-500 mb-0.5">Category</p>
-                              <p className="text-xs text-gray-900 font-medium line-clamp-1">{categoryText}</p>
+                            <div className="mb-1.5 md:mb-1">
+                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Category</p>
+                              <p className="text-[10px] md:text-[9px] text-gray-900 font-medium line-clamp-1">{categoryText}</p>
                             </div>
 
                             {/* Unit */}
-                            <div className="mb-2">
-                              <p className="text-xs text-gray-500 mb-0.5">Unit</p>
-                              <p className="text-xs text-gray-900 font-medium">{product.unit}</p>
+                            <div className="mb-1.5 md:mb-1">
+                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Unit</p>
+                              <p className="text-[10px] md:text-[9px] text-gray-900 font-medium">{product.unit}</p>
                             </div>
 
                             {/* Pricing/Rate */}
-                            <div className="mb-3">
-                              <p className="text-xs text-gray-500 mb-0.5">Rate</p>
-                              <p className={`text-sm font-semibold ${priceInfo.className}`}>
+                            <div className="mb-2 md:mb-1.5">
+                              <p className="text-[10px] md:text-[9px] text-gray-500 mb-0.5 md:mb-0">Rate</p>
+                              <p className={`text-xs md:text-[11px] font-semibold ${priceInfo.className}`}>
                                 {priceInfo.text}
                               </p>
                             </div>
                           </div>
 
                           {/* Card Actions */}
-                          <div className="p-4 pt-0 border-t border-gray-100 space-y-2">
+                          <div className="p-3 md:p-2 pt-0 border-t border-gray-100 space-y-1.5 md:space-y-1">
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditProduct(product)}
-                              className="w-full h-8 text-xs touch-target"
+                              className="w-full h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1.5 touch-target"
                             >
                               Edit
                             </Button>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-1.5 md:gap-1">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleToggleInactive(product)}
-                                className={`h-8 text-xs touch-target ${
+                                className={`h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1 touch-target ${
                                   !product.isActive 
                                     ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
                                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
@@ -1264,7 +1264,7 @@ function DashboardContent() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => setDeleteConfirm(product.id)}
-                                  className="h-8 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target"
+                                  className="h-7 md:h-6 text-[10px] md:text-[9px] px-2 md:px-1 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 touch-target"
                                 >
                                   Delete
                                 </Button>
