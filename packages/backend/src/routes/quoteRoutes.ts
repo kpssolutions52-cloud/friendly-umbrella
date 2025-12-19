@@ -11,9 +11,10 @@ const router = Router();
 // POST /api/v1/quotes/ai-search - AI-powered product/service search (Available for companies, suppliers, service providers, and guests)
 // IMPORTANT: This route must be BEFORE the router.use(authenticate) to allow optional authentication
 // This route explicitly allows all tenant types including 'company', 'supplier', 'service_provider', and 'guest'
+// NO requireTenantType middleware is used here - all tenant types are explicitly allowed
 router.post(
   '/quotes/ai-search',
-  optionalAuthenticate, // Allow guests to access without authentication
+  optionalAuthenticate, // Allow guests to access without authentication - does NOT restrict tenant types
   [
     body('prompt').isString().trim().notEmpty().withMessage('Prompt is required'),
     body('prompt').isLength({ min: 3, max: 1000 }).withMessage('Prompt must be between 3 and 1000 characters'),
@@ -29,6 +30,7 @@ router.post(
       
       // Determine tenant type and ID based on authentication
       // This route explicitly allows ALL tenant types: company, supplier, service_provider, and guest
+      // No requireTenantType check here - we accept any tenant type or guest
       let tenantId: string | null = null;
       let tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest';
 
@@ -46,13 +48,14 @@ router.post(
         tenantType = 'guest';
       }
 
-      console.log('[AI-Quote] Request received:', { 
+      console.log('[AI-Quote] Request received - ALL tenant types allowed:', { 
         tenantType, 
         tenantId, 
         promptLength: prompt.length, 
         hasAuth: !!req.userId,
         reqTenantType: req.tenantType,
-        path: req.path 
+        path: req.path,
+        method: req.method 
       });
 
       const result = await aiQuoteService.searchWithAI(prompt, tenantId, tenantType);
