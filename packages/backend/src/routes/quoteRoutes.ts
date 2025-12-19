@@ -274,6 +274,10 @@ router.post(
 
       const { prompt } = req.body;
       const companyId = req.tenantId!;
+      const tenantType = req.tenantType!;
+
+      // Debug log to verify correct code is deployed
+      console.log('[AI-Quote] Request received:', { tenantType, companyId, promptLength: prompt.length });
 
       const result = await aiQuoteService.searchWithAI(prompt, companyId);
 
