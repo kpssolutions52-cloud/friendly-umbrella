@@ -129,6 +129,7 @@ function DashboardContent() {
   const [success, setSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [pendingUserCount, setPendingUserCount] = useState<number>(0);
+  const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
   
   // Special prices for new product
   interface SpecialPriceEntry {

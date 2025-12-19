@@ -211,24 +211,26 @@ Analyze the requirement and return matching products in JSON format as specified
           orderBy: { effectiveFrom: 'desc' },
           take: 1,
         },
-        privatePrices: tenantId && tenantType === 'company' ? {
-          where: {
-            companyId: tenantId,
-            isActive: true,
-            OR: [
-              { effectiveUntil: null },
-              { effectiveUntil: { gte: new Date() } },
-            ],
+        ...(tenantId && tenantType === 'company' ? {
+          privatePrices: {
+            where: {
+              companyId: tenantId,
+              isActive: true,
+              OR: [
+                { effectiveUntil: null },
+                { effectiveUntil: { gte: new Date() } },
+              ],
+            },
+            orderBy: { effectiveFrom: 'desc' },
+            take: 1,
           },
-          orderBy: { effectiveFrom: 'desc' },
-          take: 1,
-        } : undefined,
+        } : {}),
       },
     });
 
     return products.map(product => {
       // Get best available price (private price preferred for companies, fallback to default)
-      const privatePrice = tenantId && tenantType === 'company' && product.privatePrices ? product.privatePrices[0] : undefined;
+      const privatePrice = (tenantId && tenantType === 'company' && 'privatePrices' in product && product.privatePrices) ? product.privatePrices[0] : undefined;
       const defaultPrice = product.defaultPrices[0];
       
       let finalPrice: number | null = null;

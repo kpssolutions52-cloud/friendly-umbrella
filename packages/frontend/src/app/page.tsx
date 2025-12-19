@@ -441,9 +441,16 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
             <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Real-Time Pricing for Construction Professionals</h2>
-            <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto mb-6">
               Compare prices from multiple suppliers and service providers
             </p>
+            <Button
+              onClick={() => setShowAIQuoteChat(true)}
+              className="bg-white text-blue-600 hover:bg-blue-50 text-base px-6 py-3 font-semibold shadow-lg"
+            >
+              <Zap className="h-5 w-5 mr-2" />
+              Try AI Quote Assistant
+            </Button>
           </div>
         </div>
       </div>

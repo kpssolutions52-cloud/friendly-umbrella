@@ -64,7 +64,14 @@ async function main() {
   // Create a sample company (active, pre-approved for seed)
   const company = await prisma.tenant.upsert({
     where: { email: 'company@example.com' },
-    update: {},
+    update: {
+      name: 'XYZ Construction Company',
+      type: TenantType.company,
+      phone: '+1234567891',
+      address: '456 Company Ave, City, State',
+      status: TenantStatus.active,
+      isActive: true,
+    },
     create: {
       name: 'XYZ Construction Company',
       type: TenantType.company,
@@ -82,7 +89,15 @@ async function main() {
   const companyPasswordHash = await bcrypt.hash('password123', 12);
   const companyAdmin = await prisma.user.upsert({
     where: { email: 'company@example.com' },
-    update: {},
+    update: {
+      tenantId: company.id,
+      passwordHash: companyPasswordHash,
+      firstName: 'Company',
+      lastName: 'Admin',
+      role: UserRole.company_admin,
+      status: UserStatus.active,
+      isActive: true,
+    },
     create: {
       tenantId: company.id,
       email: 'company@example.com',
