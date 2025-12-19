@@ -29,6 +29,7 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/images/logo.jpg" type="image/jpeg" />
         <link rel="apple-touch-icon" href="/images/logo.jpg" />
         <meta name="theme-color" content="#2563eb" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ConstructionGuru" />
