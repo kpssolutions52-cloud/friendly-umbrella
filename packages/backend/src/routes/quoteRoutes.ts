@@ -8,8 +8,9 @@ import createError from 'http-errors';
 
 const router = Router();
 
-// POST /api/v1/quotes/ai-search - AI-powered product/service search (Available for companies, suppliers, and guests)
+// POST /api/v1/quotes/ai-search - AI-powered product/service search (Available for companies, suppliers, service providers, and guests)
 // IMPORTANT: This route must be BEFORE the router.use(authenticate) to allow optional authentication
+// This route explicitly allows all tenant types including 'company', 'supplier', 'service_provider', and 'guest'
 router.post(
   '/quotes/ai-search',
   optionalAuthenticate, // Allow guests to access without authentication
@@ -27,18 +28,32 @@ router.post(
       const { prompt } = req.body;
       
       // Determine tenant type and ID based on authentication
+      // This route explicitly allows ALL tenant types: company, supplier, service_provider, and guest
       let tenantId: string | null = null;
       let tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest';
 
       if (req.tenantType && req.tenantId) {
         tenantId = req.tenantId;
-        tenantType = req.tenantType as 'company' | 'supplier' | 'service_provider';
+        // Explicitly allow all tenant types - company, supplier, service_provider
+        if (['company', 'supplier', 'service_provider'].includes(req.tenantType)) {
+          tenantType = req.tenantType as 'company' | 'supplier' | 'service_provider';
+        } else {
+          // If it's an unexpected type, default to guest
+          tenantType = 'guest';
+        }
       } else {
         // Guest access - no tenant ID
         tenantType = 'guest';
       }
 
-      console.log('[AI-Quote] Request received:', { tenantType, tenantId, promptLength: prompt.length, hasAuth: !!req.userId });
+      console.log('[AI-Quote] Request received:', { 
+        tenantType, 
+        tenantId, 
+        promptLength: prompt.length, 
+        hasAuth: !!req.userId,
+        reqTenantType: req.tenantType,
+        path: req.path 
+      });
 
       const result = await aiQuoteService.searchWithAI(prompt, tenantId, tenantType);
 
@@ -47,6 +62,7 @@ router.post(
         data: result,
       });
     } catch (error) {
+      console.error('[AI-Quote] Error:', error);
       next(error);
     }
   }
