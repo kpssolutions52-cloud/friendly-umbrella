@@ -54,7 +54,19 @@ export class AIQuoteService {
       };
     }
 
-    // Prepare product data for LLM analysis
+    // Gather statistics and metadata about available products
+    const categories = [...new Set(products.map(p => p.categoryName).filter(Boolean))];
+    const suppliers = [...new Set(products.map(p => p.supplierName))];
+    const productTypes = products.filter(p => p.type === 'product').length;
+    const serviceTypes = products.filter(p => p.type === 'service').length;
+    const prices = products.filter(p => p.price !== null).map(p => p.price!);
+    const priceRange = prices.length > 0 ? {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+      avg: prices.reduce((a, b) => a + b, 0) / prices.length,
+    } : null;
+
+    // Prepare enriched product data for LLM analysis
     const productData = products.map(p => ({
       id: p.id,
       name: p.name,
@@ -66,34 +78,82 @@ export class AIQuoteService {
       unit: p.unit,
       price: p.price,
       currency: p.currency,
+      priceType: p.priceType, // Include price type (default/private)
     }));
 
+    // Build context summary
+    const contextSummary = {
+      totalProducts: products.length,
+      productsCount: productTypes,
+      servicesCount: serviceTypes,
+      categoriesCount: categories.length,
+      categories: categories.slice(0, 20), // Limit to first 20 categories
+      suppliersCount: suppliers.length,
+      suppliers: suppliers.slice(0, 20), // Limit to first 20 suppliers
+      priceRange: priceRange,
+    };
+
     try {
-      // Use OpenAI to analyze the prompt and match products
-      const systemPrompt = `You are an intelligent product matching assistant for a construction pricing platform. 
-Your job is to analyze user requirements and match them with available products and services from the database.
+      // Enhanced system prompt with construction industry knowledge
+      const systemPrompt = `You are an expert AI assistant for a construction pricing platform called ConstructionGuru.
+Your expertise includes construction materials, building services, project planning, and supplier relationships.
 
-Context: This platform connects construction companies with suppliers/service providers. Products can be physical materials or services (like plumbing, electrical work, etc.).
+PLATFORM CONTEXT:
+- This platform connects construction companies with suppliers and service providers
+- Products: Physical materials (concrete, steel, lumber, tiles, pipes, electrical components, etc.)
+- Services: Professional services (plumbing, electrical work, HVAC installation, roofing, painting, etc.)
+- Companies can get quotes and compare prices from multiple suppliers
+- Private pricing may be available for specific companies
 
-Rules:
-1. Understand the user's requirement from their natural language prompt
-2. Match products/services that are relevant to their needs
-3. Consider product names, descriptions, categories, and suppliers
-4. Be smart about synonyms and related terms (e.g., "concrete" matches "cement", "construction materials")
-5. Return a JSON object with:
-   - productIds: Array of product IDs that match (prioritize most relevant first, max 20)
-   - summary: A brief 2-3 sentence summary of what the user is looking for in natural language
-   - reasoning: Brief explanation (1-2 sentences) of why these products were selected
-   - suggestions: Optional array of 1-3 suggestions for refining the search or alternative terms
+YOUR CAPABILITIES:
+1. Understand natural language queries about construction needs
+2. Match user requirements with relevant products/services from the database
+3. Understand construction industry terminology, synonyms, and related concepts
+4. Consider context: project type, material specifications, quality requirements, quantities
+5. Recognize related terms:
+   - "concrete" = "cement", "ready-mix", "concrete mix"
+   - "electrical" = "wiring", "electrical components", "electrical supplies"
+   - "plumbing" = "pipes", "fixtures", "plumbing services", "waterworks"
+   - "HVAC" = "heating", "ventilation", "air conditioning", "cooling systems"
+   - "roofing" = "roof tiles", "shingles", "roofing materials", "roof installation"
 
-Be precise and only include products that genuinely match the requirement. If no good matches, return an empty productIds array and explain why.`;
+MATCHING RULES:
+- Prioritize exact matches in name, category, or description
+- Include related/synonymous products that serve the same purpose
+- Consider product specifications and units (e.g., per square meter, per unit, per hour)
+- For services, consider location, expertise areas, and service types
+- For materials, consider size, grade, quality, and application
+- Price should be a secondary consideration unless explicitly mentioned
 
-      const userPrompt = `User requirement: "${prompt}"
+RESPONSE FORMAT:
+Return a JSON object with:
+- productIds: Array of product IDs that match (prioritize most relevant first, max 20)
+- summary: A natural, conversational 2-3 sentence summary of what the user needs, written as if you're a helpful construction expert
+- reasoning: Clear explanation (2-3 sentences) of why these specific products/services were selected, mentioning key matching criteria
+- suggestions: Optional array of 1-3 helpful suggestions such as:
+  * Alternative search terms or related products
+  * Questions to clarify requirements (e.g., "What project size?" or "Do you need installation service?")
+  * Tips for getting better quotes
 
-Available products and services:
+QUALITY STANDARDS:
+- Be precise: Only include products that genuinely match the requirement
+- Be helpful: Provide context and reasoning in natural language
+- If no good matches, return an empty productIds array with clear explanation and suggestions for alternative searches`;
+
+      const userPrompt = `DATABASE SUMMARY:
+Total items: ${contextSummary.totalProducts} (${contextSummary.productsCount} products, ${contextSummary.servicesCount} services)
+Categories available: ${contextSummary.categoriesCount} (${contextSummary.categories.slice(0, 10).join(', ')}${contextSummary.categories.length > 10 ? '...' : ''})
+Suppliers/Providers: ${contextSummary.suppliersCount}
+${priceRange ? `Price range: ${priceRange.currency || 'USD'} ${priceRange.min.toFixed(2)} - ${priceRange.max.toFixed(2)} (avg: ${priceRange.avg.toFixed(2)})` : 'Pricing varies'}
+
+USER REQUIREMENT: "${prompt}"
+
+AVAILABLE PRODUCTS AND SERVICES (${products.length} items):
 ${JSON.stringify(productData, null, 2)}
 
-Analyze the requirement and return matching products in JSON format as specified.`;
+TASK: Analyze the user's requirement and match it with the most relevant products/services from the database.
+Consider synonyms, related terms, and construction industry context.
+Return your analysis in the specified JSON format.`;
 
       const completion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
