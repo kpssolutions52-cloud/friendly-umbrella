@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { quoteService } from '../services/quoteService';
+import { aiQuoteService } from '../services/aiQuoteService';
 import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { QuoteStatus } from '@prisma/client';
@@ -250,6 +251,36 @@ router.get(
       );
 
       res.json({ statistics });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/quotes/ai-search - AI-powered product/service search (Company only)
+router.post(
+  '/quotes/ai-search',
+  requireTenantType('company'),
+  [
+    body('prompt').isString().trim().notEmpty().withMessage('Prompt is required'),
+    body('prompt').isLength({ min: 3, max: 1000 }).withMessage('Prompt must be between 3 and 1000 characters'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { prompt } = req.body;
+      const companyId = req.tenantId!;
+
+      const result = await aiQuoteService.searchWithAI(prompt, companyId);
+
+      res.json({
+        success: true,
+        data: result,
+      });
     } catch (error) {
       next(error);
     }

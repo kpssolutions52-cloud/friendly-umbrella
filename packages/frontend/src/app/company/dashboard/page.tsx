@@ -13,7 +13,8 @@ import { ProductImageCarousel } from '@/components/ProductImageCarousel';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Search as SearchIcon, Filter, X, ChevronDown, Package } from 'lucide-react';
+import { AIQuoteChat } from '@/components/AIQuoteChat';
+import { Search as SearchIcon, Filter, X, ChevronDown, Package, Sparkles } from 'lucide-react';
 
 interface SearchProduct {
   id: string;
@@ -136,6 +137,9 @@ function DashboardContent() {
   
   // Pending user count for admin notification
   const [pendingUserCount, setPendingUserCount] = useState<number>(0);
+  
+  // AI Quote Chat state
+  const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
 
   // Load products with filters
   const loadProducts = useCallback(async (page = 1) => {
@@ -501,6 +505,15 @@ function DashboardContent() {
             </div>
             {/* Desktop menu */}
             <div className="hidden sm:flex items-center gap-2">
+              <Button
+                variant="default"
+                onClick={() => setShowAIQuoteChat(true)}
+                className="touch-target bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                <span className="hidden md:inline">AI Quote</span>
+                <span className="md:hidden">Quote</span>
+              </Button>
               <Link href="/company/quotes">
                 <Button variant="outline" className="touch-target">
                   <span className="hidden md:inline">Quotes</span>
@@ -1863,6 +1876,11 @@ function DashboardContent() {
         })()}
 
       </main>
+
+      {/* AI Quote Chat Modal */}
+      {showAIQuoteChat && (
+        <AIQuoteChat onClose={() => setShowAIQuoteChat(false)} />
+      )}
     </div>
   );
 }
