@@ -85,7 +85,15 @@ export async function authenticate(
     req.tenantType = user.tenant.type;
     req.userPermissions = (user.permissions as Record<string, any>) || {};
 
-    // Debug logging (remove in production)
+    // Debug logging
+    console.log('[authenticate] User authenticated:', {
+      userId: req.userId,
+      tenantId: req.tenantId,
+      tenantType: req.tenantType,
+      userRole: req.userRole,
+      tokenTenantType: decoded.tenantType,
+      dbTenantType: user.tenant.type,
+    });
     if (process.env.NODE_ENV !== 'production') {
       console.log('Auth Debug:', {
         userId: req.userId,
@@ -123,10 +131,22 @@ export function requireRole(...allowedRoles: string[]) {
 export function requireTenantType(...allowedTypes: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.tenantType) {
+      console.log('[requireTenantType] No tenantType found in request:', {
+        userId: req.userId,
+        tenantId: req.tenantId,
+        userRole: req.userRole,
+      });
       return next(createError(401, 'Authentication required'));
     }
 
     if (!allowedTypes.includes(req.tenantType)) {
+      console.log('[requireTenantType] Tenant type mismatch:', {
+        userId: req.userId,
+        tenantId: req.tenantId,
+        userRole: req.userRole,
+        receivedTenantType: req.tenantType,
+        allowedTypes: allowedTypes,
+      });
       return next(createError(403, `Invalid tenant type. Expected one of: ${allowedTypes.join(', ')}, but got: ${req.tenantType}`));
     }
 
