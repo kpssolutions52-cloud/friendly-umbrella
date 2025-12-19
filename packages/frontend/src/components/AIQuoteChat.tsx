@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { apiPost } from '@/lib/api';
+import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Send, X, Loader2, Zap, Package, DollarSign, Building2 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
@@ -91,9 +91,16 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
     setIsLoading(true);
 
     try {
-      const response = await apiPost<{ success: boolean; data: AIQuoteResponse }>(
+      // AI search requests can take longer (30-60 seconds) due to LLM processing
+      // Use apiRequest with custom timeout instead of apiPost
+      const response = await apiRequest<{ success: boolean; data: AIQuoteResponse }>(
         '/api/v1/quotes/ai-search',
-        { prompt: input.trim() }
+        {
+          method: 'POST',
+          body: JSON.stringify({ prompt: input.trim() }),
+        },
+        true, // retryOn401
+        60000 // 60 second timeout for AI requests
       );
 
       const assistantMessage: Message = {

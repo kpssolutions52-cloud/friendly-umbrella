@@ -23,16 +23,17 @@ export interface ApiError {
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
-  retryOn401 = true
+  retryOn401 = true,
+  customTimeout?: number
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
   // Add timeout to prevent hanging requests - much shorter timeout for mobile
   const controller = new AbortController();
-  // Use much shorter timeout on mobile devices (3s) vs desktop (10s)
+  // Use custom timeout if provided, otherwise use default (much shorter timeout for mobile)
   // Mobile networks are often slower and localhost won't work, so fail fast
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const timeout = isMobile ? 3000 : 10000; // 3s for mobile, 10s for desktop
+  const timeout = customTimeout !== undefined ? customTimeout : (isMobile ? 3000 : 10000); // Custom timeout, or 3s for mobile, 10s for desktop
   let timeoutId: NodeJS.Timeout | undefined;
 
   try {
