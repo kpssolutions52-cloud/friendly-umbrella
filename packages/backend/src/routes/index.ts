@@ -13,6 +13,7 @@ import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
 import tenantAdminRoutes from './tenantAdminRoutes';
 import publicRoutes from './publicRoutes';
 import companyRoutes from './companyRoutes';
+import quoteRoutes from './quoteRoutes';
 
 export function setupRoutes(app: Express) {
   // Public routes (no authentication required, but optional auth for customer prices)
@@ -43,5 +44,6 @@ export function setupRoutes(app: Express) {
   // Register supplier-specific routes after company routes
   app.use('/api/v1', productRoutes);
   app.use('/api/v1', priceRoutes);
+  app.use('/api/v1', quoteRoutes);
 }
 

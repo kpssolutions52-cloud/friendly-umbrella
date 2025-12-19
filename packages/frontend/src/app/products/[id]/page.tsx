@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api';
 import { ProductImageCarousel } from '@/components/ProductImageCarousel';
+import { QuoteRequestModal } from '@/components/QuoteRequestModal';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -64,6 +65,7 @@ export default function ProductDetailsPage() {
   const [supplierDetails, setSupplierDetails] = useState<SupplierDetails | null>(null);
   const [loadingSupplier, setLoadingSupplier] = useState(false);
   const [showSupplierDetails, setShowSupplierDetails] = useState(false);
+  const [showQuoteRequestModal, setShowQuoteRequestModal] = useState(false);
 
   const fetchProductDetails = useCallback(async () => {
     try {
@@ -494,6 +496,21 @@ export default function ProductDetailsPage() {
           </div>
         </div>
       </main>
+
+      {/* Quote Request Modal */}
+      {product && user?.tenant?.type === 'company' && (
+        <QuoteRequestModal
+          productId={product.id}
+          productName={product.name}
+          productUnit={product.unit}
+          supplierName={product.supplierName}
+          isOpen={showQuoteRequestModal}
+          onClose={() => setShowQuoteRequestModal(false)}
+          onSuccess={() => {
+            // Optionally refresh product or show success message
+          }}
+        />
+      )}
     </div>
   );
 }

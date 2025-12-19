@@ -911,6 +911,12 @@ function DashboardContent() {
                 </Button>
               </Link>
               {user?.role === 'supplier_admin' && (
+                <Link href="/supplier/quotes">
+                  <Button variant="outline" className="touch-target">
+                    <span className="hidden md:inline">Quotes</span>
+                    <span className="md:hidden">Quotes</span>
+                  </Button>
+                </Link>
                 <Link href="/supplier/users">
                   <Button variant="outline" className="relative touch-target">
                     <span className="hidden md:inline">User Management</span>
@@ -953,6 +959,11 @@ function DashboardContent() {
                 </Button>
               </Link>
               {user?.role === 'supplier_admin' && (
+                <Link href="/supplier/quotes" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full touch-target justify-start">
+                    Quotes
+                  </Button>
+                </Link>
                 <Link href="/supplier/users" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full relative touch-target justify-start">
                     User Management
