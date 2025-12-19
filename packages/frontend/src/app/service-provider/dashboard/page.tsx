@@ -3090,6 +3090,10 @@ function DashboardContent() {
         </div>
       )}
 
+      {/* AI Quote Chat Modal */}
+      {showAIQuoteChat && (
+        <AIQuoteChat onClose={() => setShowAIQuoteChat(false)} />
+      )}
     </div>
   );
 }
