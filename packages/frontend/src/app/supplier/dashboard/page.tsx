@@ -155,6 +155,7 @@ function DashboardContent() {
   const [editDraftSpecialPrice, setEditDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [editIncludedSpecialPrices, setEditIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingEditSpecialPriceId, setEditingEditSpecialPriceId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -886,8 +887,6 @@ function DashboardContent() {
       alert(err?.error?.message || 'Failed to delete product');
     }
   };
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
