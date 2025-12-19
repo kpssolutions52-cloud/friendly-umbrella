@@ -21,6 +21,10 @@ export function setupRoutes(app: Express) {
   app.use('/api/v1', publicCategoryRoutes); // Public product category routes
   app.use('/api/v1', publicServiceCategoryRoutes); // Public service category routes
   
+  // IMPORTANT: AI Quote route must be registered early (before other authenticated routes)
+  // to allow optional authentication for guests, companies, suppliers, and service providers
+  app.use('/api/v1', quoteRoutes);
+  
   // API version prefix
   app.use('/api/v1', authRoutes);
   
@@ -44,6 +48,5 @@ export function setupRoutes(app: Express) {
   // Register supplier-specific routes after company routes
   app.use('/api/v1', productRoutes);
   app.use('/api/v1', priceRoutes);
-  app.use('/api/v1', quoteRoutes);
 }
 
