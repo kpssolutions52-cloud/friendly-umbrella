@@ -34,14 +34,17 @@ interface AIQuoteResponse {
 export class AIQuoteService {
   /**
    * Analyze user prompt and return matching products/services using LLM
+   * @param prompt - User's search query
+   * @param tenantId - Optional tenant ID (company for companies, null for guests/suppliers)
+   * @param tenantType - Type of tenant making the request
    */
-  async searchWithAI(prompt: string, companyId: string): Promise<AIQuoteResponse> {
+  async searchWithAI(prompt: string, tenantId: string | null = null, tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest'): Promise<AIQuoteResponse> {
     if (!openai) {
       throw createError(500, 'AI service is not configured. Please set OPENAI_API_KEY environment variable.');
     }
 
     // First, get all available products/services with prices
-    const products = await this.getAllAvailableProducts(companyId);
+    const products = await this.getAllAvailableProducts(tenantId, tenantType);
 
     if (products.length === 0) {
       return {
@@ -140,8 +143,7 @@ Analyze the requirement and return matching products in JSON format as specified
    */
   private async fallbackKeywordSearch(
     prompt: string,
-    products: ProductMatch[],
-    companyId: string
+    products: ProductMatch[]
   ): Promise<AIQuoteResponse> {
     const keywords = prompt.toLowerCase().split(/\s+/).filter(k => k.length > 2);
     
@@ -168,9 +170,11 @@ Analyze the requirement and return matching products in JSON format as specified
   }
 
   /**
-   * Get all available products/services with prices for a company
+   * Get all available products/services with prices
+   * @param tenantId - Optional tenant ID (company for companies, null for guests/suppliers)
+   * @param tenantType - Type of tenant requesting products
    */
-  private async getAllAvailableProducts(companyId: string): Promise<ProductMatch[]> {
+  private async getAllAvailableProducts(tenantId: string | null, tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest'): Promise<ProductMatch[]> {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
@@ -207,9 +211,9 @@ Analyze the requirement and return matching products in JSON format as specified
           orderBy: { effectiveFrom: 'desc' },
           take: 1,
         },
-        privatePrices: {
+        privatePrices: tenantId && tenantType === 'company' ? {
           where: {
-            companyId,
+            companyId: tenantId,
             isActive: true,
             OR: [
               { effectiveUntil: null },
@@ -218,13 +222,13 @@ Analyze the requirement and return matching products in JSON format as specified
           },
           orderBy: { effectiveFrom: 'desc' },
           take: 1,
-        },
+        } : undefined,
       },
     });
 
     return products.map(product => {
-      // Get best available price (private price preferred, fallback to default)
-      const privatePrice = product.privatePrices[0];
+      // Get best available price (private price preferred for companies, fallback to default)
+      const privatePrice = tenantId && tenantType === 'company' && product.privatePrices ? product.privatePrices[0] : undefined;
       const defaultPrice = product.defaultPrices[0];
       
       let finalPrice: number | null = null;

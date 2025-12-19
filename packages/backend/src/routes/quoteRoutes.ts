@@ -1,14 +1,58 @@
 import { Router, Response, NextFunction } from 'express';
 import { quoteService } from '../services/quoteService';
 import { aiQuoteService } from '../services/aiQuoteService';
-import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
+import { authenticate, optionalAuthenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { QuoteStatus } from '@prisma/client';
 import createError from 'http-errors';
 
 const router = Router();
 
-// All routes require authentication
+// POST /api/v1/quotes/ai-search - AI-powered product/service search (Available for companies, suppliers, and guests)
+// IMPORTANT: This route must be BEFORE the router.use(authenticate) to allow optional authentication
+router.post(
+  '/quotes/ai-search',
+  optionalAuthenticate, // Allow guests to access without authentication
+  [
+    body('prompt').isString().trim().notEmpty().withMessage('Prompt is required'),
+    body('prompt').isLength({ min: 3, max: 1000 }).withMessage('Prompt must be between 3 and 1000 characters'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { prompt } = req.body;
+      
+      // Determine tenant type and ID based on authentication
+      let tenantId: string | null = null;
+      let tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest';
+
+      if (req.tenantType && req.tenantId) {
+        tenantId = req.tenantId;
+        tenantType = req.tenantType as 'company' | 'supplier' | 'service_provider';
+      } else {
+        // Guest access - no tenant ID
+        tenantType = 'guest';
+      }
+
+      console.log('[AI-Quote] Request received:', { tenantType, tenantId, promptLength: prompt.length, hasAuth: !!req.userId });
+
+      const result = await aiQuoteService.searchWithAI(prompt, tenantId, tenantType);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// All other routes require authentication
 router.use(authenticate);
 
 // POST /api/v1/quotes - Create a new quote request (Company only)
@@ -258,51 +302,5 @@ router.get(
   }
 );
 
-// POST /api/v1/quotes/ai-search - AI-powered product/service search (Company only)
-// IMPORTANT: This route MUST allow 'company' tenant type only
-router.post(
-  '/quotes/ai-search',
-  (req: AuthRequest, res: Response, next: NextFunction) => {
-    console.log('[AI-Quote-Route] Middleware check - tenantType:', req.tenantType, 'userId:', req.userId);
-    // Explicitly check for company tenant type
-    if (!req.tenantType) {
-      console.log('[AI-Quote-Route] No tenantType found');
-      return next(createError(401, 'Authentication required'));
-    }
-    if (req.tenantType !== 'company') {
-      console.log('[AI-Quote-Route] Tenant type mismatch:', req.tenantType, 'expected: company');
-      return next(createError(403, `AI Quote feature is only available for companies. Your account type is: ${req.tenantType}`));
-    }
-    next();
-  },
-  [
-    body('prompt').isString().trim().notEmpty().withMessage('Prompt is required'),
-    body('prompt').isLength({ min: 3, max: 1000 }).withMessage('Prompt must be between 3 and 1000 characters'),
-  ],
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      const { prompt } = req.body;
-      const companyId = req.tenantId!;
-      const tenantType = req.tenantType!;
-
-      // Debug log to verify correct code is deployed
-      console.log('[AI-Quote] Request received:', { tenantType, companyId, promptLength: prompt.length });
-
-      const result = await aiQuoteService.searchWithAI(prompt, companyId);
-
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 export default router;
