@@ -12,6 +12,7 @@ import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { AIQuoteChat } from '@/components/AIQuoteChat';
 import Link from 'next/link';
 import { 
   Edit, 
