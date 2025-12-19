@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiPost } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Send, X, Loader2, Sparkles, Package, DollarSign, Building2 } from 'lucide-react';
+import { Send, X, Loader2, Zap, Package, DollarSign, Building2 } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import Link from 'next/link';
 
@@ -166,7 +166,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
-              <Sparkles className="h-5 w-5" />
+              <Zap className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-semibold">AI Quote Assistant</h2>

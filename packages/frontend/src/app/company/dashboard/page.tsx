@@ -14,7 +14,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
-import { Search as SearchIcon, Filter, X, ChevronDown, Package, Sparkles } from 'lucide-react';
+import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap } from 'lucide-react';
 
 interface SearchProduct {
   id: string;
@@ -510,7 +510,7 @@ function DashboardContent() {
                 onClick={() => setShowAIQuoteChat(true)}
                 className="touch-target bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Zap className="h-4 w-4 mr-2" />
                 <span className="hidden md:inline">AI Quote</span>
                 <span className="md:hidden">Quote</span>
               </Button>
@@ -565,7 +565,7 @@ function DashboardContent() {
                 }}
                 className="w-full touch-target justify-start bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Zap className="h-4 w-4 mr-2" />
                 AI Quote
               </Button>
               <Link href="/company/quotes" onClick={() => setMobileMenuOpen(false)}>
