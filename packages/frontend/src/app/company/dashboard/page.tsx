@@ -977,17 +977,10 @@ function DashboardContent() {
             <>
               {/* Grid View */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-5 lg:gap-6">
-                {filteredProducts.map((product, index) => {
+                {filteredProducts.map((product) => {
                   const productKey = `${product.id}-${product.supplierId}`;
                   return (
-                    <div
-                      key={productKey}
-                      className="opacity-0 animate-in fade-in slide-in-from-bottom-2"
-                      style={{ 
-                        animationDelay: `${Math.min(index * 30, 300)}ms`,
-                        animationFillMode: 'forwards'
-                      }}
-                    >
+                    <div key={productKey}>
                       <ProductCard
                         product={product}
                         onViewDetails={() => handleProductSelect(product)}
