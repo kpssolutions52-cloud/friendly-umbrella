@@ -910,23 +910,25 @@ function DashboardContent() {
                 </Button>
               </Link>
               {user?.role === 'supplier_admin' && (
-                <Link href="/supplier/quotes">
-                  <Button variant="outline" className="touch-target">
-                    <span className="hidden md:inline">Quotes</span>
-                    <span className="md:hidden">Quotes</span>
-                  </Button>
-                </Link>
-                <Link href="/supplier/users">
-                  <Button variant="outline" className="relative touch-target">
-                    <span className="hidden md:inline">User Management</span>
-                    <span className="md:hidden">Users</span>
-                    {pendingUserCount > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
-                      </span>
-                    )}
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/supplier/quotes">
+                    <Button variant="outline" className="touch-target">
+                      <span className="hidden md:inline">Quotes</span>
+                      <span className="md:hidden">Quotes</span>
+                    </Button>
+                  </Link>
+                  <Link href="/supplier/users">
+                    <Button variant="outline" className="relative touch-target">
+                      <span className="hidden md:inline">User Management</span>
+                      <span className="md:hidden">Users</span>
+                      {pendingUserCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                          {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                </>
               )}
               <Button onClick={logout} variant="outline" className="touch-target">
                 Logout
@@ -958,21 +960,23 @@ function DashboardContent() {
                 </Button>
               </Link>
               {user?.role === 'supplier_admin' && (
-                <Link href="/supplier/quotes" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full touch-target justify-start">
-                    Quotes
-                  </Button>
-                </Link>
-                <Link href="/supplier/users" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full relative touch-target justify-start">
-                    User Management
-                    {pendingUserCount > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                        {pendingUserCount > 99 ? '99+' : pendingUserCount}
-                      </span>
-                    )}
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/supplier/quotes" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full touch-target justify-start">
+                      Quotes
+                    </Button>
+                  </Link>
+                  <Link href="/supplier/users" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full relative touch-target justify-start">
+                      User Management
+                      {pendingUserCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                          {pendingUserCount > 99 ? '99+' : pendingUserCount}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                </>
               )}
               <Button onClick={logout} variant="outline" className="w-full touch-target justify-start">
                 Logout
