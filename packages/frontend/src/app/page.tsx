@@ -1247,6 +1247,11 @@ export default function Home() {
         </>
       )}
 
+      {/* AI Quote Chat Modal */}
+      {showAIQuoteChat && (
+        <AIQuoteChat onClose={() => setShowAIQuoteChat(false)} />
+      )}
+
     </div>
   );
 }
