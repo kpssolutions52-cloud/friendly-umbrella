@@ -19,7 +19,7 @@ router.post(
     body('quantity').optional().isFloat({ min: 0 }).withMessage('Quantity must be positive'),
     body('unit').optional().isString().withMessage('Unit must be a string'),
     body('requestedPrice').optional().isFloat({ min: 0 }).withMessage('Requested price must be positive'),
-    body('currency').optional().isString().length(3).withMessage('Currency must be 3 characters'),
+    body('currency').optional().isString().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
     body('message').optional().isString().withMessage('Message must be a string'),
     body('expiresAt').optional().isISO8601().withMessage('Invalid expiration date'),
   ],
@@ -125,7 +125,7 @@ router.post(
   [
     param('id').isUUID().withMessage('Invalid quote request ID'),
     body('price').isFloat({ min: 0 }).withMessage('Price must be positive'),
-    body('currency').optional().isString().length(3).withMessage('Currency must be 3 characters'),
+    body('currency').optional().isString().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
     body('quantity').optional().isFloat({ min: 0 }).withMessage('Quantity must be positive'),
     body('unit').optional().isString().withMessage('Unit must be a string'),
     body('validUntil').optional().isISO8601().withMessage('Invalid valid until date'),
