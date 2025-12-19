@@ -60,10 +60,13 @@ export class AIQuoteService {
     const productTypes = products.filter(p => p.type === 'product').length;
     const serviceTypes = products.filter(p => p.type === 'service').length;
     const prices = products.filter(p => p.price !== null).map(p => p.price!);
+    const currencies = [...new Set(products.filter(p => p.currency).map(p => p.currency!))];
+    const primaryCurrency = currencies.length > 0 ? currencies[0] : 'USD';
     const priceRange = prices.length > 0 ? {
       min: Math.min(...prices),
       max: Math.max(...prices),
       avg: prices.reduce((a, b) => a + b, 0) / prices.length,
+      currency: primaryCurrency,
     } : null;
 
     // Prepare enriched product data for LLM analysis
