@@ -401,7 +401,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       )}
 
       {/* Response Modal */}
-      {selectedQuote && (
+      {selectedQuote !== null && (
         <QuoteResponseModal
           quoteRequest={selectedQuote}
           isOpen={showResponseModal}
