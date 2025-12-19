@@ -4,6 +4,7 @@ import { aiQuoteService } from '../services/aiQuoteService';
 import { authenticate, AuthRequest, requireTenantType } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { QuoteStatus } from '@prisma/client';
+import createError from 'http-errors';
 
 const router = Router();
 
@@ -258,9 +259,22 @@ router.get(
 );
 
 // POST /api/v1/quotes/ai-search - AI-powered product/service search (Company only)
+// IMPORTANT: This route MUST allow 'company' tenant type only
 router.post(
   '/quotes/ai-search',
-  requireTenantType('company'),
+  (req: AuthRequest, res: Response, next: NextFunction) => {
+    console.log('[AI-Quote-Route] Middleware check - tenantType:', req.tenantType, 'userId:', req.userId);
+    // Explicitly check for company tenant type
+    if (!req.tenantType) {
+      console.log('[AI-Quote-Route] No tenantType found');
+      return next(createError(401, 'Authentication required'));
+    }
+    if (req.tenantType !== 'company') {
+      console.log('[AI-Quote-Route] Tenant type mismatch:', req.tenantType, 'expected: company');
+      return next(createError(403, `AI Quote feature is only available for companies. Your account type is: ${req.tenantType}`));
+    }
+    next();
+  },
   [
     body('prompt').isString().trim().notEmpty().withMessage('Prompt is required'),
     body('prompt').isLength({ min: 3, max: 1000 }).withMessage('Prompt must be between 3 and 1000 characters'),
