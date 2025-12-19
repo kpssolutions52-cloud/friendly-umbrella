@@ -12,6 +12,7 @@ import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { AIQuoteChat } from '@/components/AIQuoteChat';
 import Link from 'next/link';
 import { 
   Edit, 
@@ -1095,6 +1096,15 @@ function DashboardContent() {
             </div>
             {/* Desktop menu */}
             <div className="hidden sm:flex items-center gap-2">
+              <Button
+                variant="default"
+                onClick={() => setShowAIQuoteChat(true)}
+                className="touch-target bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                <span className="hidden md:inline">AI Quote</span>
+                <span className="md:hidden">Quote</span>
+              </Button>
               <Link href="/service-provider/profile">
                 <Button variant="outline" className="touch-target">
                   <span className="hidden md:inline">Profile</span>
