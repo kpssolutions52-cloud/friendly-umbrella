@@ -134,7 +134,7 @@ Analyze the requirement and return matching products in JSON format as specified
       console.error('AI Quote Service Error:', error);
       
       // Fallback to keyword-based search if AI fails
-      return this.fallbackKeywordSearch(prompt, products, companyId);
+      return this.fallbackKeywordSearch(prompt, products);
     }
   }
 
