@@ -11,7 +11,8 @@ import { ProductCard } from '@/components/ProductCard';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { AIQuoteChat } from '@/components/AIQuoteChat';
+import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -88,6 +89,7 @@ export default function Home() {
   const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
   const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
   const [showMobileSortModal, setShowMobileSortModal] = useState(false);
+  const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
   const productsPerPage = 20;
 
   // Handle auth redirects - separate effect to avoid loops

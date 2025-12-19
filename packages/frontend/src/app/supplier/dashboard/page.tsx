@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { apiPost, apiGet, apiPut, apiDelete, getCategories, getSubcategories, ProductCategory } from '@/lib/api';
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
+import { AIQuoteChat } from '@/components/AIQuoteChat';
 import Link from 'next/link';
+import { Zap } from 'lucide-react';
 
 export default function SupplierDashboardPage() {
   return (
@@ -903,6 +905,15 @@ function DashboardContent() {
             </div>
             {/* Desktop menu */}
             <div className="hidden sm:flex items-center gap-2">
+              <Button
+                variant="default"
+                onClick={() => setShowAIQuoteChat(true)}
+                className="touch-target bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                <span className="hidden md:inline">AI Quote</span>
+                <span className="md:hidden">Quote</span>
+              </Button>
               <Link href="/supplier/profile">
                 <Button variant="outline" className="touch-target">
                   <span className="hidden md:inline">Profile</span>
@@ -954,6 +965,17 @@ function DashboardContent() {
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setShowAIQuoteChat(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full touch-target justify-start bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                AI Quote
+              </Button>
               <Link href="/supplier/profile" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full touch-target justify-start">
                   Profile
@@ -2349,6 +2371,10 @@ function DashboardContent() {
         </div>
       )}
 
+      {/* AI Quote Chat Modal */}
+      {showAIQuoteChat && (
+        <AIQuoteChat onClose={() => setShowAIQuoteChat(false)} />
+      )}
     </div>
   );
 }
