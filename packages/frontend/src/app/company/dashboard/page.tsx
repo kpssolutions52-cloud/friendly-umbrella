@@ -980,12 +980,11 @@ function DashboardContent() {
                 {filteredProducts.map((product) => {
                   const productKey = `${product.id}-${product.supplierId}`;
                   return (
-                    <div key={productKey}>
-                      <ProductCard
-                        product={product}
-                        onViewDetails={() => handleProductSelect(product)}
-                      />
-                    </div>
+                    <ProductCard
+                      key={productKey}
+                      product={product}
+                      onViewDetails={() => handleProductSelect(product)}
+                    />
                   );
                 })}
               </div>
