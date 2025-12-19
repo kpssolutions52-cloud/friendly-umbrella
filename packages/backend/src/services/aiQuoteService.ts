@@ -54,11 +54,12 @@ export class AIQuoteService {
       };
     }
 
-    // Gather statistics and metadata about available products
+    // Gather statistics and metadata about available products/services
     const categories = [...new Set(products.map(p => p.categoryName).filter(Boolean))];
     const suppliers = [...new Set(products.map(p => p.supplierName))];
     const productTypes = products.filter(p => p.type === 'product').length;
     const serviceTypes = products.filter(p => p.type === 'service').length;
+    // Only include items with prices for price range calculation
     const prices = products.filter(p => p.price !== null).map(p => p.price!);
     const currencies = [...new Set(products.filter(p => p.currency).map(p => p.currency!))];
     const primaryCurrency = currencies.length > 0 ? currencies[0] : 'USD';
@@ -331,8 +332,9 @@ Return your analysis in the specified JSON format.`;
         priceType,
         currency,
       };
-    })
-    .filter(product => product.price !== null); // Only return products with prices
+    });
+    // Include all products/services, even without prices
+    // Services especially may not have prices configured yet but should still be searchable
   }
 }
 
