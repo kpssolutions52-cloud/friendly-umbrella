@@ -557,6 +557,17 @@ function DashboardContent() {
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              <Button
+                variant="default"
+                onClick={() => {
+                  setShowAIQuoteChat(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full touch-target justify-start bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI Quote
+              </Button>
               <Link href="/company/quotes" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full touch-target justify-start">
                   Quotes
