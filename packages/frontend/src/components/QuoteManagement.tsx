@@ -401,9 +401,24 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       )}
 
       {/* Response Modal */}
-      {selectedQuote !== null && (
+      {selectedQuote !== null && selectedQuote.company && (
         <QuoteResponseModal
-          quoteRequest={selectedQuote}
+          quoteRequest={{
+            id: selectedQuote.id,
+            product: {
+              id: selectedQuote.product.id,
+              name: selectedQuote.product.name,
+              unit: selectedQuote.product.unit,
+            },
+            company: {
+              id: selectedQuote.company.id,
+              name: selectedQuote.company.name,
+            },
+            quantity: selectedQuote.quantity,
+            requestedPrice: selectedQuote.requestedPrice,
+            currency: selectedQuote.currency,
+            message: selectedQuote.message,
+          }}
           isOpen={showResponseModal}
           onClose={() => {
             setShowResponseModal(false);
