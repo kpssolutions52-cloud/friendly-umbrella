@@ -19,6 +19,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mock OpenAI module for tests to prevent real API calls and TypeScript errors
+    '^openai$': '<rootDir>/src/__tests__/__mocks__/openai.ts',
   },
   passWithNoTests: true,
   testTimeout: 120000, // 120 seconds for integration tests (TestContainers can take time)

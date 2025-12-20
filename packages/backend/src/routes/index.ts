@@ -16,6 +16,10 @@ import companyRoutes from './companyRoutes';
 import quoteRoutes from './quoteRoutes';
 
 export function setupRoutes(app: Express) {
+  // IMPORTANT: Auth routes must be registered FIRST to ensure public auth endpoints
+  // (register, login, tenants) are accessible before any authenticated routes
+  app.use('/api/v1', authRoutes);
+  
   // Public routes (no authentication required, but optional auth for customer prices)
   app.use('/api/v1', publicRoutes);
   app.use('/api/v1', publicCategoryRoutes); // Public product category routes
@@ -24,9 +28,6 @@ export function setupRoutes(app: Express) {
   // IMPORTANT: AI Quote route must be registered early (before other authenticated routes)
   // to allow optional authentication for guests, companies, suppliers, and service providers
   app.use('/api/v1', quoteRoutes);
-  
-  // API version prefix
-  app.use('/api/v1', authRoutes);
   
   // Super admin routes (requires super_admin role)
   app.use('/api/v1/admin', superAdminRoutes);

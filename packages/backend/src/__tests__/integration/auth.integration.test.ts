@@ -152,11 +152,15 @@ describe('Auth Routes Integration Tests', () => {
 
   describe('POST /api/v1/auth/login', () => {
     it('should login super admin successfully', async () => {
+      // Verify superAdmin was created correctly
+      expect(superAdmin).toBeDefined();
+      expect(superAdmin.email).toBeDefined();
+      
       const response = await request(app)
         .post('/api/v1/auth/login')
         .send({
           email: superAdmin.email,
-          password: 'password123',
+          password: superAdmin.password,
         });
 
       expect(response.status).toBe(200);
@@ -173,11 +177,16 @@ describe('Auth Routes Integration Tests', () => {
         password: 'password123',
       });
 
+      // Verify tenantAdmin was created correctly
+      expect(tenantAdmin).toBeDefined();
+      expect(tenantAdmin.email).toBeDefined();
+      expect(tenantAdmin.password).toBe('password123');
+
       const response = await request(app)
         .post('/api/v1/auth/login')
         .send({
           email: tenantAdmin.email,
-          password: 'password123',
+          password: tenantAdmin.password,
         });
 
       expect(response.status).toBe(200);

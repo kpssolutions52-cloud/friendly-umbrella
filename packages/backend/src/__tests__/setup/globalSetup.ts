@@ -22,6 +22,12 @@ export async function globalSetup() {
   if (!process.env.JWT_REFRESH_EXPIRES_IN) {
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
   }
+  if (!process.env.OPENAI_API_KEY) {
+    process.env.OPENAI_API_KEY = 'mock-api-key-for-testing';
+  }
+  if (!process.env.OPENAI_MODEL) {
+    process.env.OPENAI_MODEL = 'gpt-4o-mini';
+  }
   
   // Remove any beforeExit handlers that might have been registered before NODE_ENV was set
   // This prevents infinite loops from Prisma disconnect handlers
