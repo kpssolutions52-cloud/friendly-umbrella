@@ -7,7 +7,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should display login page correctly', async ({ page }) => {
-    await expect(page).toHaveTitle(/Construction Pricing Platform/i);
+    await expect(page).toHaveTitle(/ConstructionGuru/i);
     await expect(page.locator('h2')).toContainText('Sign in to your account');
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
@@ -25,7 +25,20 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should navigate to register page', async ({ page }) => {
-    await page.click('text=create a new account');
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState('networkidle');
+    
+    // Find the "create a new account" link - it's in a paragraph with text "Or create a new account"
+    const registerLink = page.locator('text=/create a new account/i').first();
+    await registerLink.waitFor({ state: 'visible', timeout: 5000 });
+    
+    // Click the link - Playwright will automatically wait for navigation
+    await Promise.all([
+      page.waitForURL(/\/auth\/register/),
+      registerLink.click()
+    ]);
+    
+    // Verify we're on the register page
     await expect(page).toHaveURL(/\/auth\/register/);
     await expect(page.locator('h2')).toContainText('Create your account');
   });
