@@ -71,10 +71,93 @@ router.post(
   }
 );
 
+// GET /api/v1/quotes/rfq/public - Get all public RFQs (for suppliers to browse)
+// IMPORTANT: This route must be BEFORE router.use(authenticate) to allow public access
+router.get(
+  '/quotes/rfq/public',
+  optionalAuthenticate, // Allow suppliers, companies, and guests to view
+  [
+    query('status').optional().isIn(Object.values(QuoteStatus)).withMessage('Invalid status'),
+    query('category').optional().isString().withMessage('Category must be a string'),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const status = req.query.status as QuoteStatus | undefined;
+      const category = req.query.category as string | undefined;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await quoteService.getPublicRFQs({
+        status,
+        category,
+        page,
+        limit,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // All other routes require authentication
 router.use(authenticate);
 
-// POST /api/v1/quotes - Create a new quote request (Company only)
+// POST /api/v1/quotes/rfq - Create a general RFQ (Request for Quote) - Company only, open to all suppliers
+router.post(
+  '/quotes/rfq',
+  requireTenantType('company'),
+  [
+    body('title').isString().trim().notEmpty().withMessage('RFQ title is required'),
+    body('title').isLength({ min: 3, max: 200 }).withMessage('Title must be between 3 and 200 characters'),
+    body('description').optional().isString().withMessage('Description must be a string'),
+    body('category').optional().isString().withMessage('Category must be a string'),
+    body('quantity').optional().isFloat({ min: 0 }).withMessage('Quantity must be positive'),
+    body('unit').optional().isString().withMessage('Unit must be a string'),
+    body('requestedPrice').optional().isFloat({ min: 0 }).withMessage('Requested price must be positive'),
+    body('currency').optional().isString().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
+    body('expiresAt').optional().isISO8601().withMessage('Invalid expiration date'),
+    body('supplierId').optional().isUUID().withMessage('Invalid supplier ID'), // Optional - null means open to all
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const rfq = await quoteService.createGeneralRFQ(
+        req.tenantId!,
+        req.userId!,
+        {
+          title: req.body.title,
+          description: req.body.description,
+          category: req.body.category,
+          supplierId: req.body.supplierId || null,
+          quantity: req.body.quantity,
+          unit: req.body.unit,
+          requestedPrice: req.body.requestedPrice,
+          currency: req.body.currency,
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
+        }
+      );
+
+      res.status(201).json({ rfq });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/quotes - Create a new quote request (Company only) - Product-specific
 router.post(
   '/quotes',
   requireTenantType('company'),

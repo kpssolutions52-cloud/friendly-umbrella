@@ -16,12 +16,49 @@ interface ProductMatch {
   categoryName: string | null;
   supplierName: string;
   supplierId: string;
+  supplierEmail?: string | null;
+  supplierPhone?: string | null;
+  supplierAddress?: string | null;
+  supplierLogoUrl?: string | null;
   unit: string;
   price: number | null;
   priceType: 'default' | 'private' | null;
   currency: string | null;
+  metadata?: any; // Enriched metadata for advanced analysis
   relevanceScore?: number;
   reasoning?: string;
+}
+
+interface ProjectInsights {
+  projectType?: string;
+  estimatedScope?: string;
+  complexity?: 'simple' | 'moderate' | 'complex';
+  timeline?: string;
+  budgetConsiderations?: string[];
+  requiredExpertise?: string[];
+}
+
+interface CostEstimate {
+  estimatedRange?: {
+    min: number;
+    max: number;
+    currency: string;
+    confidence: 'low' | 'medium' | 'high';
+  };
+  costBreakdown?: Array<{
+    category: string;
+    estimatedCost: number;
+    currency: string;
+    notes?: string;
+  }>;
+  costSavingTips?: string[];
+}
+
+interface MarketInsights {
+  priceTrends?: string;
+  supplierRecommendations?: string;
+  marketAvailability?: string;
+  qualityConsiderations?: string[];
 }
 
 interface AIQuoteResponse {
@@ -29,6 +66,12 @@ interface AIQuoteResponse {
   summary: string;
   reasoning: string;
   suggestions?: string[];
+  // Enhanced insights
+  projectInsights?: ProjectInsights;
+  costEstimate?: CostEstimate;
+  marketInsights?: MarketInsights;
+  bestPractices?: string[];
+  riskConsiderations?: string[];
 }
 
 export class AIQuoteService {
@@ -71,19 +114,75 @@ export class AIQuoteService {
     } : null;
 
     // Prepare enriched product data for LLM analysis
-    const productData = products.map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description || '',
-      sku: p.sku,
-      type: p.type,
-      category: p.categoryName || '',
-      supplier: p.supplierName,
-      unit: p.unit,
-      price: p.price,
-      currency: p.currency,
-      priceType: p.priceType, // Include price type (default/private)
-    }));
+    // Include metadata if available for advanced analysis
+    const productData = products.map(p => {
+      const baseData: any = {
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        sku: p.sku,
+        type: p.type,
+        category: p.categoryName || '',
+        supplier: p.supplierName,
+        unit: p.unit,
+        price: p.price,
+        currency: p.currency,
+        priceType: p.priceType, // Include price type (default/private)
+      };
+
+      // Include metadata if available (specifications, availability, usage, etc.)
+      // This enables advanced matching based on technical specs, location, lead times, etc.
+      if (p.metadata && typeof p.metadata === 'object') {
+        const metadata = p.metadata as Record<string, any>;
+        
+        // Include specifications for technical matching
+        if (metadata.specifications) {
+          baseData.specifications = metadata.specifications;
+        }
+        
+        // Include availability and lead times
+        if (metadata.availability) {
+          baseData.availability = metadata.availability;
+        }
+        
+        // Include usage context and applications
+        if (metadata.usage) {
+          baseData.usage = metadata.usage;
+        }
+        
+        // Include quality ratings
+        if (metadata.quality) {
+          baseData.quality = metadata.quality;
+        }
+        
+        // Include location/geographic data
+        if (metadata.location || metadata.availability?.warehouseLocations) {
+          baseData.location = metadata.location || { warehouseLocations: metadata.availability?.warehouseLocations };
+        }
+        
+        // Include pricing tiers for bulk analysis
+        if (metadata.pricingTiers || metadata.pricing) {
+          baseData.pricing = metadata.pricingTiers || metadata.pricing;
+        }
+        
+        // Include relationships for alternative/compatible suggestions
+        if (metadata.relationships) {
+          baseData.relationships = metadata.relationships;
+        }
+        
+        // Include technical requirements
+        if (metadata.technical) {
+          baseData.technical = metadata.technical;
+        }
+        
+        // Include environmental data
+        if (metadata.environmental) {
+          baseData.environmental = metadata.environmental;
+        }
+      }
+
+      return baseData;
+    });
 
     // Build context summary
     const contextSummary = {
@@ -98,9 +197,9 @@ export class AIQuoteService {
     };
 
     try {
-      // Enhanced system prompt with construction industry knowledge
+      // Enhanced system prompt with deep analysis capabilities
       const systemPrompt = `You are an expert AI assistant for a construction pricing platform called ConstructionGuru.
-Your expertise includes construction materials, building services, project planning, and supplier relationships.
+Your expertise includes construction materials, building services, project planning, cost estimation, supplier relationships, and construction industry best practices.
 
 PLATFORM CONTEXT:
 - This platform connects construction companies with suppliers and service providers
@@ -110,39 +209,64 @@ PLATFORM CONTEXT:
 - Private pricing may be available for specific companies
 
 YOUR CAPABILITIES:
-1. Understand natural language queries about construction needs
+1. Deeply analyze user prompts to understand project requirements, scope, and context
 2. Match user requirements with relevant products/services from the database
-3. Understand construction industry terminology, synonyms, and related concepts
-4. Consider context: project type, material specifications, quality requirements, quantities
-5. Recognize related terms:
-   - "concrete" = "cement", "ready-mix", "concrete mix"
-   - "electrical" = "wiring", "electrical components", "electrical supplies"
-   - "plumbing" = "pipes", "fixtures", "plumbing services", "waterworks"
-   - "HVAC" = "heating", "ventilation", "air conditioning", "cooling systems"
-   - "roofing" = "roof tiles", "shingles", "roofing materials", "roof installation"
+3. Provide project insights: identify project type, scope, complexity, timeline considerations
+4. Estimate costs: provide rough cost estimates based on industry knowledge and available pricing
+5. Market insights: analyze price trends, supplier recommendations, market availability
+6. Best practices: suggest industry best practices and recommendations
+7. Risk considerations: identify potential risks or issues to consider
+8. Understand construction industry terminology, synonyms, and related concepts
 
-MATCHING RULES:
-- Prioritize exact matches in name, category, or description
-- Include related/synonymous products that serve the same purpose
-- Consider product specifications and units (e.g., per square meter, per unit, per hour)
-- For services, consider location, expertise areas, and service types
-- For materials, consider size, grade, quality, and application
-- Price should be a secondary consideration unless explicitly mentioned
+ANALYSIS DEPTH:
+- Extract project details: project type (residential, commercial, industrial), scale, location hints
+- Identify complexity: simple (single item), moderate (multiple related items), complex (full project)
+- Estimate timeline: consider project duration based on scope
+- Budget analysis: identify budget considerations, cost-saving opportunities
+- Required expertise: identify what skills/services might be needed
+
+COST ESTIMATION:
+- Use available product prices to estimate total project costs when quantities are mentioned
+- Provide cost ranges with confidence levels (high: specific quantities, medium: estimated quantities, low: vague requirements)
+- Break down costs by category when multiple items are involved
+- Suggest cost-saving tips based on industry knowledge
+
+MARKET INSIGHTS:
+- Analyze price competitiveness based on available supplier prices
+- Recommend suppliers based on price, availability, or specialization
+- Note market availability and lead times if relevant
+- Consider quality vs. price trade-offs
 
 RESPONSE FORMAT:
 Return a JSON object with:
 - productIds: Array of product IDs that match (prioritize most relevant first, max 20)
 - summary: A natural, conversational 2-3 sentence summary of what the user needs, written as if you're a helpful construction expert
 - reasoning: Clear explanation (2-3 sentences) of why these specific products/services were selected, mentioning key matching criteria
-- suggestions: Optional array of 1-3 helpful suggestions such as:
-  * Alternative search terms or related products
-  * Questions to clarify requirements (e.g., "What project size?" or "Do you need installation service?")
-  * Tips for getting better quotes
+- suggestions: Optional array of 1-3 helpful suggestions
+- projectInsights: Object with:
+  * projectType: Type of project identified (e.g., "residential renovation", "commercial construction")
+  * estimatedScope: Brief description of project scope
+  * complexity: "simple", "moderate", or "complex"
+  * timeline: Estimated timeline considerations
+  * budgetConsiderations: Array of budget-related insights
+  * requiredExpertise: Array of skills/services that might be needed
+- costEstimate: Object with:
+  * estimatedRange: {min, max, currency, confidence} - if quantities can be estimated
+  * costBreakdown: Array of {category, estimatedCost, currency, notes} - for multi-item projects
+  * costSavingTips: Array of cost-saving recommendations
+- marketInsights: Object with:
+  * priceTrends: Brief note on price competitiveness
+  * supplierRecommendations: Recommendations on supplier selection
+  * marketAvailability: Notes on availability/lead times
+  * qualityConsiderations: Array of quality-related insights
+- bestPractices: Array of industry best practices relevant to this project
+- riskConsiderations: Array of potential risks or issues to consider
 
 QUALITY STANDARDS:
 - Be precise: Only include products that genuinely match the requirement
-- Be helpful: Provide context and reasoning in natural language
-- If no good matches, return an empty productIds array with clear explanation and suggestions for alternative searches`;
+- Be insightful: Provide deep analysis even when exact matches aren't found
+- Be helpful: Provide actionable recommendations and considerations
+- Be realistic: Don't overestimate capabilities, acknowledge when information is limited`;
 
       const userPrompt = `DATABASE SUMMARY:
 Total items: ${contextSummary.totalProducts} (${contextSummary.productsCount} products, ${contextSummary.servicesCount} services)
@@ -188,11 +312,23 @@ Return your analysis in the specified JSON format.`;
         .map(id => matchedProducts.find(p => p.id === id))
         .filter((p): p is ProductMatch => p !== undefined);
 
+      // Extract enhanced insights
+      const projectInsights: ProjectInsights | undefined = aiResponse.projectInsights || undefined;
+      const costEstimate: CostEstimate | undefined = aiResponse.costEstimate || undefined;
+      const marketInsights: MarketInsights | undefined = aiResponse.marketInsights || undefined;
+      const bestPractices: string[] | undefined = aiResponse.bestPractices || undefined;
+      const riskConsiderations: string[] | undefined = aiResponse.riskConsiderations || undefined;
+
       return {
         products: sortedProducts,
         summary,
         reasoning,
         suggestions: suggestions.length > 0 ? suggestions : undefined,
+        projectInsights,
+        costEstimate,
+        marketInsights,
+        bestPractices: bestPractices && bestPractices.length > 0 ? bestPractices : undefined,
+        riskConsiderations: riskConsiderations && riskConsiderations.length > 0 ? riskConsiderations : undefined,
       };
     } catch (error: any) {
       console.error('AI Quote Service Error:', error);
@@ -239,7 +375,7 @@ Return your analysis in the specified JSON format.`;
    * @param tenantType - Type of tenant requesting products
    */
   private async getAllAvailableProducts(tenantId: string | null, tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest'): Promise<ProductMatch[]> {
-    const products = await prisma.product.findMany({
+      const products = await prisma.product.findMany({
       where: {
         isActive: true,
         supplier: {
@@ -252,6 +388,11 @@ Return your analysis in the specified JSON format.`;
           select: {
             id: true,
             name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+            metadata: true, // Include supplier metadata for location, performance, etc.
           },
         },
         category: {
@@ -327,10 +468,15 @@ Return your analysis in the specified JSON format.`;
         categoryName: product.category?.name || product.serviceCategory?.name || null,
         supplierName: product.supplier.name,
         supplierId: product.supplier.id,
+        supplierEmail: product.supplier.email || null,
+        supplierPhone: product.supplier.phone || null,
+        supplierAddress: product.supplier.address || null,
+        supplierLogoUrl: product.supplier.logoUrl || null,
         unit: product.unit,
         price: finalPrice,
         priceType,
         currency,
+        metadata: product.metadata, // Include metadata for enriched analysis
       };
     });
     // Include all products/services, even without prices

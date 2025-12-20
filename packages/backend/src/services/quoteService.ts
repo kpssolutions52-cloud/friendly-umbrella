@@ -6,7 +6,7 @@ import { getSocketIO } from '../utils/socket';
 
 export class QuoteService {
   /**
-   * Create a new quote request (Company)
+   * Create a new quote request (Company) - Product-specific
    */
   async createQuoteRequest(
     companyId: string,
@@ -105,6 +105,252 @@ export class QuoteService {
     });
 
     return quoteRequest;
+  }
+
+  /**
+   * Create a general RFQ (Request for Quote) - open to all suppliers or specific supplier
+   * Uses a placeholder product approach since schema requires productId
+   */
+  async createGeneralRFQ(
+    companyId: string,
+    requestedBy: string,
+    data: {
+      title: string;
+      description?: string;
+      category?: string;
+      supplierId?: string | null; // null = open to all suppliers
+      quantity?: number;
+      unit?: string;
+      requestedPrice?: number;
+      currency?: string;
+      expiresAt?: Date;
+    }
+  ) {
+    // Verify company exists and is active
+    const company = await prisma.tenant.findFirst({
+      where: { id: companyId, type: 'company', isActive: true },
+    });
+
+    if (!company) {
+      throw createError(404, 'Company not found or inactive');
+    }
+
+    // If supplierId is provided, verify it exists
+    let supplierId: string;
+    if (data.supplierId) {
+      const supplier = await prisma.tenant.findFirst({
+        where: { 
+          id: data.supplierId, 
+          type: { in: ['supplier', 'service_provider'] },
+          isActive: true 
+        },
+      });
+
+      if (!supplier) {
+        throw createError(404, 'Supplier not found or inactive');
+      }
+      supplierId = data.supplierId;
+    } else {
+      // Open RFQ - use first supplier as placeholder (we'll mark it in metadata)
+      const firstSupplier = await prisma.tenant.findFirst({
+        where: {
+          type: { in: ['supplier', 'service_provider'] },
+          isActive: true,
+        },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (!firstSupplier) {
+        throw createError(400, 'No active suppliers available');
+      }
+      
+      supplierId = firstSupplier.id; // Placeholder - actual filtering done in queries
+    }
+
+    // For general RFQs, we need a valid productId
+    // We'll find or create a placeholder "General RFQ" product
+    // First, try to find an existing placeholder product
+    let placeholderProduct = await prisma.product.findFirst({
+      where: {
+        sku: 'GENERAL-RFQ-PLACEHOLDER',
+        supplierId: supplierId,
+      },
+    });
+
+    // If no placeholder exists, create one
+    if (!placeholderProduct) {
+      placeholderProduct = await prisma.product.create({
+        data: {
+          supplierId: supplierId,
+          sku: 'GENERAL-RFQ-PLACEHOLDER',
+          name: 'General RFQ Placeholder',
+          description: 'Placeholder product for general RFQs',
+          type: 'product',
+          unit: 'RFQ',
+          isActive: true,
+        },
+      });
+    }
+    
+    // Store the RFQ title and details in the message field
+    const rfqMessage = `RFQ: ${data.title}\n\n${data.description || ''}\n\nCategory: ${data.category || 'General'}`;
+
+    // Create quote request with placeholder product
+    const quoteRequest = await prisma.quoteRequest.create({
+      data: {
+        companyId,
+        supplierId,
+        productId: placeholderProduct.id,
+        quantity: data.quantity ? new Prisma.Decimal(data.quantity) : null,
+        unit: data.unit || null,
+        requestedPrice: data.requestedPrice ? new Prisma.Decimal(data.requestedPrice) : null,
+        currency: data.currency || 'USD',
+        message: rfqMessage,
+        requestedBy,
+        expiresAt: data.expiresAt,
+        status: QuoteStatus.pending,
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+          },
+        },
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            address: true,
+            logoUrl: true,
+          },
+        },
+        requestedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return quoteRequest;
+  }
+
+  /**
+   * Get public RFQs for suppliers to browse
+   * General RFQs are identified by message starting with "RFQ:"
+   */
+  async getPublicRFQs(filters?: {
+    status?: QuoteStatus;
+    category?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      message: {
+        startsWith: 'RFQ:', // General RFQs have message starting with "RFQ:"
+      },
+      status: filters?.status || QuoteStatus.pending,
+    };
+
+    // Filter by category if provided (search in message)
+    if (filters?.category) {
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: filters.category,
+        mode: 'insensitive',
+      };
+    }
+
+    const [rfqs, total] = await Promise.all([
+      prisma.quoteRequest.findMany({
+        where,
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              logoUrl: true,
+            },
+          },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              logoUrl: true,
+            },
+          },
+          requestedByUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          responses: {
+            select: {
+              id: true,
+              price: true,
+              currency: true,
+              quantity: true,
+              unit: true,
+              message: true,
+              terms: true,
+              validUntil: true,
+              respondedAt: true,
+              respondedByUser: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              respondedAt: 'desc',
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.quoteRequest.count({ where }),
+    ]);
+
+    return {
+      rfqs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   /**

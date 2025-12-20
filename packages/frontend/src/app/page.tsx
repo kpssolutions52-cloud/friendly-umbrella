@@ -13,7 +13,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { AIQuoteSection } from '@/components/AIQuoteSection';
-import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag } from 'lucide-react';
+import { RFQSection } from '@/components/RFQSection';
+import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag, FileText } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -91,7 +92,7 @@ export default function Home() {
   const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
   const [showMobileSortModal, setShowMobileSortModal] = useState(false);
   const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
-  const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop'>('shop');
+  const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop' | 'rfq'>('shop');
   const productsPerPage = 20;
 
   // Handle auth redirects - separate effect to avoid loops
@@ -478,6 +479,18 @@ export default function Home() {
               <ShoppingBag className="h-5 w-5" />
               Shop
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('rfq')}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                activeSection === 'rfq'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <FileText className="h-5 w-5" />
+              RFQ
+            </button>
           </div>
         </div>
       </div>
@@ -488,6 +501,13 @@ export default function Home() {
         {activeSection === 'ai-quote' && (
           <div className="mb-8">
             <AIQuoteSection />
+          </div>
+        )}
+
+        {/* RFQ Section */}
+        {activeSection === 'rfq' && (
+          <div className="mb-8">
+            <RFQSection />
           </div>
         )}
 
