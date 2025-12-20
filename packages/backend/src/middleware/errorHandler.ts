@@ -22,14 +22,17 @@ export function errorHandler(
     ip: req.ip,
   });
 
-  // Determine status code
-  const statusCode = err instanceof createError.HttpError ? err.statusCode : 500;
+  // Determine status code - check for statusCode property or use instanceof
+  const statusCode = 
+    (err as any).statusCode || 
+    (err instanceof createError.HttpError ? err.statusCode : undefined) ||
+    500;
 
   // Don't expose internal errors in production
   const message =
     statusCode === 500 && process.env.NODE_ENV === 'production'
       ? 'Internal Server Error'
-      : err.message;
+      : err.message || 'An error occurred';
 
   res.status(statusCode).json({
     error: {

@@ -137,7 +137,14 @@ router.post(
       const result = await authService.login(input);
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
+      // Log the error for debugging
+      logger.error('Login error:', {
+        error: error?.message || String(error),
+        stack: error?.stack,
+        email: req.body?.email,
+      });
+
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
@@ -155,7 +162,13 @@ router.post(
           });
         }
       }
+
+      // If it's already an HttpError, pass it through
+      if (error && typeof error === 'object' && 'statusCode' in error) {
+        return next(error);
+      }
       
+      // For any other error, ensure it's properly formatted
       next(error);
     }
   }
