@@ -12,7 +12,8 @@ import { BottomNavigation } from '@/components/BottomNavigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
-import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap } from 'lucide-react';
+import { AIQuoteSection } from '@/components/AIQuoteSection';
+import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -90,6 +91,7 @@ export default function Home() {
   const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
   const [showMobileSortModal, setShowMobileSortModal] = useState(false);
   const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
+  const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop'>('shop');
   const productsPerPage = 20;
 
   // Handle auth redirects - separate effect to avoid loops
@@ -444,19 +446,54 @@ export default function Home() {
             <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto mb-6">
               Compare prices from multiple suppliers and service providers
             </p>
-            <Button
-              onClick={() => setShowAIQuoteChat(true)}
-              className="bg-white text-blue-600 hover:bg-blue-50 text-base px-6 py-3 font-semibold shadow-lg"
+          </div>
+        </div>
+      </div>
+
+      {/* Section Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex bg-white rounded-lg p-1 shadow-md border border-gray-200">
+            <button
+              type="button"
+              onClick={() => setActiveSection('ai-quote')}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                activeSection === 'ai-quote'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
-              <Zap className="h-5 w-5 mr-2" />
-              Try AI Quote Assistant
-            </Button>
+              <Zap className="h-5 w-5" />
+              AI Quote
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection('shop')}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                activeSection === 'shop'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              Shop
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+        {/* AI Quote Section */}
+        {activeSection === 'ai-quote' && (
+          <div className="mb-8">
+            <AIQuoteSection />
+          </div>
+        )}
+
+        {/* Shop Section */}
+        {activeSection === 'shop' && (
+          <>
         {/* Products vs Services - Modern Segmented Control */}
         <div className="mb-6 flex justify-center">
           <div className="inline-flex bg-gray-100 rounded-lg p-1 shadow-sm">
@@ -1012,28 +1049,30 @@ export default function Home() {
                   </div>
                 )}
                 </div>
-            </>
-          )}
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </main>
 
       {/* Footer with Powered By */}
       <Footer />
 
-      {/* Bottom Navigation - Mobile Only */}
-      <BottomNavigation 
-        onSearchClick={() => {
-          setShowMobileSearchModal(true);
-          setShowMobileFilterModal(true);
-        }}
-        hasActiveFilters={!!(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 || searchQuery)}
-        filterCount={[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000, searchQuery].filter(Boolean).length}
-      />
+      {/* Bottom Navigation - Mobile Only - Only show in Shop section */}
+      {activeSection === 'shop' && (
+        <BottomNavigation 
+          onSearchClick={() => {
+            setShowMobileSearchModal(true);
+            setShowMobileFilterModal(true);
+          }}
+          hasActiveFilters={!!(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000 || searchQuery)}
+          filterCount={[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000, searchQuery].filter(Boolean).length}
+        />
+      )}
 
 
-      {/* Unified Mobile Search & Filter Bottom Sheet */}
-      {(showMobileSearchModal || showMobileFilterModal) && (
+      {/* Unified Mobile Search & Filter Bottom Sheet - Only show in Shop section */}
+      {activeSection === 'shop' && (showMobileSearchModal || showMobileFilterModal) && (
         <>
           <div 
             className="fixed inset-0 bg-black/50 z-[60] md:hidden animate-in fade-in"
