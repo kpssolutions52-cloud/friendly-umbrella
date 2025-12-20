@@ -87,7 +87,18 @@ export class AIQuoteService {
     }
 
     // First, get all available products/services with prices
-    const products = await this.getAllAvailableProducts(tenantId, tenantType);
+    let products: ProductMatch[];
+    try {
+      products = await this.getAllAvailableProducts(tenantId, tenantType);
+    } catch (error: any) {
+      console.error('Error fetching products for AI search:', error);
+      // Return empty result if we can't fetch products
+      return {
+        products: [],
+        summary: 'Unable to search products at this time. Please try again later.',
+        reasoning: 'An error occurred while fetching products from the database.',
+      };
+    }
 
     if (products.length === 0) {
       return {
@@ -298,7 +309,16 @@ Return your analysis in the specified JSON format.`;
         throw new Error('No response from AI service');
       }
 
-      const aiResponse = JSON.parse(responseContent);
+      // Try to parse JSON response, fallback to keyword search if parsing fails
+      let aiResponse: any;
+      try {
+        aiResponse = JSON.parse(responseContent);
+      } catch (parseError: any) {
+        // Invalid JSON response - fallback to keyword search
+        console.warn('AI Quote Service: Invalid JSON response from AI, falling back to keyword search:', parseError.message);
+        return this.fallbackKeywordSearch(prompt, products);
+      }
+
       const matchedProductIds: string[] = aiResponse.productIds || [];
       const summary: string = aiResponse.summary || 'Products matched based on your requirements.';
       const reasoning: string = aiResponse.reasoning || 'Products were selected based on relevance to your query.';
@@ -331,7 +351,8 @@ Return your analysis in the specified JSON format.`;
         riskConsiderations: riskConsiderations && riskConsiderations.length > 0 ? riskConsiderations : undefined,
       };
     } catch (error: any) {
-      console.error('AI Quote Service Error:', error);
+      // Log error but don't throw - fallback to keyword search
+      console.warn('AI Quote Service Error, falling back to keyword search:', error.message);
       
       // Fallback to keyword-based search if AI fails
       return this.fallbackKeywordSearch(prompt, products);
