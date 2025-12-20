@@ -22,7 +22,8 @@ import {
   Phone,
   Mail,
   MapPin,
-  Send
+  Send,
+  X
 } from 'lucide-react';
 
 interface RFQDetails {
