@@ -47,11 +47,11 @@ export interface AuthResponse {
 }
 
 export async function register(input: RegisterInput): Promise<AuthResponse | { message: string; user: any }> {
-  return apiPost<any>('/api/v1/auth/register', input);
+  return apiPost<any>('/api/v1/auth/register', input, false);
 }
 
 export async function login(input: LoginInput): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/api/v1/auth/login', input);
+  return apiPost<AuthResponse>('/api/v1/auth/login', input, false);
 }
 
 export async function getCurrentUser(): Promise<User> {

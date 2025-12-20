@@ -64,7 +64,7 @@ export async function apiRequest<T>(
       clearTimeout(timeoutId);
     }
 
-    // Handle 401 Unauthorized - try to refresh token
+    // Handle 401 Unauthorized - try to refresh token (only if retryOn401 is true)
     if (response.status === 401 && retryOn401 && typeof window !== 'undefined') {
       const { refreshAccessToken, clearTokens } = await import('./auth');
       
@@ -80,7 +80,23 @@ export async function apiRequest<T>(
         if (window.location.pathname !== '/auth/login') {
           window.location.href = '/auth/login';
         }
-        throw new Error('Authentication failed');
+        // Try to get error message from response before throwing
+        try {
+          const errorData = await response.json();
+          throw {
+            error: {
+              message: errorData.error?.message || errorData.message || 'Authentication failed',
+              statusCode: 401,
+            },
+          };
+        } catch (parseError) {
+          throw {
+            error: {
+              message: 'Authentication failed',
+              statusCode: 401,
+            },
+          };
+        }
       }
     }
 
@@ -127,11 +143,11 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
   return apiRequest<T>(endpoint, { method: 'GET' });
 }
 
-export async function apiPost<T>(endpoint: string, data?: any): Promise<T> {
+export async function apiPost<T>(endpoint: string, data?: any, retryOn401 = true): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: 'POST',
     body: JSON.stringify(data),
-  });
+  }, retryOn401);
 }
 
 export async function apiPut<T>(endpoint: string, data?: any): Promise<T> {
