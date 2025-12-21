@@ -270,8 +270,19 @@ export default function Home() {
       setSubCategories([]);
       setSubServiceCategories([]);
       setCurrentPage(1);
+      
+      // Ensure categories are loaded for the active tab
+      if (activeTab === 'products') {
+        if (mainCategories.length === 0) {
+          loadMainCategories();
+        }
+      } else {
+        if (mainServiceCategories.length === 0) {
+          loadMainServiceCategories();
+        }
+      }
     }
-  }, [authLoading, activeTab]);
+  }, [authLoading, activeTab, mainCategories.length, mainServiceCategories.length, loadMainCategories, loadMainServiceCategories]);
 
   // Load products/services when filters change or tab changes (not search - handled by debounce)
   useEffect(() => {

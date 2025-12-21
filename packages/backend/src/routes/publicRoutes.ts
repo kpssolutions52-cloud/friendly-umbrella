@@ -565,20 +565,29 @@ router.get(
         
         // Try category icon fallback if no product image
         if (!finalImageUrl) {
-          // First try using category relation if available
-          if (canIncludeCategory && includeCategory && product.category && typeof product.category !== 'string') {
-            const category = product.category as any;
-            // First try subcategory icon (if product is in a subcategory)
-            if (category.iconUrl) {
-              finalImageUrl = category.iconUrl;
-            } else if (category.parent && category.parent.iconUrl) {
-              // If no subcategory icon, try parent (main category) icon
-              finalImageUrl = category.parent.iconUrl;
+          // First try using category relation if available (based on type)
+          if (canIncludeCategory && includeCategory) {
+            if (product.type === 'service' && product.serviceCategory && typeof product.serviceCategory !== 'string') {
+              const serviceCategory = product.serviceCategory as any;
+              if (serviceCategory.iconUrl) {
+                finalImageUrl = serviceCategory.iconUrl;
+              } else if (serviceCategory.parent && serviceCategory.parent.iconUrl) {
+                finalImageUrl = serviceCategory.parent.iconUrl;
+              }
+            } else if (product.category && typeof product.category !== 'string') {
+              const category = product.category as any;
+              // First try subcategory icon (if product is in a subcategory)
+              if (category.iconUrl) {
+                finalImageUrl = category.iconUrl;
+              } else if (category.parent && category.parent.iconUrl) {
+                // If no subcategory icon, try parent (main category) icon
+                finalImageUrl = category.parent.iconUrl;
+              }
             }
           }
           
-          // If still no image and we have categoryId, try categoryImageMap
-          if (!finalImageUrl && (product as any).categoryId) {
+          // If still no image and we have categoryId, try categoryImageMap (for products only)
+          if (!finalImageUrl && (product as any).categoryId && product.type === 'product') {
             const categoryId = (product as any).categoryId;
             const categoryInfo = categoryImageMap.get(categoryId);
             
