@@ -120,7 +120,7 @@ export class SuperAdminService {
         users: {
           where: {
             role: {
-              in: ['supplier_admin', 'company_admin'],
+              in: ['supplier_admin', 'company_admin', 'service_provider_admin'],
             },
           },
         },

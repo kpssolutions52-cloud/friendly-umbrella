@@ -47,7 +47,16 @@ export class ServiceCategoryService {
 
     const categories = await prisma.serviceCategory.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        iconUrl: true,
+        parentId: true,
+        isActive: true,
+        displayOrder: true,
+        createdAt: true,
+        updatedAt: true,
         parent: {
           select: {
             id: true,
@@ -55,6 +64,17 @@ export class ServiceCategoryService {
           },
         },
         children: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            iconUrl: true,
+            parentId: true,
+            isActive: true,
+            displayOrder: true,
+            createdAt: true,
+            updatedAt: true,
+          },
           where: includeInactive ? {} : { isActive: true },
           orderBy: {
             displayOrder: 'asc',
@@ -94,6 +114,17 @@ export class ServiceCategoryService {
 
     return prisma.serviceCategory.findMany({
       where,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        iconUrl: true,
+        parentId: true,
+        isActive: true,
+        displayOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: [
         { displayOrder: 'asc' },
         { name: 'asc' },
@@ -112,6 +143,17 @@ export class ServiceCategoryService {
 
     return prisma.serviceCategory.findMany({
       where,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        iconUrl: true,
+        parentId: true,
+        isActive: true,
+        displayOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: [
         { displayOrder: 'asc' },
         { name: 'asc' },
