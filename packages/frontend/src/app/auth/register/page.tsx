@@ -113,9 +113,9 @@ function RegisterForm() {
         lastName: data.lastName,
       };
 
-      if (data.registrationType === 'new_company' || data.registrationType === 'new_supplier') {
+      if (data.registrationType === 'new_company' || data.registrationType === 'new_supplier' || data.registrationType === 'new_service_provider') {
         if (!data.tenantName) {
-          setError('Company/Supplier name is required');
+          setError(data.registrationType === 'new_service_provider' ? 'Service provider name is required' : 'Company/Supplier name is required');
           setLoading(false);
           return;
         }
@@ -135,7 +135,13 @@ function RegisterForm() {
           return;
         }
         payload.tenantName = data.tenantName;
-        payload.tenantType = data.registrationType === 'new_company' ? 'company' : 'supplier';
+        if (data.registrationType === 'new_company') {
+          payload.tenantType = 'company';
+        } else if (data.registrationType === 'new_supplier') {
+          payload.tenantType = 'supplier';
+        } else if (data.registrationType === 'new_service_provider') {
+          payload.tenantType = 'service_provider';
+        }
         payload.phone = data.phone;
         payload.address = data.address;
         payload.postalCode = data.postalCode;
@@ -143,8 +149,9 @@ function RegisterForm() {
         // Customer registration - no tenant required
         // No additional fields needed
       } else {
+        // For new_company_user, new_supplier_user, or new_service_provider_user
         if (!data.tenantId) {
-          setError('Please select a company or supplier');
+          setError('Please select a company, supplier, or service provider');
           setLoading(false);
           return;
         }
@@ -337,7 +344,11 @@ function RegisterForm() {
                 <input
                   type="hidden"
                   {...register('tenantType', { 
-                    value: registrationType === 'new_supplier' ? 'supplier' : 'company'
+                    value: registrationType === 'new_supplier' 
+                      ? 'supplier' 
+                      : registrationType === 'new_service_provider'
+                      ? 'service_provider'
+                      : 'company'
                   })}
                 />
                 

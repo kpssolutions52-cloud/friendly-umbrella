@@ -67,7 +67,7 @@ router.post(
   '/auth/register',
   [
     body('registrationType')
-      .isIn(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user', 'customer'])
+      .isIn(['new_company', 'new_supplier', 'new_service_provider', 'new_company_user', 'new_supplier_user', 'new_service_provider_user', 'customer'])
       .withMessage('Invalid registration type'),
     body('email').isEmail().withMessage('Valid email is required'),
     body('password')
@@ -84,7 +84,7 @@ router.post(
       const input = registerSchema.parse(req.body);
       
       // Validate required fields based on registration type
-      if ((input.registrationType === 'new_company' || input.registrationType === 'new_supplier')) {
+      if ((input.registrationType === 'new_company' || input.registrationType === 'new_supplier' || input.registrationType === 'new_service_provider')) {
         if (!input.tenantName) {
           return res.status(400).json({ errors: [{ msg: 'Tenant name is required' }] });
         }
@@ -100,7 +100,7 @@ router.post(
         if (!input.postalCode) {
           return res.status(400).json({ errors: [{ msg: 'Postal code is required' }] });
         }
-      } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user') {
+      } else if (input.registrationType === 'new_company_user' || input.registrationType === 'new_supplier_user' || input.registrationType === 'new_service_provider_user') {
         if (!input.tenantId) {
           return res.status(400).json({ errors: [{ msg: 'Tenant selection is required' }] });
         }
