@@ -9,9 +9,9 @@ import { logger } from '../utils/logger';
 const router = Router();
 
 const registerSchema = z.object({
-  registrationType: z.enum(['new_company', 'new_supplier', 'new_company_user', 'new_supplier_user', 'customer']),
+  registrationType: z.enum(['new_company', 'new_supplier', 'new_service_provider', 'new_company_user', 'new_supplier_user', 'new_service_provider_user', 'customer']),
   tenantName: z.string().min(1).optional(),
-  tenantType: z.enum(['supplier', 'company']).optional(),
+  tenantType: z.enum(['supplier', 'company', 'service_provider']).optional(),
   tenantId: z.string().uuid().optional(),
   email: z.string().email(),
   password: z.string().min(8),
@@ -32,7 +32,7 @@ const loginSchema = z.object({
 // GET /api/v1/auth/tenants - Get active tenants for registration
 router.get('/auth/tenants', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const tenantType = req.query.type as 'supplier' | 'company' | undefined;
+    const tenantType = req.query.type as 'supplier' | 'company' | 'service_provider' | undefined;
 
     const where: any = {
       status: 'active',
