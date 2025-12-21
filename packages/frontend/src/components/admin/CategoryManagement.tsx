@@ -214,7 +214,11 @@ export function CategoryManagement() {
       setUploadingIcon(categoryId);
       setError(null);
       setSuccess(null);
-      await uploadCategoryIcon(categoryId, file);
+      if (activeTab === 'products') {
+        await uploadCategoryIcon(categoryId, file);
+      } else {
+        await uploadServiceCategoryIcon(categoryId, file);
+      }
       setSuccess('Icon uploaded successfully');
       await loadCategories();
     } catch (err: any) {

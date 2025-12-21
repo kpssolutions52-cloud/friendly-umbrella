@@ -217,9 +217,9 @@ export default function Home() {
     }
   }, []);
 
-  // Load initial data once when auth is done and user is guest
+  // Load initial data once when auth is done
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading) {
       // Only load categories and suppliers/service providers once - don't block if they fail
       // Use setTimeout to ensure page can render even if API is slow
       const loadData = async () => {
@@ -236,11 +236,11 @@ export default function Home() {
       };
       loadData();
     }
-  }, [authLoading, user, loadMainCategories, loadMainServiceCategories, loadSuppliers, loadServiceProviders]);
+  }, [authLoading, loadMainCategories, loadMainServiceCategories, loadSuppliers, loadServiceProviders]);
 
   // Debounced search - optimize API calls
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading) {
       if (searchDebounceTimer) {
         clearTimeout(searchDebounceTimer);
       }
@@ -257,11 +257,11 @@ export default function Home() {
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, authLoading]);
 
   // Reset filters when tab changes (not when filters change)
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading) {
       // Reset filters when tab changes
       setSelectedMainCategoryId('');
       setSelectedSubCategoryId('');
@@ -271,18 +271,18 @@ export default function Home() {
       setSubServiceCategories([]);
       setCurrentPage(1);
     }
-  }, [authLoading, user, activeTab]);
+  }, [authLoading, activeTab]);
 
-  // Load products/services when filters change (not search - handled by debounce)
+  // Load products/services when filters change or tab changes (not search - handled by debounce)
   useEffect(() => {
-    if (!authLoading && !user) {
-      // Load products/services when filters change
+    if (!authLoading) {
+      // Load products/services when filters change or tab changes
       loadProducts().catch(err => {
         console.error('Failed to load products/services:', err);
         setIsLoadingProducts(false);
       });
     }
-  }, [authLoading, user, loadProducts, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, currentPage]);
+  }, [authLoading, loadProducts, activeTab, selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, currentPage]);
 
   // Reload subcategories when main category changes (backup mechanism)
   useEffect(() => {
