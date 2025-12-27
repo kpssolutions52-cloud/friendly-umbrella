@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 export interface Notification {
   id: string;
-  type: 'quote:responded' | 'quote:accepted' | 'quote:rejected' | 'quote:countered' | 'quote:cancelled' | 'rfq:created' | 'price:updated';
+  type: 'quote:created' | 'quote:responded' | 'quote:accepted' | 'quote:rejected' | 'quote:countered' | 'quote:cancelled' | 'rfq:created' | 'price:updated';
   title: string;
   description: string;
   timestamp: Date;
