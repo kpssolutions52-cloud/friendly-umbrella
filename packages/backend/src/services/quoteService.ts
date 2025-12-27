@@ -967,11 +967,17 @@ export class QuoteService {
       throw createError(403, 'Access denied');
     }
 
-    if (quoteRequest.responses.length === 0) {
+    // Find the specific response being countered
+    const quoteResponse = await prisma.quoteResponse.findFirst({
+      where: {
+        id: quoteResponseId,
+        quoteRequestId,
+      },
+    });
+
+    if (!quoteResponse) {
       throw createError(404, 'Quote response not found');
     }
-
-    const quoteResponse = quoteRequest.responses[0];
 
     // Create a counter-response (new response from company)
     // We'll store the counter-offer in the message field with a special prefix
