@@ -329,8 +329,43 @@ The dashboard automatically updates with:
 - Manually refresh the page
 - Check your internet connection
 
+## Responding to RFQs (Request for Quote) 🆕
+
+The platform includes a comprehensive RFQ feature that allows suppliers to view and respond to quote requests from companies.
+
+### Quick Overview
+
+- **View RFQs**: Browse relevant RFQs (targeted to you or matching your product categories)
+- **Submit Bids**: Respond to RFQs with pricing, terms, and conditions
+- **Track Responses**: Monitor bid status and receive notifications
+- **Negotiate**: Respond to company counter-offers
+
+### Getting Started with RFQs
+
+1. **View Available RFQs**
+   - Navigate to Supplier Dashboard → RFQs section
+   - Browse RFQs targeted to you or matching your product categories
+   - Filter by status, category, and other criteria
+
+2. **Submit a Bid**
+   - Click "View" or "Respond" on any RFQ
+   - Review RFQ requirements and details
+   - Fill in your quote: price, quantity, terms, validity period
+   - Submit your bid
+
+3. **Track Your Bids**
+   - Monitor bid status: Pending, Accepted, Rejected, Countered
+   - Receive real-time notifications for company actions
+   - Respond to counter-offers when companies negotiate
+
+### Learn More
+
+For complete RFQ documentation including workflows, best practices, and detailed guides, see:
+- **[Complete RFQ Guide](./rfq-guide.md)** - Comprehensive RFQ feature documentation
+
 ## Next Steps
 
+- Learn about [RFQ Feature](./rfq-guide.md) 🆕 - Complete guide for viewing and responding to RFQs
 - Learn about [API Testing](./api-testing.md) for advanced features
 - Review [Company Guide](./company-guide.md) to understand the buyer perspective
 - Check [Technical Documentation](../technical/) for integration details

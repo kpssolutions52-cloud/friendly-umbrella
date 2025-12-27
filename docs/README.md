@@ -11,7 +11,8 @@ Welcome to the Construction Pricing Platform documentation.
 
 ### For Users
 - [Getting Started Guide](./user-guide/getting-started.md)
-- [User Registration & Role Management](./user-guide/user-registration-and-roles.md) ⭐ **NEW**
+- [User Registration & Role Management](./user-guide/user-registration-and-roles.md)
+- [RFQ Feature Guide](./user-guide/rfq-guide.md) 🆕 **NEW** - Complete guide for Request for Quote feature
 - [Supplier Guide](./user-guide/supplier-guide.md)
 - [Company Guide](./user-guide/company-guide.md)
 - [API Testing Guide](./user-guide/api-testing.md)
@@ -19,7 +20,8 @@ Welcome to the Construction Pricing Platform documentation.
 ### For Developers
 - [Architecture Overview](./technical/architecture.md)
 - [API Reference](./technical/api-reference.md)
-- [User Registration & Role Management (Technical)](./technical/user-registration-role-management.md) ⭐ **NEW**
+- [RFQ System Technical Documentation](./technical/rfq-system.md) 🆕 **NEW** - Technical details for RFQ system
+- [User Registration & Role Management (Technical)](./technical/user-registration-role-management.md)
 - [Price Management Flow](./technical/price-management-flow.md)
 - [Setup & Installation](./technical/setup.md)
 - [Deployment Guide](./technical/deployment.md)
