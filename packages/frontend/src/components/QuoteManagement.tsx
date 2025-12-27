@@ -135,23 +135,44 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       
       // For suppliers, use the RFQ public endpoint to see general RFQs
       // For companies, use the regular quotes endpoint
-      const endpoint = isCompany 
-        ? `/api/v1/quotes?${params.toString()}`
-        : `/api/v1/quotes/rfq/public?${params.toString()}`;
-      
-      const response = isCompany
-        ? await apiGet<{ quoteRequests: QuoteRequest[] }>(endpoint)
-        : await apiGet<{ rfqs: QuoteRequest[] }>(endpoint);
-      
-      // Handle different response structures
       if (isCompany) {
+        const response = await apiGet<{ quoteRequests: QuoteRequest[] }>(
+          `/api/v1/quotes?${params.toString()}`
+        );
         setQuoteRequests(response.quoteRequests || []);
       } else {
+        // Suppliers see RFQs from the public endpoint
+        const response = await apiGet<{ rfqs: any[]; pagination?: any }>(
+          `/api/v1/quotes/rfq/public?${params.toString()}`
+        );
         // Map RFQ response to QuoteRequest format
-        const rfqs = (response as any).rfqs || [];
+        const rfqs = response.rfqs || [];
         setQuoteRequests(rfqs.map((rfq: any) => ({
-          ...rfq,
-          product: rfq.product || null, // RFQs may not have a product
+          id: rfq.id,
+          product: rfq.product || null, // General RFQs may not have a product
+          company: rfq.company,
+          supplier: rfq.supplier,
+          quantity: rfq.quantity,
+          requestedPrice: rfq.requestedPrice,
+          currency: rfq.currency,
+          message: rfq.message,
+          status: rfq.status,
+          requestedBy: rfq.requestedByUser ? {
+            id: rfq.requestedByUser.id,
+            email: rfq.requestedByUser.email,
+            firstName: rfq.requestedByUser.firstName,
+            lastName: rfq.requestedByUser.lastName,
+          } : {
+            id: '',
+            email: '',
+            firstName: null,
+            lastName: null,
+          },
+          respondedBy: null,
+          respondedAt: null,
+          expiresAt: rfq.expiresAt,
+          createdAt: rfq.createdAt,
+          responses: rfq.responses || [],
         })));
       }
     } catch (error: any) {
