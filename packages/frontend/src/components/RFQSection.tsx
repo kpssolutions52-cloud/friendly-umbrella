@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, apiPostForm } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { 
   FileText, 
