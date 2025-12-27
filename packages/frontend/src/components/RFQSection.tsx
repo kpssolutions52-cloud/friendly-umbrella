@@ -261,6 +261,10 @@ export function RFQSection() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
   const loadRFQs = async () => {
     setIsLoading(true);
