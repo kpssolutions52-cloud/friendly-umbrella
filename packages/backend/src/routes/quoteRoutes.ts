@@ -503,6 +503,65 @@ router.post(
   }
 );
 
+// POST /api/v1/quotes/:id/counter - Counter-negotiate a quote response (Company only)
+router.post(
+  '/quotes/:id/counter',
+  requireTenantType('company'),
+  [
+    param('id').isUUID().withMessage('Invalid quote request ID'),
+    body('quoteResponseId').isUUID().withMessage('Invalid quote response ID'),
+    body('counterPrice').isFloat({ min: 0 }).withMessage('Counter price must be positive'),
+    body('counterMessage').optional().isString().withMessage('Counter message must be a string'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const counterResponse = await quoteService.counterNegotiateQuote(
+        req.params.id,
+        req.body.quoteResponseId,
+        req.tenantId!,
+        req.body.counterPrice,
+        req.body.counterMessage
+      );
+
+      res.json({ counterResponse });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/quotes/:id/reject-response - Reject a specific quote response (Company only)
+router.post(
+  '/quotes/:id/reject-response',
+  requireTenantType('company'),
+  [
+    param('id').isUUID().withMessage('Invalid quote request ID'),
+    body('quoteResponseId').isUUID().withMessage('Invalid quote response ID'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const result = await quoteService.rejectQuoteResponse(
+        req.body.quoteResponseId,
+        req.tenantId!
+      );
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /api/v1/quotes/statistics - Get quote statistics
 router.get(
   '/quotes/statistics',

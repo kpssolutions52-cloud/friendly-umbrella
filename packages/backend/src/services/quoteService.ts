@@ -917,14 +917,165 @@ export class QuoteService {
     }
 
     // Update status
-    await prisma.quoteRequest.update({
+    const updatedQuoteRequest = await prisma.quoteRequest.update({
       where: { id: quoteRequestId },
       data: {
         status: QuoteStatus.rejected,
       },
     });
 
-    return quoteRequest;
+    // Broadcast quote rejection notification
+    const io = getSocketIO();
+    if (io) {
+      broadcastQuoteUpdate(io, {
+        quoteRequestId,
+        companyId: updatedQuoteRequest.companyId,
+        supplierId: updatedQuoteRequest.supplierId,
+        status: QuoteStatus.rejected,
+        event: 'quote:rejected',
+      });
+    }
+
+    return updatedQuoteRequest;
+  }
+
+  /**
+   * Counter-negotiate a quote response (Company)
+   * Company proposes a counter-offer to supplier's bid
+   */
+  async counterNegotiateQuote(
+    quoteRequestId: string,
+    quoteResponseId: string,
+    companyId: string,
+    counterPrice: number,
+    counterMessage?: string
+  ) {
+    const quoteRequest = await prisma.quoteRequest.findFirst({
+      where: { id: quoteRequestId },
+      include: {
+        responses: {
+          where: { id: quoteResponseId },
+        },
+      },
+    });
+
+    if (!quoteRequest) {
+      throw createError(404, 'Quote request not found');
+    }
+
+    if (quoteRequest.companyId !== companyId) {
+      throw createError(403, 'Access denied');
+    }
+
+    if (quoteRequest.responses.length === 0) {
+      throw createError(404, 'Quote response not found');
+    }
+
+    const quoteResponse = quoteRequest.responses[0];
+
+    // Create a counter-response (new response from company)
+    // We'll store the counter-offer in the message field with a special prefix
+    const counterResponse = await prisma.quoteResponse.create({
+      data: {
+        quoteRequestId,
+        price: counterPrice,
+        currency: quoteResponse.currency,
+        quantity: quoteResponse.quantity,
+        unit: quoteResponse.unit,
+        message: counterMessage || `Counter-offer: ${counterPrice} ${quoteResponse.currency}`,
+        terms: `Counter-negotiation for response ${quoteResponseId}`,
+        respondedBy: quoteRequest.requestedBy, // Company user who created the RFQ
+        validUntil: quoteResponse.validUntil,
+      },
+      include: {
+        respondedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    // Update quote request status to indicate negotiation
+    const updatedQuoteRequest = await prisma.quoteRequest.update({
+      where: { id: quoteRequestId },
+      data: {
+        status: QuoteStatus.responded, // Keep as responded to allow further negotiation
+      },
+    });
+
+    // Broadcast counter-negotiation notification
+    const io = getSocketIO();
+    if (io) {
+      broadcastQuoteUpdate(io, {
+        quoteRequestId,
+        companyId: updatedQuoteRequest.companyId,
+        supplierId: updatedQuoteRequest.supplierId,
+        status: QuoteStatus.responded,
+        event: 'quote:countered',
+      });
+    }
+
+    return counterResponse;
+  }
+
+  /**
+   * Reject a specific quote response (Company)
+   * This rejects only the response, not the entire RFQ
+   */
+  async rejectQuoteResponse(quoteResponseId: string, companyId: string) {
+    const quoteResponse = await prisma.quoteResponse.findFirst({
+      where: { id: quoteResponseId },
+      include: {
+        quoteRequest: true,
+      },
+    });
+
+    if (!quoteResponse) {
+      throw createError(404, 'Quote response not found');
+    }
+
+    if (quoteResponse.quoteRequest.companyId !== companyId) {
+      throw createError(403, 'Access denied');
+    }
+
+    // Mark response as rejected by deleting it or marking it
+    // For now, we'll delete the response to reject it
+    await prisma.quoteResponse.delete({
+      where: { id: quoteResponseId },
+    });
+
+    // Check if there are any remaining responses
+    const remainingResponses = await prisma.quoteResponse.count({
+      where: { quoteRequestId: quoteResponse.quoteRequestId },
+    });
+
+    // If no responses left, set status back to pending
+    if (remainingResponses === 0) {
+      await prisma.quoteRequest.update({
+        where: { id: quoteResponse.quoteRequestId },
+        data: {
+          status: QuoteStatus.pending,
+        },
+      });
+    }
+
+    // Broadcast rejection notification
+    const io = getSocketIO();
+    if (io) {
+      broadcastQuoteUpdate(io, {
+        quoteRequestId: quoteResponse.quoteRequestId,
+        companyId: quoteResponse.quoteRequest.companyId,
+        supplierId: quoteResponse.quoteRequest.supplierId,
+        status: remainingResponses > 0 ? QuoteStatus.responded : QuoteStatus.pending,
+        event: 'quote:rejected',
+      });
+    }
+
+    return { success: true, message: 'Response rejected' };
   }
 
   /**

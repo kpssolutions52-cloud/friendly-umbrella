@@ -88,6 +88,8 @@ export default function RFQDetailsPage() {
   const [rfq, setRfq] = useState<RFQDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showResponseModal, setShowResponseModal] = useState(false);
+  const [showCounterModal, setShowCounterModal] = useState(false);
+  const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [responseData, setResponseData] = useState({
@@ -98,6 +100,10 @@ export default function RFQDetailsPage() {
     message: '',
     terms: '',
     validUntil: '',
+  });
+  const [counterData, setCounterData] = useState({
+    counterPrice: '',
+    counterMessage: '',
   });
 
   useEffect(() => {
@@ -246,6 +252,88 @@ export default function RFQDetailsPage() {
   const isSupplier = user?.tenant?.type === 'supplier' || user?.tenant?.type === 'service_provider';
   const isCompany = user?.tenant?.type === 'company';
   const canRespond = isSupplier && rfq.status === 'pending';
+  const canManageBids = isCompany && rfq.responses && rfq.responses.length > 0;
+
+  const handleAcceptBid = async (responseId: string) => {
+    if (!confirm('Are you sure you want to accept this bid?')) return;
+    
+    setIsSubmitting(true);
+    try {
+      await apiPost(`/api/v1/quotes/${params.id}/accept`, { quoteResponseId: responseId });
+      toast({
+        title: 'Success',
+        description: 'Bid accepted successfully',
+        variant: 'default',
+      });
+      loadRFQDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to accept bid',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRejectBid = async (responseId: string) => {
+    if (!confirm('Are you sure you want to reject this bid? This will remove the bid from the RFQ.')) return;
+    
+    setIsSubmitting(true);
+    try {
+      await apiPost(`/api/v1/quotes/${params.id}/reject-response`, {
+        quoteResponseId: responseId,
+      });
+      toast({
+        title: 'Success',
+        description: 'Bid rejected successfully',
+        variant: 'default',
+      });
+      loadRFQDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to reject bid',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCounterNegotiate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResponseId || !counterData.counterPrice) return;
+
+    setIsSubmitting(true);
+    try {
+      await apiPost(`/api/v1/quotes/${params.id}/counter`, {
+        quoteResponseId: selectedResponseId,
+        counterPrice: parseFloat(counterData.counterPrice),
+        counterMessage: counterData.counterMessage || undefined,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Counter-offer submitted successfully',
+        variant: 'default',
+      });
+
+      setShowCounterModal(false);
+      setSelectedResponseId(null);
+      setCounterData({ counterPrice: '', counterMessage: '' });
+      loadRFQDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to submit counter-offer',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -419,7 +507,7 @@ export default function RFQDetailsPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-green-600">
-                            {response.currency} {response.price.toFixed(2)}
+                            {response.currency} {Number(response.price).toFixed(2)}
                           </p>
                           {response.quantity && (
                             <p className="text-sm text-gray-500">
@@ -575,6 +663,82 @@ export default function RFQDetailsPage() {
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Quote'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Counter-Negotiate Modal */}
+      {showCounterModal && selectedResponseId && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isSubmitting && setShowCounterModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Counter-Negotiate Bid</h3>
+                <button
+                  onClick={() => !isSubmitting && setShowCounterModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCounterNegotiate} className="p-6 space-y-4">
+                <div>
+                  <Label htmlFor="counterPrice">Counter Price *</Label>
+                  <Input
+                    id="counterPrice"
+                    name="counterPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={counterData.counterPrice}
+                    onChange={(e) => setCounterData({ ...counterData, counterPrice: e.target.value })}
+                    required
+                    placeholder="Enter your counter-offer price"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="counterMessage">Counter Message</Label>
+                  <textarea
+                    id="counterMessage"
+                    name="counterMessage"
+                    value={counterData.counterMessage}
+                    onChange={(e) => setCounterData({ ...counterData, counterMessage: e.target.value })}
+                    placeholder="Explain your counter-offer or negotiation terms..."
+                    className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCounterModal(false);
+                      setSelectedResponseId(null);
+                    }}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !counterData.counterPrice}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Counter-Offer'}
                   </Button>
                 </div>
               </form>
