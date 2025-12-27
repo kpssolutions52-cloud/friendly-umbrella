@@ -11,6 +11,7 @@ import { apiPost, apiGet, apiPut, apiDelete, getCategories, getSubcategories, Pr
 import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
+import { NotificationCenter } from '@/components/NotificationCenter';
 import Link from 'next/link';
 import { Zap } from 'lucide-react';
 
@@ -966,6 +967,10 @@ function DashboardContent() {
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="sm:hidden mt-4 space-y-2 pb-4 border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between px-2 py-2">
+                <span className="text-sm font-medium text-gray-700">Notifications</span>
+                <NotificationCenter />
+              </div>
               <Button
                 variant="default"
                 onClick={() => {
