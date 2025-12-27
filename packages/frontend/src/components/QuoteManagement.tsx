@@ -562,7 +562,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                           </p>
                           {response.quantity && (
                             <p className="text-sm text-gray-600">
-                              For {response.quantity} {quote.product?.unit || response.unit || ''}
+                              For {response.quantity} {quote.product?.unit || ''}
                             </p>
                           )}
                           {response.validUntil && (
