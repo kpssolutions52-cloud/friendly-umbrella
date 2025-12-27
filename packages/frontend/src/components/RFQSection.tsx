@@ -864,7 +864,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                           <h4 className="font-semibold text-red-900 mb-2">Failed RFQs</h4>
                           <div className="space-y-2 text-sm">
-                            {uploadResult.failed.map((item, idx) => (
+                            {uploadResult.failed.map((item: { row: number; title: string; error: string }, idx: number) => (
                               <div key={idx} className="text-red-800">
                                 <strong>Row {item.row}:</strong> {item.title} - {item.error}
                               </div>
