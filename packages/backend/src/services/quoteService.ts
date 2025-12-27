@@ -251,21 +251,31 @@ export class QuoteService {
 
       if (isOpenToAll) {
         // Find relevant suppliers based on category
+        // Only notifies suppliers who have products matching the RFQ category
         supplierIds = await findRelevantSuppliersForRFQ(data.category, quoteRequest.company.address || undefined);
+        
+        // If no relevant suppliers found, log a warning but don't notify anyone
+        // This ensures we only notify suppliers who can actually fulfill the RFQ
+        if (supplierIds.length === 0) {
+          console.warn(`No relevant suppliers found for RFQ category: ${data.category || 'General'}. RFQ will be visible in public listing but no notifications sent.`);
+        }
       } else {
-        // Specific supplier
+        // Specific supplier targeted
         supplierIds = [supplierId];
       }
 
-      await broadcastRFQCreated(io, {
-        rfqId: quoteRequest.id,
-        companyId: quoteRequest.company.id,
-        companyName: quoteRequest.company.name,
-        title: data.title,
-        category: data.category,
-        supplierIds,
-        isOpenToAll,
-      });
+      // Only broadcast if we have suppliers to notify
+      if (supplierIds.length > 0) {
+        await broadcastRFQCreated(io, {
+          rfqId: quoteRequest.id,
+          companyId: quoteRequest.company.id,
+          companyName: quoteRequest.company.name,
+          title: data.title,
+          category: data.category,
+          supplierIds,
+          isOpenToAll,
+        });
+      }
     }
 
     return quoteRequest;

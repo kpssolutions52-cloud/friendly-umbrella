@@ -70,6 +70,7 @@ export async function broadcastRFQCreated(
 }
 
 // Helper function to find relevant suppliers for an RFQ based on category
+// Only returns suppliers who have products matching the RFQ category
 export async function findRelevantSuppliersForRFQ(
   category?: string,
   location?: string
@@ -100,18 +101,9 @@ export async function findRelevantSuppliersForRFQ(
     suppliers.push(...suppliersWithCategory.map((s) => s.id));
   }
 
-  // If location is provided, we could add location-based matching here
-  // For now, we'll return all active suppliers if no category match
-  if (suppliers.length === 0) {
-    const allSuppliers = await prisma.tenant.findMany({
-      where: {
-        type: { in: ['supplier', 'service_provider'] },
-        isActive: true,
-      },
-      select: { id: true },
-    });
-    suppliers.push(...allSuppliers.map((s) => s.id));
-  }
+  // If no category provided or no matches found, return empty array
+  // This ensures we only notify relevant suppliers, not all suppliers
+  // Companies can explicitly target specific suppliers if they want broader reach
 
   // Remove duplicates
   return [...new Set(suppliers)];
