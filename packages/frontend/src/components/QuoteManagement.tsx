@@ -609,7 +609,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-lg font-bold text-gray-900">
-                            {response.currency} {response.price.toFixed(2)}
+                            {response.currency} {Number(response.price).toFixed(2)}
                           </p>
                           {response.quantity && (
                             <p className="text-sm text-gray-600">
