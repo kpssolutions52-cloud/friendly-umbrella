@@ -4,11 +4,13 @@ import { NextResponse } from 'next/server';
 
 const docPaths: Record<string, string> = {
   'user-guide/getting-started': 'docs/user-guide/getting-started.md',
+  'user-guide/rfq-guide': 'docs/user-guide/rfq-guide.md',
   'user-guide/supplier-guide': 'docs/user-guide/supplier-guide.md',
   'user-guide/company-guide': 'docs/user-guide/company-guide.md',
   'user-guide/api-testing': 'docs/user-guide/api-testing.md',
   'technical/architecture': 'docs/technical/architecture.md',
   'technical/api-reference': 'docs/technical/api-reference.md',
+  'technical/rfq-system': 'docs/technical/rfq-system.md',
   'technical/price-management-flow': 'docs/technical/price-management-flow.md',
   'technical/setup': 'docs/technical/setup.md',
   'technical/deployment': 'docs/technical/deployment.md',

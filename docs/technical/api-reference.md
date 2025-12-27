@@ -564,3 +564,176 @@ All endpoints may return error responses:
 
 
 
+
+
+---
+
+## RFQ (Request for Quote) Endpoints 🆕
+
+Complete API documentation for the RFQ feature. For detailed technical documentation, see [RFQ System Technical Documentation](./rfq-system.md).
+
+### Create General RFQ
+
+**POST** `/quotes/rfq`
+
+Create a new RFQ (open or targeted to specific supplier).
+
+**Authentication**: Required (Company only)
+
+**Request Body:**
+```json
+{
+  "title": "Need 500 bags of Portland Cement",
+  "description": "We require high-quality Portland cement Type I",
+  "category": "Construction Materials",
+  "quantity": 500,
+  "unit": "bags",
+  "requestedPrice": 25000,
+  "currency": "USD",
+  "expiresAt": "2024-12-31T23:59:59Z",
+  "supplierId": "uuid-optional"
+}
+```
+
+**Response:** `201 Created`
+
+### Get Public RFQs
+
+**GET** `/quotes/rfq/public`
+
+Get RFQs relevant to the authenticated supplier.
+
+**Query Parameters:**
+- `status`: Filter by status (PENDING, RESPONDED, ACCEPTED, REJECTED, CANCELLED)
+- `category`: Filter by category
+- `page`: Page number (default: 1)
+- `limit`: Results per page (default: 20, max: 100)
+
+**Response:** `200 OK`
+
+### Submit Bid
+
+**POST** `/quotes/:id/respond`
+
+Submit a bid/response to an RFQ.
+
+**Authentication**: Required (Supplier only)
+
+**Request Body:**
+```json
+{
+  "price": 24500,
+  "currency": "USD",
+  "quantity": 500,
+  "unit": "bags",
+  "validUntil": "2024-02-15T23:59:59Z",
+  "message": "We can supply this quantity",
+  "terms": "Payment: Net 30 days"
+}
+```
+
+**Response:** `201 Created`
+
+### Accept Bid
+
+**POST** `/quotes/:id/accept`
+
+Accept a supplier's bid.
+
+**Authentication**: Required (Company only)
+
+**Request Body:**
+```json
+{
+  "quoteResponseId": "uuid",
+  "comment": "Accepted. Please proceed." // Optional
+}
+```
+
+**Response:** `200 OK`
+
+### Reject Bid
+
+**POST** `/quotes/:id/reject-response`
+
+Reject a supplier's bid.
+
+**Authentication**: Required (Company only)
+
+**Request Body:**
+```json
+{
+  "quoteResponseId": "uuid",
+  "comment": "Price exceeds budget." // Optional
+}
+```
+
+**Response:** `200 OK`
+
+### Counter-Negotiate Bid
+
+**POST** `/quotes/:id/counter`
+
+Submit a counter-offer for a specific bid.
+
+**Authentication**: Required (Company only)
+
+**Request Body:**
+```json
+{
+  "quoteResponseId": "uuid",
+  "price": 23500,
+  "currency": "USD",
+  "quantity": 500,
+  "unit": "bags",
+  "terms": "Payment terms: 30 days",
+  "message": "We can accept this price if..."
+}
+```
+
+**Response:** `201 Created`
+
+### Counter-Negotiate RFQ
+
+**POST** `/quotes/:id/counter-rfq`
+
+Submit a counter-offer for the entire RFQ.
+
+**Authentication**: Required (Company only)
+
+**Request Body:**
+```json
+{
+  "price": 24000,
+  "currency": "USD",
+  "quantity": 500,
+  "unit": "bags",
+  "terms": "Payment terms: Net 30",
+  "message": "We've adjusted our requirements..."
+}
+```
+
+**Response:** `201 Created`
+
+### Upload RFQs via CSV
+
+**POST** `/quotes/rfq/upload-csv`
+
+Upload multiple RFQs via CSV file.
+
+**Authentication**: Required (Company only)
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Body: `csvFile` (CSV file, max 5MB)
+
+**Response:** `201 Created`
+
+For complete RFQ documentation, see:
+- [RFQ User Guide](../user-guide/rfq-guide.md)
+- [RFQ System Technical Documentation](./rfq-system.md)
+
+---
+
+**Last Updated**: 2024-12-31  
+**Version**: 1.0

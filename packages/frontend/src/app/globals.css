@@ -64,23 +64,27 @@
 }
 
 .prose h1 {
-  @apply text-3xl font-bold text-gray-900 mb-4 mt-8;
+  @apply text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 mt-6 sm:mt-8;
 }
 
 .prose h2 {
-  @apply text-2xl font-semibold text-gray-900 mb-3 mt-6;
+  @apply text-xl sm:text-2xl font-semibold text-gray-900 mb-2 sm:mb-3 mt-4 sm:mt-6;
 }
 
 .prose h3 {
-  @apply text-xl font-semibold text-gray-900 mb-2 mt-4;
+  @apply text-lg sm:text-xl font-semibold text-gray-900 mb-2 mt-3 sm:mt-4;
+}
+
+.prose h4 {
+  @apply text-base sm:text-lg font-semibold text-gray-900 mb-2 mt-3;
 }
 
 .prose p {
-  @apply mb-4 leading-relaxed;
+  @apply mb-3 sm:mb-4 leading-relaxed text-sm sm:text-base;
 }
 
 .prose ul, .prose ol {
-  @apply mb-4 ml-6;
+  @apply mb-3 sm:mb-4 ml-4 sm:ml-6;
 }
 
 .prose ul {
@@ -92,43 +96,75 @@
 }
 
 .prose li {
-  @apply mb-2;
+  @apply mb-1.5 sm:mb-2 text-sm sm:text-base;
 }
 
 .prose code {
-  @apply bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-sm font-mono;
+  @apply bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs sm:text-sm font-mono break-words;
 }
 
 .prose pre {
-  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4;
+  @apply bg-gray-900 text-gray-100 p-3 sm:p-4 rounded-lg overflow-x-auto mb-3 sm:mb-4 text-xs sm:text-sm;
 }
 
 .prose pre code {
   @apply bg-transparent text-gray-100 p-0;
+  @apply whitespace-pre-wrap break-words;
 }
 
 .prose blockquote {
-  @apply border-l-4 border-blue-500 pl-4 italic text-gray-700 my-4;
+  @apply border-l-4 border-blue-500 pl-3 sm:pl-4 italic text-gray-700 my-3 sm:my-4 text-sm sm:text-base;
 }
 
 .prose a {
-  @apply text-blue-600 hover:text-blue-800 underline;
+  @apply text-blue-600 hover:text-blue-800 underline break-words;
 }
 
 .prose table {
-  @apply w-full border-collapse mb-4;
+  @apply w-full border-collapse mb-3 sm:mb-4 text-sm sm:text-base overflow-x-auto block;
+}
+
+.prose table thead {
+  @apply block;
+}
+
+.prose table tbody {
+  @apply block;
+}
+
+.prose table tr {
+  @apply flex flex-col sm:table-row border-b sm:border-0;
 }
 
 .prose th {
-  @apply bg-gray-100 border border-gray-300 px-4 py-2 text-left font-semibold;
+  @apply bg-gray-100 border border-gray-300 px-2 sm:px-4 py-2 text-left font-semibold block sm:table-cell;
 }
 
 .prose td {
-  @apply border border-gray-300 px-4 py-2;
+  @apply border border-gray-300 px-2 sm:px-4 py-2 block sm:table-cell;
+}
+
+.prose td:before {
+  @apply content-[attr(data-label)] font-semibold sm:hidden block mb-1;
 }
 
 .prose hr {
-  @apply my-8 border-gray-300;
+  @apply my-6 sm:my-8 border-gray-300;
+}
+
+/* Mobile-specific prose adjustments */
+@media (max-width: 640px) {
+  .prose {
+    @apply text-sm;
+  }
+  
+  .prose table {
+    @apply text-xs;
+  }
+  
+  .prose img {
+    @apply max-w-full h-auto;
+  }
 }
 
 /* Mobile optimizations */

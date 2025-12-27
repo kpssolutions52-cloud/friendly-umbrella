@@ -30,10 +30,10 @@ export default function DocPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-8 sm:py-12">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-          <p className="mt-2 text-gray-500">Loading documentation...</p>
+          <div className="inline-block h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-2 text-sm sm:text-base text-gray-500">Loading documentation...</p>
         </div>
       </div>
     );
@@ -41,15 +41,15 @@ export default function DocPage() {
 
   if (!content) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Documentation Not Found</h1>
-        <p className="text-gray-500">The requested documentation page could not be found.</p>
+      <div className="text-center py-8 sm:py-12 px-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Documentation Not Found</h1>
+        <p className="text-sm sm:text-base text-gray-500">The requested documentation page could not be found.</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="w-full">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
