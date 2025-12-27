@@ -264,7 +264,18 @@ export function RFQSection() {
   const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploadingCSV, setIsUploadingCSV] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadResult, setUploadResult] = useState<{
+    success: boolean;
+    summary: {
+      total: number;
+      created: number;
+      failed: number;
+      invalid: number;
+    };
+    created: Array<{ id: string; title: string }>;
+    failed: Array<{ row: number; title: string; error: string }>;
+    invalid: Array<{ row: number; data: any; errors: string[] }>;
+  } | null>(null);
 
   const loadRFQs = async () => {
     setIsLoading(true);
@@ -878,7 +889,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                           <h4 className="font-semibold text-orange-900 mb-2">Invalid Rows</h4>
                           <div className="space-y-2 text-sm">
-                            {uploadResult.invalid.map((item, idx) => (
+                            {uploadResult.invalid.map((item: { row: number; data: any; errors: string[] }, idx: number) => (
                               <div key={idx} className="text-orange-800">
                                 <strong>Row {item.row}:</strong> {item.errors.join(', ')}
                               </div>
