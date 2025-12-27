@@ -21,8 +21,8 @@
 -- Step 2: Create placeholder product for general RFQs (if it doesn't exist)
 -- This is needed for RFQs that aren't tied to a specific product
 INSERT INTO products (
-    id, tenant_id, sku, name, description, category_id, 
-    unit, is_active, created_at, updated_at
+    id, supplier_id, sku, name, description, category_id, 
+    unit, type, is_active, created_at, updated_at
 )
 SELECT 
     gen_random_uuid()::text,
@@ -30,8 +30,9 @@ SELECT
     'GENERAL-RFQ-PLACEHOLDER',
     'General RFQ Placeholder',
     'Placeholder product for general RFQ requests',
-    (SELECT id FROM categories WHERE name LIKE '%General%' OR name LIKE '%Other%' LIMIT 1),
+    (SELECT id FROM product_categories WHERE name LIKE '%General%' OR name LIKE '%Other%' LIMIT 1),
     'unit',
+    'product',
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
