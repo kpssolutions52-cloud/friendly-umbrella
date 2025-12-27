@@ -151,14 +151,20 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
           description = 'A quote has been updated.';
       }
 
+      // Show toast notification
       toast({
+        title,
+        description: `${description} Check notifications for details.`,
+        variant,
+      });
+
+      // Add to notification center
+      addNotification({
+        type: event,
         title,
         description,
         variant,
-        action: eventData.quoteRequestId ? {
-          altText: 'View Quote',
-          onClick: () => router.push(`/rfq/${eventData.quoteRequestId}`),
-        } : undefined,
+        link: eventData.quoteRequestId ? `/rfq/${eventData.quoteRequestId}` : undefined,
       });
     });
 
