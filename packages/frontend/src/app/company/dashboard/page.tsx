@@ -14,6 +14,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
+import { NotificationCenter } from '@/components/NotificationCenter';
 import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap } from 'lucide-react';
 
 interface SearchProduct {
