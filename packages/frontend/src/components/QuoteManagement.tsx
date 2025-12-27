@@ -455,7 +455,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                           <span>Qty: {quote.quantity} {quote.product?.unit || quote.message?.match(/unit:\s*(\w+)/i)?.[1] || ''}</span>
                         )}
                         {quote.requestedPrice && (
-                          <span>Target: {quote.currency} {quote.requestedPrice.toFixed(2)}</span>
+                          <span>Target: {quote.currency} {Number(quote.requestedPrice).toFixed(2)}</span>
                         )}
                       </div>
                       {isCompany ? (

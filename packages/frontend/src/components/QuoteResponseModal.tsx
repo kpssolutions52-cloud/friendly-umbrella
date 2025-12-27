@@ -121,7 +121,7 @@ export function QuoteResponseModal({
               )}
               {quoteRequest.requestedPrice && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Target Price: {quoteRequest.currency} {quoteRequest.requestedPrice.toFixed(2)}
+                  Target Price: {quoteRequest.currency} {Number(quoteRequest.requestedPrice).toFixed(2)}
                 </p>
               )}
               {quoteRequest.message && (

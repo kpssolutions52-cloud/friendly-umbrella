@@ -200,7 +200,7 @@ function RFQCard({ rfq, onViewDetails }: RFQCardProps) {
           {rfq.requestedPrice && (
             <div className="flex items-center gap-2 text-xs text-gray-600">
               <DollarSign className="h-3 w-3" />
-              <span>Budget: {rfq.currency} {rfq.requestedPrice.toFixed(2)}</span>
+              <span>Budget: {rfq.currency} {Number(rfq.requestedPrice).toFixed(2)}</span>
             </div>
           )}
           {rfq.expiresAt && (
