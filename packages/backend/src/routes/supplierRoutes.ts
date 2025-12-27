@@ -13,12 +13,12 @@ router.use(authenticate);
 // Apply tenant type check per route to avoid conflicts with productRoutes
 const requireCompany = requireTenantType('company');
 
-// GET /api/v1/suppliers - List all active suppliers
+// GET /api/v1/suppliers - List all active suppliers and service providers
 router.get('/suppliers', requireCompany, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const suppliers = await prisma.tenant.findMany({
       where: {
-        type: 'supplier',
+        type: { in: ['supplier', 'service_provider'] },
         isActive: true,
       },
       select: {
@@ -28,6 +28,7 @@ router.get('/suppliers', requireCompany, async (req: AuthRequest, res: Response,
         phone: true,
         address: true,
         logoUrl: true,
+        type: true,
         _count: {
           select: {
             products: {
