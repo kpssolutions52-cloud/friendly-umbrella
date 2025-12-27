@@ -85,6 +85,7 @@ interface QuoteManagementProps {
 }
 
 export function QuoteManagement({ tenantType }: QuoteManagementProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,10 +133,27 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
         params.append('status', selectedStatus);
       }
       
-      const response = await apiGet<{ quoteRequests: QuoteRequest[] }>(
-        `/api/v1/quotes?${params.toString()}`
-      );
-      setQuoteRequests(response.quoteRequests || []);
+      // For suppliers, use the RFQ public endpoint to see general RFQs
+      // For companies, use the regular quotes endpoint
+      const endpoint = isCompany 
+        ? `/api/v1/quotes?${params.toString()}`
+        : `/api/v1/quotes/rfq/public?${params.toString()}`;
+      
+      const response = isCompany
+        ? await apiGet<{ quoteRequests: QuoteRequest[] }>(endpoint)
+        : await apiGet<{ rfqs: QuoteRequest[] }>(endpoint);
+      
+      // Handle different response structures
+      if (isCompany) {
+        setQuoteRequests(response.quoteRequests || []);
+      } else {
+        // Map RFQ response to QuoteRequest format
+        const rfqs = (response as any).rfqs || [];
+        setQuoteRequests(rfqs.map((rfq: any) => ({
+          ...rfq,
+          product: rfq.product || null, // RFQs may not have a product
+        })));
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -497,7 +515,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                   
                   {/* Actions */}
                   <div className="flex gap-2">
-                    {!isCompany && quote.status === 'pending' && (
+                    {!isCompany && quote.status === 'pending' && quote.product && (
                       <Button
                         size="sm"
                         onClick={() => {
@@ -506,6 +524,15 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                         }}
                       >
                         Respond
+                      </Button>
+                    )}
+                    {!isCompany && quote.message?.startsWith('RFQ:') && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => router.push(`/rfq/${quote.id}`)}
+                      >
+                        View & Bid
                       </Button>
                     )}
                     {isCompany && quote.status === 'responded' && quote.responses.length > 0 && (
