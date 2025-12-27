@@ -86,7 +86,8 @@ export async function findRelevantSuppliersForRFQ(
           some: {
             isActive: true,
             OR: [
-              { category: { contains: category, mode: 'insensitive' } },
+              { category: { name: { contains: category, mode: 'insensitive' } } },
+              { serviceCategory: { name: { contains: category, mode: 'insensitive' } } },
               { name: { contains: category, mode: 'insensitive' } },
               { description: { contains: category, mode: 'insensitive' } },
             ],
