@@ -843,7 +843,7 @@ export class QuoteService {
   /**
    * Accept a quote response (Company)
    */
-  async acceptQuoteResponse(quoteResponseId: string, companyId: string) {
+  async acceptQuoteResponse(quoteResponseId: string, companyId: string, comment?: string) {
     const quoteResponse = await prisma.quoteResponse.findFirst({
       where: { id: quoteResponseId },
       include: {
@@ -1029,10 +1029,81 @@ export class QuoteService {
   }
 
   /**
+   * Counter-negotiate an RFQ directly (Company)
+   * Company proposes a counter-offer to the RFQ itself (not a specific response)
+   */
+  async counterNegotiateRFQ(
+    quoteRequestId: string,
+    companyId: string,
+    counterPrice: number,
+    counterMessage?: string
+  ) {
+    const quoteRequest = await prisma.quoteRequest.findFirst({
+      where: { id: quoteRequestId },
+    });
+
+    if (!quoteRequest) {
+      throw createError(404, 'Quote request not found');
+    }
+
+    if (quoteRequest.companyId !== companyId) {
+      throw createError(403, 'Access denied');
+    }
+
+    // Create a counter-response from the company
+    const counterResponse = await prisma.quoteResponse.create({
+      data: {
+        quoteRequestId,
+        price: counterPrice,
+        currency: quoteRequest.currency,
+        quantity: quoteRequest.quantity,
+        unit: quoteRequest.unit,
+        message: counterMessage || `Counter-offer for RFQ: ${counterPrice} ${quoteRequest.currency}`,
+        terms: 'Company counter-offer for this RFQ',
+        respondedBy: quoteRequest.requestedBy, // Company user who created the RFQ
+        validUntil: quoteRequest.expiresAt,
+      },
+      include: {
+        respondedByUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    // Update quote request status to indicate negotiation
+    const updatedQuoteRequest = await prisma.quoteRequest.update({
+      where: { id: quoteRequestId },
+      data: {
+        status: QuoteStatus.responded, // Keep as responded to allow further negotiation
+      },
+    });
+
+    // Broadcast counter-negotiation notification to all suppliers who have bid
+    const io = getSocketIO();
+    if (io) {
+      // Notify the supplier directly
+      broadcastQuoteUpdate(io, {
+        quoteRequestId,
+        companyId: updatedQuoteRequest.companyId,
+        supplierId: updatedQuoteRequest.supplierId,
+        status: QuoteStatus.responded,
+        event: 'quote:countered',
+      });
+    }
+
+    return counterResponse;
+  }
+
+  /**
    * Reject a specific quote response (Company)
    * This rejects only the response, not the entire RFQ
    */
-  async rejectQuoteResponse(quoteResponseId: string, companyId: string) {
+  async rejectQuoteResponse(quoteResponseId: string, companyId: string, comment?: string) {
     const quoteResponse = await prisma.quoteResponse.findFirst({
       where: { id: quoteResponseId },
       include: {

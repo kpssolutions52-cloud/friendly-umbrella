@@ -431,6 +431,7 @@ router.post(
   [
     param('id').isUUID().withMessage('Invalid quote request ID'),
     body('quoteResponseId').isUUID().withMessage('Invalid quote response ID'),
+    body('comment').optional().isString().withMessage('Comment must be a string'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -441,7 +442,8 @@ router.post(
 
       const quoteResponse = await quoteService.acceptQuoteResponse(
         req.body.quoteResponseId,
-        req.tenantId!
+        req.tenantId!,
+        req.body.comment
       );
 
       res.json({ quoteResponse });
@@ -542,6 +544,7 @@ router.post(
   [
     param('id').isUUID().withMessage('Invalid quote request ID'),
     body('quoteResponseId').isUUID().withMessage('Invalid quote response ID'),
+    body('comment').optional().isString().withMessage('Comment must be a string'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -552,10 +555,41 @@ router.post(
 
       const result = await quoteService.rejectQuoteResponse(
         req.body.quoteResponseId,
-        req.tenantId!
+        req.tenantId!,
+        req.body.comment
       );
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/quotes/:id/counter-rfq - Counter-negotiate an RFQ directly (Company only)
+router.post(
+  '/quotes/:id/counter-rfq',
+  requireTenantType('company'),
+  [
+    param('id').isUUID().withMessage('Invalid quote request ID'),
+    body('counterPrice').isFloat({ min: 0 }).withMessage('Counter price must be positive'),
+    body('counterMessage').optional().isString().withMessage('Counter message must be a string'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const counterResponse = await quoteService.counterNegotiateRFQ(
+        req.params.id,
+        req.tenantId!,
+        req.body.counterPrice,
+        req.body.counterMessage
+      );
+
+      res.json({ counterResponse });
     } catch (error) {
       next(error);
     }

@@ -89,8 +89,11 @@ export default function RFQDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [showCounterModal, setShowCounterModal] = useState(false);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionComment, setActionComment] = useState('');
 
   const [responseData, setResponseData] = useState({
     price: '',
@@ -253,18 +256,25 @@ export default function RFQDetailsPage() {
   const isCompany = user?.tenant?.type === 'company';
   const canRespond = isSupplier && rfq.status === 'pending';
   const canManageBids = isCompany && rfq.responses && rfq.responses.length > 0;
+  const canCounterRFQ = isCompany && rfq.status !== 'accepted' && rfq.status !== 'rejected' && rfq.status !== 'cancelled';
 
-  const handleAcceptBid = async (responseId: string) => {
-    if (!confirm('Are you sure you want to accept this bid?')) return;
+  const handleAcceptBid = async () => {
+    if (!selectedResponseId) return;
     
     setIsSubmitting(true);
     try {
-      await apiPost(`/api/v1/quotes/${params.id}/accept`, { quoteResponseId: responseId });
+      await apiPost(`/api/v1/quotes/${params.id}/accept`, { 
+        quoteResponseId: selectedResponseId,
+        comment: actionComment || undefined,
+      });
       toast({
         title: 'Success',
         description: 'Bid accepted successfully',
         variant: 'default',
       });
+      setShowAcceptModal(false);
+      setSelectedResponseId(null);
+      setActionComment('');
       loadRFQDetails();
     } catch (error: any) {
       toast({
@@ -277,19 +287,23 @@ export default function RFQDetailsPage() {
     }
   };
 
-  const handleRejectBid = async (responseId: string) => {
-    if (!confirm('Are you sure you want to reject this bid? This will remove the bid from the RFQ.')) return;
+  const handleRejectBid = async () => {
+    if (!selectedResponseId) return;
     
     setIsSubmitting(true);
     try {
       await apiPost(`/api/v1/quotes/${params.id}/reject-response`, {
-        quoteResponseId: responseId,
+        quoteResponseId: selectedResponseId,
+        comment: actionComment || undefined,
       });
       toast({
         title: 'Success',
         description: 'Bid rejected successfully',
         variant: 'default',
       });
+      setShowRejectModal(false);
+      setSelectedResponseId(null);
+      setActionComment('');
       loadRFQDetails();
     } catch (error: any) {
       toast({
@@ -487,6 +501,23 @@ export default function RFQDetailsPage() {
               </div>
             )}
 
+            {/* Company Actions for RFQ (Counter-Negotiate RFQ directly) */}
+            {canCounterRFQ && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <Button
+                  onClick={() => {
+                    setSelectedResponseId(null);
+                    setCounterData({ counterPrice: '', counterMessage: '' });
+                    setShowCounterModal(true);
+                  }}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  Submit Counter-Offer for RFQ
+                </Button>
+              </div>
+            )}
+
             {/* Responses Section */}
             {rfq.responses && rfq.responses.length > 0 && (
               <div>
@@ -671,8 +702,131 @@ export default function RFQDetailsPage() {
         </>
       )}
 
+      {/* Accept Modal */}
+      {showAcceptModal && selectedResponseId && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isSubmitting && setShowAcceptModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Accept Bid</h3>
+                <button
+                  onClick={() => !isSubmitting && setShowAcceptModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleAcceptBid(); }} className="p-6 space-y-4">
+                <div>
+                  <Label htmlFor="acceptComment">Comment (Optional)</Label>
+                  <textarea
+                    id="acceptComment"
+                    value={actionComment}
+                    onChange={(e) => setActionComment(e.target.value)}
+                    placeholder="Add a comment about accepting this bid..."
+                    className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAcceptModal(false);
+                      setSelectedResponseId(null);
+                      setActionComment('');
+                    }}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    {isSubmitting ? 'Accepting...' : 'Accept Bid'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedResponseId && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isSubmitting && setShowRejectModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Reject Bid</h3>
+                <button
+                  onClick={() => !isSubmitting && setShowRejectModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleRejectBid(); }} className="p-6 space-y-4">
+                <div>
+                  <Label htmlFor="rejectComment">Comment (Optional)</Label>
+                  <textarea
+                    id="rejectComment"
+                    value={actionComment}
+                    onChange={(e) => setActionComment(e.target.value)}
+                    placeholder="Add a comment explaining why you're rejecting this bid..."
+                    className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowRejectModal(false);
+                      setSelectedResponseId(null);
+                      setActionComment('');
+                    }}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    {isSubmitting ? 'Rejecting...' : 'Reject Bid'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Counter-Negotiate Modal */}
-      {showCounterModal && selectedResponseId && (
+      {showCounterModal && (
         <>
           <div 
             className="fixed inset-0 bg-black/50 z-50"
@@ -692,6 +846,15 @@ export default function RFQDetailsPage() {
               </div>
 
               <form onSubmit={handleCounterNegotiate} className="p-6 space-y-4">
+                {selectedResponseId ? (
+                  <p className="text-sm text-gray-600 mb-4">
+                    You are counter-negotiating a specific bid. The supplier will see your counter-offer.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-4">
+                    You are submitting a counter-offer for this RFQ. All suppliers who have bid will be notified.
+                  </p>
+                )}
                 <div>
                   <Label htmlFor="counterPrice">Counter Price *</Label>
                   <Input
