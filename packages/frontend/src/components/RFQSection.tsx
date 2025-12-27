@@ -24,7 +24,9 @@ import {
   Phone,
   Mail,
   MapPin,
-  X
+  X,
+  Upload,
+  Download
 } from 'lucide-react';
 
 interface RFQ {
@@ -313,6 +315,96 @@ export function RFQSection() {
     }
   }, [showCreateModal, user]);
 
+  const handleCSVUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!csvFile) {
+      toast({
+        title: 'Error',
+        description: 'Please select a CSV file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!user || user.tenant?.type !== 'company') {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in as a company to upload RFQs',
+        variant: 'destructive',
+      });
+      router.push('/auth/login?returnUrl=/');
+      return;
+    }
+
+    setIsUploadingCSV(true);
+    setUploadResult(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', csvFile);
+
+      const result = await apiPostForm<{
+        success: boolean;
+        summary: {
+          total: number;
+          created: number;
+          failed: number;
+          invalid: number;
+        };
+        created: Array<{ id: string; title: string }>;
+        failed: Array<{ row: number; title: string; error: string }>;
+        invalid: Array<{ row: number; data: any; errors: string[] }>;
+      }>('/api/v1/quotes/rfq/upload-csv', formData);
+
+      setUploadResult(result);
+      
+      if (result.summary.created > 0) {
+        toast({
+          title: 'Success',
+          description: `Successfully created ${result.summary.created} RFQ(s)`,
+          variant: 'default',
+        });
+        setShowCSVUpload(false);
+        setCsvFile(null);
+        setCurrentPage(1);
+        await loadRFQs();
+      } else {
+        toast({
+          title: 'Warning',
+          description: 'No RFQs were created. Please check the errors below.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to upload CSV:', error);
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to upload CSV file',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingCSV(false);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const sampleCSV = `title,description,category,quantity,unit,requestedPrice,currency,expiresAt,supplierId
+Need 500 bags of Portland Cement,We require high-quality Portland cement Type I for our residential construction project.,Construction Materials,500,bags,25000,USD,2024-12-31,
+Steel Rebar Supply,Need Grade 60 steel rebar in various sizes for building foundation.,Steel & Metal,10,tons,15000,USD,2024-11-30,
+Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Construction Services,50,cubic meters,5000,USD,2024-12-15,`;
+
+    const blob = new Blob([sampleCSV], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rfq-sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleSubmitRFQ = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -395,13 +487,23 @@ export function RFQSection() {
           </p>
         </div>
         {user?.tenant?.type === 'company' && (
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Submit RFQ
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowCSVUpload(true)}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <Upload className="h-5 w-5 mr-2" />
+              Upload CSV
+            </Button>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Submit RFQ
+            </Button>
+          </div>
         )}
         {!user && (
           <Button
@@ -658,6 +760,155 @@ export function RFQSection() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* CSV Upload Modal */}
+      {showCSVUpload && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isUploadingCSV && setShowCSVUpload(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Upload RFQs via CSV</h3>
+                <button
+                  onClick={() => !isUploadingCSV && setShowCSVUpload(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isUploadingCSV}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">CSV Format Guide</h4>
+                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li><strong>Required:</strong> title (3-200 characters)</li>
+                    <li><strong>Optional:</strong> description, category, quantity, unit, requestedPrice, currency, expiresAt, supplierId</li>
+                    <li><strong>Currency:</strong> 3-letter code (e.g., USD, SGD, MYR)</li>
+                    <li><strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-12-31)</li>
+                    <li><strong>Supplier ID:</strong> Leave empty for open RFQs, or provide UUID for targeted RFQs</li>
+                  </ul>
+                  <Button
+                    onClick={downloadSampleCSV}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 border-blue-600 text-blue-600 hover:bg-blue-100"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Sample CSV
+                  </Button>
+                </div>
+
+                {/* Upload Form */}
+                <form onSubmit={handleCSVUpload} className="space-y-4">
+                  <div>
+                    <Label htmlFor="csvFile">Select CSV File</Label>
+                    <Input
+                      id="csvFile"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                      disabled={isUploadingCSV}
+                      className="mt-1"
+                    />
+                    {csvFile && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        Selected: {csvFile.name} ({(csvFile.size / 1024).toFixed(2)} KB)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Upload Results */}
+                  {uploadResult && (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">Upload Summary</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-600">Total:</span>
+                            <span className="ml-2 font-medium">{uploadResult.summary.total}</span>
+                          </div>
+                          <div className="text-green-600">
+                            <span>Created:</span>
+                            <span className="ml-2 font-medium">{uploadResult.summary.created}</span>
+                          </div>
+                          {uploadResult.summary.failed > 0 && (
+                            <div className="text-red-600">
+                              <span>Failed:</span>
+                              <span className="ml-2 font-medium">{uploadResult.summary.failed}</span>
+                            </div>
+                          )}
+                          {uploadResult.summary.invalid > 0 && (
+                            <div className="text-orange-600">
+                              <span>Invalid:</span>
+                              <span className="ml-2 font-medium">{uploadResult.summary.invalid}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Failed RFQs */}
+                      {uploadResult.failed && uploadResult.failed.length > 0 && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-red-900 mb-2">Failed RFQs</h4>
+                          <div className="space-y-2 text-sm">
+                            {uploadResult.failed.map((item, idx) => (
+                              <div key={idx} className="text-red-800">
+                                <strong>Row {item.row}:</strong> {item.title} - {item.error}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Invalid Rows */}
+                      {uploadResult.invalid && uploadResult.invalid.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-orange-900 mb-2">Invalid Rows</h4>
+                          <div className="space-y-2 text-sm">
+                            {uploadResult.invalid.map((item, idx) => (
+                              <div key={idx} className="text-orange-800">
+                                <strong>Row {item.row}:</strong> {item.errors.join(', ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCSVUpload(false);
+                        setCsvFile(null);
+                        setUploadResult(null);
+                      }}
+                      disabled={isUploadingCSV}
+                      className="flex-1"
+                    >
+                      {uploadResult ? 'Close' : 'Cancel'}
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isUploadingCSV || !csvFile}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isUploadingCSV ? 'Uploading...' : 'Upload CSV'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </>

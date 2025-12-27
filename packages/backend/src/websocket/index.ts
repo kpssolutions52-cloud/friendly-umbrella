@@ -21,6 +21,11 @@ export function setupWebSocket(io: SocketIOServer) {
       socket.join('companies');
     }
 
+    // Join suppliers room if user is a supplier (for RFQ broadcasts)
+    if (tenantType === 'supplier' || tenantType === 'service_provider') {
+      socket.join('suppliers');
+    }
+
     // Handle price update events
     handlePriceUpdates(socket, io);
 

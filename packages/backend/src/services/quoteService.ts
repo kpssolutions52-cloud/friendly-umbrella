@@ -1,7 +1,7 @@
 import { QuoteStatus, Prisma } from '@prisma/client';
 import createError from 'http-errors';
 import { prisma } from '../utils/prisma';
-import { broadcastQuoteUpdate } from '../websocket/handlers/quoteUpdates';
+import { broadcastQuoteUpdate, broadcastRFQCreated, findRelevantSuppliersForRFQ } from '../websocket/handlers/quoteUpdates';
 import { getSocketIO } from '../utils/socket';
 
 export class QuoteService {
@@ -243,7 +243,159 @@ export class QuoteService {
       },
     });
 
+    // Notify relevant suppliers via WebSocket
+    const io = getSocketIO();
+    if (io) {
+      const isOpenToAll = !data.supplierId;
+      let supplierIds: string[] = [];
+
+      if (isOpenToAll) {
+        // Find relevant suppliers based on category
+        supplierIds = await findRelevantSuppliersForRFQ(data.category, quoteRequest.company.address || undefined);
+      } else {
+        // Specific supplier
+        supplierIds = [supplierId];
+      }
+
+      await broadcastRFQCreated(io, {
+        rfqId: quoteRequest.id,
+        companyId: quoteRequest.company.id,
+        companyName: quoteRequest.company.name,
+        title: data.title,
+        category: data.category,
+        supplierIds,
+        isOpenToAll,
+      });
+    }
+
     return quoteRequest;
+  }
+
+  /**
+   * Get RFQs for a specific supplier (their relevant RFQs)
+   * Shows:
+   * 1. RFQs specifically targeted to this supplier
+   * 2. Open RFQs (all suppliers can see these)
+   */
+  async getSupplierRFQs(
+    supplierId: string,
+    filters?: {
+      status?: QuoteStatus;
+      category?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) {
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      message: {
+        startsWith: 'RFQ:', // General RFQs
+      },
+      status: filters?.status || QuoteStatus.pending,
+    };
+
+    // Filter by category if provided
+    if (filters?.category) {
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: filters.category,
+        mode: 'insensitive',
+      };
+    }
+
+    // Get RFQs:
+    // 1. Directly assigned to this supplier
+    // 2. Open RFQs (all suppliers can see)
+    const [rfqs, total] = await Promise.all([
+      prisma.quoteRequest.findMany({
+        where: {
+          ...where,
+          OR: [
+            { supplierId: supplierId }, // RFQs targeted to this supplier
+            // Open RFQs - we identify them by checking if supplier is a placeholder
+            // For now, we'll show all RFQs with "RFQ:" prefix to all suppliers
+          ],
+        },
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              logoUrl: true,
+            },
+          },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              address: true,
+              logoUrl: true,
+            },
+          },
+          requestedByUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          responses: {
+            select: {
+              id: true,
+              price: true,
+              currency: true,
+              quantity: true,
+              unit: true,
+              message: true,
+              terms: true,
+              validUntil: true,
+              respondedAt: true,
+              respondedByUser: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            orderBy: {
+              respondedAt: 'desc',
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.quoteRequest.count({
+        where: {
+          ...where,
+          OR: [
+            { supplierId: supplierId },
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      rfqs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   /**

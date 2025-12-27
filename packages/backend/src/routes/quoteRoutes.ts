@@ -5,6 +5,24 @@ import { authenticate, optionalAuthenticate, AuthRequest, requireTenantType } fr
 import { body, param, query, validationResult } from 'express-validator';
 import { QuoteStatus } from '@prisma/client';
 import createError from 'http-errors';
+import multer from 'multer';
+import { parseRFQCSV } from '../utils/csvParser';
+
+// Configure multer for CSV file uploads (memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    // Accept only CSV files
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  },
+});
 
 const router = Router();
 
@@ -94,6 +112,18 @@ router.get(
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
+      // If user is a supplier, show their relevant RFQs
+      if (req.tenantType === 'supplier' || req.tenantType === 'service_provider') {
+        const result = await quoteService.getSupplierRFQs(req.tenantId!, {
+          status,
+          category,
+          page,
+          limit,
+        });
+        return res.json(result);
+      }
+
+      // Otherwise, show all public RFQs
       const result = await quoteService.getPublicRFQs({
         status,
         category,
@@ -102,6 +132,92 @@ router.get(
       });
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /api/v1/quotes/rfq/upload-csv - Upload RFQs via CSV file (Company only)
+// IMPORTANT: This route must be BEFORE router.use(authenticate) but after optional routes
+router.post(
+  '/quotes/rfq/upload-csv',
+  authenticate, // Require authentication
+  requireTenantType('company'),
+  upload.single('csvFile'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          error: { 
+            message: 'CSV file is required',
+            statusCode: 400 
+          } 
+        });
+      }
+
+      // Parse CSV
+      const parsed = parseRFQCSV(req.file.buffer);
+
+      if (parsed.valid.length === 0) {
+        return res.status(400).json({
+          error: {
+            message: 'No valid RFQ records found in CSV',
+            statusCode: 400,
+          },
+          invalid: parsed.invalid,
+        });
+      }
+
+      // Create RFQs
+      const results = {
+        created: [] as any[],
+        failed: [] as Array<{ row: number; title: string; error: string }>,
+      };
+
+      for (const rfqData of parsed.valid) {
+        try {
+          const rfq = await quoteService.createGeneralRFQ(
+            req.tenantId!,
+            req.userId!,
+            {
+              title: rfqData.title,
+              description: rfqData.description,
+              category: rfqData.category,
+              supplierId: rfqData.supplierId || null,
+              quantity: rfqData.quantity,
+              unit: rfqData.unit,
+              requestedPrice: rfqData.requestedPrice,
+              currency: rfqData.currency,
+              expiresAt: rfqData.expiresAt ? new Date(rfqData.expiresAt) : undefined,
+            }
+          );
+
+          results.created.push({
+            id: rfq.id,
+            title: rfqData.title,
+          });
+        } catch (error: any) {
+          results.failed.push({
+            row: parsed.valid.indexOf(rfqData) + 2, // +2 for header and 0-based index
+            title: rfqData.title,
+            error: error.message || 'Failed to create RFQ',
+          });
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        summary: {
+          total: parsed.valid.length,
+          created: results.created.length,
+          failed: results.failed.length,
+          invalid: parsed.invalid.length,
+        },
+        created: results.created,
+        failed: results.failed,
+        invalid: parsed.invalid,
+      });
     } catch (error) {
       next(error);
     }

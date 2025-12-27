@@ -83,7 +83,8 @@ export class AIQuoteService {
    */
   async searchWithAI(prompt: string, tenantId: string | null = null, tenantType: 'company' | 'supplier' | 'service_provider' | 'guest' = 'guest'): Promise<AIQuoteResponse> {
     if (!openai) {
-      throw createError(500, 'AI service is not configured. Please set OPENAI_API_KEY environment variable.');
+      console.error('[AI-Quote] OpenAI API key not configured. Please set OPENAI_API_KEY in backend .env file.');
+      throw createError(500, 'AI service is not configured. Please set OPENAI_API_KEY environment variable in the backend .env file.');
     }
 
     // First, get all available products/services with prices
@@ -306,6 +307,7 @@ Return your analysis in the specified JSON format.`;
 
       const responseContent = completion.choices[0]?.message?.content;
       if (!responseContent) {
+        console.error('[AI-Quote] No response content from OpenAI');
         throw new Error('No response from AI service');
       }
 
@@ -315,10 +317,10 @@ Return your analysis in the specified JSON format.`;
         aiResponse = JSON.parse(responseContent);
       } catch (parseError: any) {
         // Invalid JSON response - fallback to keyword search
-        console.warn('AI Quote Service: Invalid JSON response from AI, falling back to keyword search:', parseError.message);
+        console.warn('[AI-Quote] Invalid JSON response from AI, falling back to keyword search:', parseError.message);
+        console.error('[AI-Quote] Raw response:', responseContent);
         return this.fallbackKeywordSearch(prompt, products);
       }
-
       const matchedProductIds: string[] = aiResponse.productIds || [];
       const summary: string = aiResponse.summary || 'Products matched based on your requirements.';
       const reasoning: string = aiResponse.reasoning || 'Products were selected based on relevance to your query.';

@@ -13,18 +13,22 @@ import {
   AlertCircle,
   FileText,
   Building2,
-  Package
+  Package,
+  Plus,
+  Upload,
+  Download,
+  X
 } from 'lucide-react';
 
 interface QuoteRequest {
   id: string;
-  product: {
+  product?: {
     id: string;
     name: string;
     sku: string;
     unit: string;
     type: 'product' | 'service';
-  };
+  } | null;
   company?: {
     id: string;
     name: string;
@@ -85,12 +89,38 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
   const [showResponseModal, setShowResponseModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isUploadingCSV, setIsUploadingCSV] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Form state for RFQ creation
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    quantity: '',
+    unit: '',
+    requestedPrice: '',
+    currency: 'USD',
+    expiresAt: '',
+    supplierId: '',
+  });
 
   const isCompany = tenantType === 'company';
 
   useEffect(() => {
     loadQuoteRequests();
   }, [selectedStatus]);
+
+  useEffect(() => {
+    if (showCreateModal && isCompany) {
+      loadSuppliers();
+    }
+  }, [showCreateModal, isCompany]);
 
   const loadQuoteRequests = async () => {
     try {
@@ -101,7 +131,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       }
       
       const response = await apiGet<{ quoteRequests: QuoteRequest[] }>(
-        `/quotes?${params.toString()}`
+        `/api/v1/quotes?${params.toString()}`
       );
       setQuoteRequests(response.quoteRequests || []);
     } catch (error: any) {
@@ -170,6 +200,141 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
     }
   };
 
+  const loadSuppliers = async () => {
+    try {
+      const response = await apiGet<{ suppliers: Array<{ id: string; name: string }> }>('/api/v1/suppliers');
+      setSuppliers(response.suppliers);
+    } catch (error) {
+      console.error('Failed to load suppliers:', error);
+    }
+  };
+
+  const handleSubmitRFQ = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await apiPost('/api/v1/quotes/rfq', {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        supplierId: formData.supplierId || null,
+        quantity: formData.quantity ? parseFloat(formData.quantity) : undefined,
+        unit: formData.unit || undefined,
+        requestedPrice: formData.requestedPrice ? parseFloat(formData.requestedPrice) : undefined,
+        currency: formData.currency,
+        expiresAt: formData.expiresAt || undefined,
+      });
+
+      toast({
+        title: 'Success',
+        description: 'RFQ submitted successfully',
+        variant: 'default',
+      });
+
+      setShowCreateModal(false);
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        quantity: '',
+        unit: '',
+        requestedPrice: '',
+        currency: 'USD',
+        expiresAt: '',
+        supplierId: '',
+      });
+      loadQuoteRequests();
+    } catch (error: any) {
+      console.error('Failed to submit RFQ:', error);
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to submit RFQ',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCSVUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!csvFile) {
+      toast({
+        title: 'Error',
+        description: 'Please select a CSV file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingCSV(true);
+    setUploadResult(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', csvFile);
+
+      const result = await apiPostForm<{
+        success: boolean;
+        summary: {
+          total: number;
+          created: number;
+          failed: number;
+          invalid: number;
+        };
+        created: Array<{ id: string; title: string }>;
+        failed: Array<{ row: number; title: string; error: string }>;
+        invalid: Array<{ row: number; data: any; errors: string[] }>;
+      }>('/api/v1/quotes/rfq/upload-csv', formData);
+
+      setUploadResult(result);
+      
+      if (result.summary.created > 0) {
+        toast({
+          title: 'Success',
+          description: `Successfully created ${result.summary.created} RFQ(s)`,
+          variant: 'default',
+        });
+        setShowCSVUpload(false);
+        setCsvFile(null);
+        loadQuoteRequests();
+      } else {
+        toast({
+          title: 'Warning',
+          description: 'No RFQs were created. Please check the errors below.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to upload CSV:', error);
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to upload CSV file',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingCSV(false);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const sampleCSV = `title,description,category,quantity,unit,requestedPrice,currency,expiresAt,supplierId
+Need 500 bags of Portland Cement,We require high-quality Portland cement Type I for our residential construction project.,Construction Materials,500,bags,25000,USD,2024-12-31,
+Steel Rebar Supply,Need Grade 60 steel rebar in various sizes for building foundation.,Steel & Metal,10,tons,15000,USD,2024-11-30,
+Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Construction Services,50,cubic meters,5000,USD,2024-12-15,`;
+
+    const blob = new Blob([sampleCSV], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rfq-sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const getStatusBadge = (status: string) => {
     const badges = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: Clock },
@@ -209,6 +374,25 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
             {isCompany ? 'Manage your quote requests' : 'Respond to quote requests from companies'}
           </p>
         </div>
+        {isCompany && (
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowCSVUpload(true)}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <Upload className="h-5 w-5 mr-2" />
+              Upload CSV
+            </Button>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create RFQ
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Status Filter */}
@@ -250,17 +434,23 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-6 h-6 text-blue-600" />
+                        {quote.product ? (
+                          <Package className="w-6 h-6 text-blue-600" />
+                        ) : (
+                          <FileText className="w-6 h-6 text-blue-600" />
+                        )}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {quote.product.name}
+                        {quote.product 
+                          ? quote.product.name 
+                          : (quote.message?.split('\n')[0]?.replace('RFQ: ', '') || 'General RFQ')}
                       </h3>
                       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
-                        <span>SKU: {quote.product.sku}</span>
+                        {quote.product && <span>SKU: {quote.product.sku}</span>}
                         {quote.quantity && (
-                          <span>Qty: {quote.quantity} {quote.product.unit}</span>
+                          <span>Qty: {quote.quantity} {quote.product?.unit || quote.message?.match(/unit:\s*(\w+)/i)?.[1] || ''}</span>
                         )}
                         {quote.requestedPrice && (
                           <span>Target: {quote.currency} {quote.requestedPrice.toFixed(2)}</span>
@@ -283,7 +473,13 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
                       )}
                       {quote.message && (
                         <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                          {quote.message}
+                          {quote.message.startsWith('RFQ:') ? (
+                            <div>
+                              {quote.message.split('\n').slice(1).filter(l => !l.includes('Category:')).join('\n')}
+                            </div>
+                          ) : (
+                            quote.message
+                          )}
                         </div>
                       )}
                     </div>
@@ -366,7 +562,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
                           </p>
                           {response.quantity && (
                             <p className="text-sm text-gray-600">
-                              For {response.quantity} {quote.product.unit}
+                              For {response.quantity} {quote.product?.unit || response.unit || ''}
                             </p>
                           )}
                           {response.validUntil && (
@@ -401,7 +597,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       )}
 
       {/* Response Modal */}
-      {selectedQuote !== null && selectedQuote.company && (
+      {selectedQuote !== null && selectedQuote.company && selectedQuote.product && (
         <QuoteResponseModal
           quoteRequest={{
             id: selectedQuote.id,
@@ -430,6 +626,315 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
             setSelectedQuote(null);
           }}
         />
+      )}
+
+      {/* Create RFQ Modal */}
+      {showCreateModal && isCompany && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isSubmitting && setShowCreateModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Create New RFQ</h3>
+                <button
+                  onClick={() => !isSubmitting && setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitRFQ} className="p-6 space-y-4">
+                <div>
+                  <Label htmlFor="title">RFQ Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="e.g., Need 500 bags of cement for construction project"
+                    required
+                    maxLength={200}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Provide detailed requirements, specifications, delivery location, etc."
+                    className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="e.g., Construction Materials"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="supplierId">Target Supplier (Optional)</Label>
+                    <select
+                      id="supplierId"
+                      value={formData.supplierId}
+                      onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Open to All Suppliers</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="unit">Unit</Label>
+                    <Input
+                      id="unit"
+                      value={formData.unit}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                      placeholder="e.g., bags, kg, m²"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="currency">Currency</Label>
+                    <select
+                      id="currency"
+                      value={formData.currency}
+                      onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="SGD">SGD</option>
+                      <option value="MYR">MYR</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="requestedPrice">Budget (Optional)</Label>
+                    <Input
+                      id="requestedPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.requestedPrice}
+                      onChange={(e) => setFormData({ ...formData, requestedPrice: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expiresAt">Expiry Date (Optional)</Label>
+                    <Input
+                      id="expiresAt"
+                      type="date"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCreateModal(false)}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !formData.title.trim()}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit RFQ'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* CSV Upload Modal */}
+      {showCSVUpload && isCompany && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-50"
+            onClick={() => !isUploadingCSV && setShowCSVUpload(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">Upload RFQs via CSV</h3>
+                <button
+                  onClick={() => !isUploadingCSV && setShowCSVUpload(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={isUploadingCSV}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Instructions */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">CSV Format Guide</h4>
+                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li><strong>Required:</strong> title (3-200 characters)</li>
+                    <li><strong>Optional:</strong> description, category, quantity, unit, requestedPrice, currency, expiresAt, supplierId</li>
+                    <li><strong>Currency:</strong> 3-letter code (e.g., USD, SGD, MYR)</li>
+                    <li><strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-12-31)</li>
+                    <li><strong>Supplier ID:</strong> Leave empty for open RFQs, or provide UUID for targeted RFQs</li>
+                  </ul>
+                  <Button
+                    onClick={downloadSampleCSV}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 border-blue-600 text-blue-600 hover:bg-blue-100"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Sample CSV
+                  </Button>
+                </div>
+
+                {/* Upload Form */}
+                <form onSubmit={handleCSVUpload} className="space-y-4">
+                  <div>
+                    <Label htmlFor="csvFile">Select CSV File</Label>
+                    <Input
+                      id="csvFile"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                      disabled={isUploadingCSV}
+                      className="mt-1"
+                    />
+                    {csvFile && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        Selected: {csvFile.name} ({(csvFile.size / 1024).toFixed(2)} KB)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Upload Results */}
+                  {uploadResult && (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 className="font-semibold text-gray-900 mb-2">Upload Summary</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-gray-600">Total:</span>
+                            <span className="ml-2 font-medium">{uploadResult.summary.total}</span>
+                          </div>
+                          <div className="text-green-600">
+                            <span>Created:</span>
+                            <span className="ml-2 font-medium">{uploadResult.summary.created}</span>
+                          </div>
+                          {uploadResult.summary.failed > 0 && (
+                            <div className="text-red-600">
+                              <span>Failed:</span>
+                              <span className="ml-2 font-medium">{uploadResult.summary.failed}</span>
+                            </div>
+                          )}
+                          {uploadResult.summary.invalid > 0 && (
+                            <div className="text-orange-600">
+                              <span>Invalid:</span>
+                              <span className="ml-2 font-medium">{uploadResult.summary.invalid}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Failed RFQs */}
+                      {uploadResult.failed && uploadResult.failed.length > 0 && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-red-900 mb-2">Failed RFQs</h4>
+                          <div className="space-y-2 text-sm">
+                            {uploadResult.failed.map((item: any, idx: number) => (
+                              <div key={idx} className="text-red-800">
+                                <strong>Row {item.row}:</strong> {item.title} - {item.error}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Invalid Rows */}
+                      {uploadResult.invalid && uploadResult.invalid.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-orange-900 mb-2">Invalid Rows</h4>
+                          <div className="space-y-2 text-sm">
+                            {uploadResult.invalid.map((item: any, idx: number) => (
+                              <div key={idx} className="text-orange-800">
+                                <strong>Row {item.row}:</strong> {item.errors.join(', ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCSVUpload(false);
+                        setCsvFile(null);
+                        setUploadResult(null);
+                      }}
+                      disabled={isUploadingCSV}
+                      className="flex-1"
+                    >
+                      {uploadResult ? 'Close' : 'Cancel'}
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isUploadingCSV || !csvFile}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isUploadingCSV ? 'Uploading...' : 'Upload CSV'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
