@@ -318,7 +318,7 @@ export default function RFQDetailsPage() {
 
   const handleCounterNegotiate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedResponseId || !counterData.counterPrice) return;
+    if (!counterData.counterPrice) return;
 
     setIsSubmitting(true);
     try {
@@ -835,7 +835,9 @@ export default function RFQDetailsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">Counter-Negotiate Bid</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {selectedResponseId ? 'Counter-Negotiate Bid' : 'Counter-Negotiate RFQ'}
+                </h3>
                 <button
                   onClick={() => !isSubmitting && setShowCounterModal(false)}
                   className="text-gray-400 hover:text-gray-600"
