@@ -141,8 +141,23 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
   useEffect(() => {
     if (showCreateModal && isCompany) {
       loadSuppliers();
+      loadCategories();
     }
   }, [showCreateModal, isCompany]);
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await apiGet<{ categories: Array<{ id: string; name: string }> }>('/api/v1/categories/flat');
+      setCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      // Don't show error toast - categories are optional
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const loadQuoteRequests = async () => {
     try {
