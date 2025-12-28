@@ -241,7 +241,18 @@ router.post(
     body('requestedPrice').optional().isFloat({ min: 0 }).withMessage('Requested price must be positive'),
     body('currency').optional().isString().isLength({ min: 3, max: 3 }).withMessage('Currency must be 3 characters'),
     body('expiresAt').optional().isISO8601().withMessage('Invalid expiration date'),
-    body('supplierId').optional().isUUID().withMessage('Invalid supplier ID'), // Optional - null means open to all
+    body('supplierId').custom((value) => {
+      // Allow null, undefined, or empty string (open to all suppliers)
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If provided, must be a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (typeof value === 'string' && uuidRegex.test(value)) {
+        return true;
+      }
+      throw new Error('Invalid supplier ID');
+    }), // Optional - null means open to all
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
