@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -240,7 +240,9 @@ export function RFQSection() {
   const [rfqs, setRfqs] = useState<RFQ[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('pending');
   const [currentPage, setCurrentPage] = useState(1);
@@ -329,6 +331,23 @@ export function RFQSection() {
       loadSuppliers();
     }
   }, [showCreateModal, user]);
+
+  // Debounce search input to avoid excessive re-renders
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchInput]);
 
   const handleCSVUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,8 +559,8 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
             <Input
               type="text"
               placeholder="Search RFQs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
               onKeyDown={(e) => {
                 // Prevent form submission if Enter is pressed
