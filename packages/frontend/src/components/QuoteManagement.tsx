@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { apiGet, apiPost, apiPostForm } from '@/lib/api';
+import { apiGet, apiPost, apiPostForm, apiDelete } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { QuoteResponseModal } from './QuoteResponseModal';
 import { 
@@ -21,7 +21,8 @@ import {
   Upload,
   Download,
   X,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Trash2
 } from 'lucide-react';
 
 interface QuoteRequest {
@@ -268,6 +269,25 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
     }
   };
 
+  const handleDeleteQuote = async (quoteRequestId: string) => {
+    if (!confirm('Are you sure you want to delete this RFQ? It will be moved to deleted items.')) return;
+
+    try {
+      await apiDelete(`/api/v1/quotes/${quoteRequestId}`);
+      toast({
+        title: 'RFQ Deleted',
+        description: 'The RFQ has been deleted and moved to deleted items.',
+      });
+      loadQuoteRequests();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error?.error?.message || 'Failed to delete RFQ',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const loadSuppliers = async () => {
     try {
       const response = await apiGet<{ suppliers: Array<{ id: string; name: string }> }>('/api/v1/suppliers');
@@ -499,7 +519,7 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
         
         {/* Status Filter */}
         <div className="flex flex-wrap gap-2">
-          {['all', 'pending', 'responded', 'accepted', 'rejected'].map((status) => (
+          {['all', 'pending', 'responded', 'accepted', 'rejected', ...(isCompany ? ['deleted'] : [])].map((status) => (
             <button
               key={status}
               onClick={() => setSelectedStatus(status)}
@@ -648,6 +668,17 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                         onClick={() => handleCancelQuote(quote.id)}
                       >
                         Cancel
+                      </Button>
+                    )}
+                    {isCompany && quote.status !== 'deleted' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteQuote(quote.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     )}
                   </div>

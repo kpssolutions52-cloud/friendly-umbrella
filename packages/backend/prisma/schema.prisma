@@ -347,6 +347,7 @@ enum QuoteStatus {
   rejected // Company rejected the quote
   expired // Quote request expired
   cancelled // Company cancelled the request
+  deleted // Company deleted the RFQ (soft delete)
 }
 
 // Product categories managed by super admin (supports main categories and subcategories)

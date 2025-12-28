@@ -592,7 +592,7 @@ export class QuoteService {
    * Get quote requests for a company
    */
   async getCompanyQuoteRequests(companyId: string, filters?: {
-    status?: QuoteStatus;
+    status?: QuoteStatus | 'all';
     supplierId?: string;
     productId?: string;
     search?: string;
@@ -603,8 +603,19 @@ export class QuoteService {
       companyId,
     };
 
-    if (filters?.status) {
-      where.status = filters.status;
+    // Handle status filter
+    // - If 'deleted', show only deleted RFQs
+    // - If specific status, show only that status (automatically excludes deleted)
+    // - If 'all' or no filter, exclude deleted by default (show all non-deleted RFQs)
+    if (filters?.status === 'deleted') {
+      where.status = QuoteStatus.deleted;
+    } else if (filters?.status && filters.status !== 'all') {
+      // Filter by specific status (this automatically excludes deleted)
+      where.status = filters.status as QuoteStatus;
+    } else {
+      // 'all' or no filter - exclude deleted by default
+      // Users can use the 'deleted' filter to see deleted RFQs separately
+      where.status = { not: QuoteStatus.deleted } as any;
     }
 
     if (filters?.supplierId) {
@@ -1318,6 +1329,48 @@ export class QuoteService {
         supplierId: updatedQuoteRequest.supplierId,
         status: QuoteStatus.cancelled,
         event: 'quote:cancelled',
+      });
+    }
+
+    return updatedQuoteRequest;
+  }
+
+  /**
+   * Delete a quote request (Company only) - Soft delete
+   */
+  async deleteQuoteRequest(quoteRequestId: string, companyId: string) {
+    const quoteRequest = await prisma.quoteRequest.findFirst({
+      where: {
+        id: quoteRequestId,
+        companyId,
+      },
+    });
+
+    if (!quoteRequest) {
+      throw createError(404, 'Quote request not found');
+    }
+
+    // Don't allow deleting already deleted RFQs
+    if (quoteRequest.status === QuoteStatus.deleted) {
+      throw createError(400, 'Quote request is already deleted');
+    }
+
+    const updatedQuoteRequest = await prisma.quoteRequest.update({
+      where: { id: quoteRequestId },
+      data: {
+        status: QuoteStatus.deleted,
+      },
+    });
+
+    // Broadcast quote deletion notification
+    const io = getSocketIO();
+    if (io) {
+      broadcastQuoteUpdate(io, {
+        quoteRequestId,
+        companyId: updatedQuoteRequest.companyId,
+        supplierId: updatedQuoteRequest.supplierId,
+        status: QuoteStatus.deleted,
+        event: 'quote:deleted',
       });
     }
 
