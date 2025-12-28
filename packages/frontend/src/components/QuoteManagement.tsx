@@ -91,6 +91,9 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'status' | 'expiresAt'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -118,7 +121,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
 
   useEffect(() => {
     loadQuoteRequests();
-  }, [selectedStatus]);
+  }, [selectedStatus, searchQuery, sortBy, sortOrder]);
 
   useEffect(() => {
     if (showCreateModal && isCompany) {
@@ -132,6 +135,15 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
       const params = new URLSearchParams();
       if (selectedStatus !== 'all') {
         params.append('status', selectedStatus);
+      }
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim());
+      }
+      if (sortBy) {
+        params.append('sortBy', sortBy);
+      }
+      if (sortOrder) {
+        params.append('sortOrder', sortOrder);
       }
       
       // For suppliers, use the RFQ public endpoint to see general RFQs
@@ -189,7 +201,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
 
   const handleAcceptQuote = async (quoteRequestId: string, quoteResponseId: string) => {
     try {
-      await apiPost(`/quotes/${quoteRequestId}/accept`, { quoteResponseId });
+      await apiPost(`/api/v1/quotes/${quoteRequestId}/accept`, { quoteResponseId });
       toast({
         title: 'Quote Accepted',
         description: 'You have accepted the quote response.',
@@ -208,7 +220,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
     if (!confirm('Are you sure you want to reject this quote?')) return;
 
     try {
-      await apiPost(`/quotes/${quoteRequestId}/reject`);
+      await apiPost(`/api/v1/quotes/${quoteRequestId}/reject`);
       toast({
         title: 'Quote Rejected',
         description: 'The quote has been rejected.',
@@ -227,7 +239,7 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
     if (!confirm('Are you sure you want to cancel this quote request?')) return;
 
     try {
-      await apiPost(`/quotes/${quoteRequestId}/cancel`);
+      await apiPost(`/api/v1/quotes/${quoteRequestId}/cancel`);
       toast({
         title: 'Quote Cancelled',
         description: 'The quote request has been cancelled.',
@@ -437,21 +449,56 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
         )}
       </div>
 
-      {/* Status Filter */}
-      <div className="flex flex-wrap gap-2">
-        {['all', 'pending', 'responded', 'accepted', 'rejected'].map((status) => (
-          <button
-            key={status}
-            onClick={() => setSelectedStatus(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedStatus === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-4 space-y-4">
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="Search RFQs by title, description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="createdAt">Sort by Date</option>
+              <option value="updatedAt">Sort by Updated</option>
+              <option value="status">Sort by Status</option>
+              <option value="expiresAt">Sort by Expiry</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              title={sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
+        </div>
+        
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-2">
+          {['all', 'pending', 'responded', 'accepted', 'rejected'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setSelectedStatus(status)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedStatus === status
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Quote Requests List */}

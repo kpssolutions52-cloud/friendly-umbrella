@@ -292,6 +292,9 @@ export class QuoteService {
     filters?: {
       status?: QuoteStatus;
       category?: string;
+      search?: string;
+      sortBy?: 'createdAt' | 'updatedAt' | 'status' | 'expiresAt';
+      sortOrder?: 'asc' | 'desc';
       page?: number;
       limit?: number;
     }
@@ -304,16 +307,53 @@ export class QuoteService {
       message: {
         startsWith: 'RFQ:', // General RFQs
       },
-      status: filters?.status || QuoteStatus.pending,
     };
 
-    // Filter by category if provided
-    if (filters?.category) {
+    // Filter by status if provided
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    // Build message filter - combine category and search if both provided
+    const messageFilters: any = {
+      startsWith: 'RFQ:',
+      mode: 'insensitive' as const,
+    };
+
+    if (filters?.category && filters?.search) {
+      // If both category and search provided, search for RFQs containing both
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: `${filters.category} ${filters.search}`,
+        mode: 'insensitive',
+      };
+    } else if (filters?.category) {
       where.message = {
         startsWith: 'RFQ:',
         contains: filters.category,
         mode: 'insensitive',
       };
+    } else if (filters?.search) {
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Determine sort field and order
+    const sortBy = filters?.sortBy || 'createdAt';
+    const sortOrder = filters?.sortOrder || 'desc';
+
+    const orderBy: Prisma.QuoteRequestOrderByWithRelationInput = {};
+    if (sortBy === 'createdAt') {
+      orderBy.createdAt = sortOrder;
+    } else if (sortBy === 'updatedAt') {
+      orderBy.updatedAt = sortOrder;
+    } else if (sortBy === 'status') {
+      orderBy.status = sortOrder;
+    } else if (sortBy === 'expiresAt') {
+      orderBy.expiresAt = sortOrder;
     }
 
     // Get RFQs:
@@ -383,7 +423,7 @@ export class QuoteService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: Object.keys(orderBy).length > 0 ? orderBy : { createdAt: 'desc' },
         skip,
         take: limit,
       }),
@@ -415,6 +455,9 @@ export class QuoteService {
   async getPublicRFQs(filters?: {
     status?: QuoteStatus;
     category?: string;
+    search?: string;
+    sortBy?: 'createdAt' | 'updatedAt' | 'status' | 'expiresAt';
+    sortOrder?: 'asc' | 'desc';
     page?: number;
     limit?: number;
   }) {
@@ -426,16 +469,48 @@ export class QuoteService {
       message: {
         startsWith: 'RFQ:', // General RFQs have message starting with "RFQ:"
       },
-      status: filters?.status || QuoteStatus.pending,
     };
 
-    // Filter by category if provided (search in message)
-    if (filters?.category) {
+    // Filter by status if provided
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    // Build message filter - combine category and search if both provided
+    if (filters?.category && filters?.search) {
+      // If both category and search provided, search for RFQs containing both
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: `${filters.category} ${filters.search}`,
+        mode: 'insensitive',
+      };
+    } else if (filters?.category) {
       where.message = {
         startsWith: 'RFQ:',
         contains: filters.category,
         mode: 'insensitive',
       };
+    } else if (filters?.search) {
+      where.message = {
+        startsWith: 'RFQ:',
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Determine sort field and order
+    const sortBy = filters?.sortBy || 'createdAt';
+    const sortOrder = filters?.sortOrder || 'desc';
+
+    const orderBy: Prisma.QuoteRequestOrderByWithRelationInput = {};
+    if (sortBy === 'createdAt') {
+      orderBy.createdAt = sortOrder;
+    } else if (sortBy === 'updatedAt') {
+      orderBy.updatedAt = sortOrder;
+    } else if (sortBy === 'status') {
+      orderBy.status = sortOrder;
+    } else if (sortBy === 'expiresAt') {
+      orderBy.expiresAt = sortOrder;
     }
 
     const [rfqs, total] = await Promise.all([
@@ -495,9 +570,7 @@ export class QuoteService {
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: Object.keys(orderBy).length > 0 ? orderBy : { createdAt: 'desc' },
         skip,
         take: limit,
       }),
@@ -522,6 +595,9 @@ export class QuoteService {
     status?: QuoteStatus;
     supplierId?: string;
     productId?: string;
+    search?: string;
+    sortBy?: 'createdAt' | 'updatedAt' | 'status' | 'expiresAt';
+    sortOrder?: 'asc' | 'desc';
   }) {
     const where: Prisma.QuoteRequestWhereInput = {
       companyId,
@@ -537,6 +613,29 @@ export class QuoteService {
 
     if (filters?.productId) {
       where.productId = filters.productId;
+    }
+
+    // Search by message (which contains RFQ title/description)
+    if (filters?.search) {
+      where.message = {
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Determine sort field and order
+    const sortBy = filters?.sortBy || 'createdAt';
+    const sortOrder = filters?.sortOrder || 'desc';
+
+    const orderBy: Prisma.QuoteRequestOrderByWithRelationInput = {};
+    if (sortBy === 'createdAt') {
+      orderBy.createdAt = sortOrder;
+    } else if (sortBy === 'updatedAt') {
+      orderBy.updatedAt = sortOrder;
+    } else if (sortBy === 'status') {
+      orderBy.status = sortOrder;
+    } else if (sortBy === 'expiresAt') {
+      orderBy.expiresAt = sortOrder;
     }
 
     const quoteRequests = await prisma.quoteRequest.findMany({
@@ -582,9 +681,7 @@ export class QuoteService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: Object.keys(orderBy).length > 0 ? orderBy : { createdAt: 'desc' },
     });
 
     return quoteRequests;
@@ -597,6 +694,9 @@ export class QuoteService {
     status?: QuoteStatus;
     companyId?: string;
     productId?: string;
+    search?: string;
+    sortBy?: 'createdAt' | 'updatedAt' | 'status' | 'expiresAt';
+    sortOrder?: 'asc' | 'desc';
   }) {
     const where: Prisma.QuoteRequestWhereInput = {
       supplierId,
@@ -612,6 +712,29 @@ export class QuoteService {
 
     if (filters?.productId) {
       where.productId = filters.productId;
+    }
+
+    // Search by message (which contains RFQ title/description)
+    if (filters?.search) {
+      where.message = {
+        contains: filters.search,
+        mode: 'insensitive',
+      };
+    }
+
+    // Determine sort field and order
+    const sortBy = filters?.sortBy || 'createdAt';
+    const sortOrder = filters?.sortOrder || 'desc';
+
+    const orderBy: Prisma.QuoteRequestOrderByWithRelationInput = {};
+    if (sortBy === 'createdAt') {
+      orderBy.createdAt = sortOrder;
+    } else if (sortBy === 'updatedAt') {
+      orderBy.updatedAt = sortOrder;
+    } else if (sortBy === 'status') {
+      orderBy.status = sortOrder;
+    } else if (sortBy === 'expiresAt') {
+      orderBy.expiresAt = sortOrder;
     }
 
     const quoteRequests = await prisma.quoteRequest.findMany({
@@ -657,9 +780,7 @@ export class QuoteService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: Object.keys(orderBy).length > 0 ? orderBy : { createdAt: 'desc' },
     });
 
     return quoteRequests;

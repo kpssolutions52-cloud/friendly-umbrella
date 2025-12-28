@@ -97,6 +97,9 @@ router.get(
   [
     query('status').optional().isIn(Object.values(QuoteStatus)).withMessage('Invalid status'),
     query('category').optional().isString().withMessage('Category must be a string'),
+    query('search').optional().isString().withMessage('Search must be a string'),
+    query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'status', 'expiresAt']).withMessage('Invalid sort field'),
+    query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Invalid sort order'),
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   ],
@@ -109,6 +112,9 @@ router.get(
 
       const status = req.query.status as QuoteStatus | undefined;
       const category = req.query.category as string | undefined;
+      const search = req.query.search as string | undefined;
+      const sortBy = req.query.sortBy as 'createdAt' | 'updatedAt' | 'status' | 'expiresAt' | undefined;
+      const sortOrder = req.query.sortOrder as 'asc' | 'desc' | undefined;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
@@ -117,6 +123,9 @@ router.get(
         const result = await quoteService.getSupplierRFQs(req.tenantId!, {
           status,
           category,
+          search,
+          sortBy,
+          sortOrder,
           page,
           limit,
         });
@@ -127,6 +136,9 @@ router.get(
       const result = await quoteService.getPublicRFQs({
         status,
         category,
+        search,
+        sortBy,
+        sortOrder,
         page,
         limit,
       });
@@ -333,6 +345,9 @@ router.get(
     query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
     query('companyId').optional().isUUID().withMessage('Invalid company ID'),
     query('productId').optional().isUUID().withMessage('Invalid product ID'),
+    query('search').optional().isString().withMessage('Search must be a string'),
+    query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'status', 'expiresAt']).withMessage('Invalid sort field'),
+    query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Invalid sort order'),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -350,12 +365,18 @@ router.get(
           status: req.query.status as QuoteStatus | undefined,
           supplierId: req.query.supplierId as string | undefined,
           productId: req.query.productId as string | undefined,
+          search: req.query.search as string | undefined,
+          sortBy: req.query.sortBy as 'createdAt' | 'updatedAt' | 'status' | 'expiresAt' | undefined,
+          sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
         });
       } else if (tenantType === 'supplier' || tenantType === 'service_provider') {
         quoteRequests = await quoteService.getSupplierQuoteRequests(tenantId, {
           status: req.query.status as QuoteStatus | undefined,
           companyId: req.query.companyId as string | undefined,
           productId: req.query.productId as string | undefined,
+          search: req.query.search as string | undefined,
+          sortBy: req.query.sortBy as 'createdAt' | 'updatedAt' | 'status' | 'expiresAt' | undefined,
+          sortOrder: req.query.sortOrder as 'asc' | 'desc' | undefined,
         });
       } else {
         return res.status(403).json({ error: 'Access denied' });
