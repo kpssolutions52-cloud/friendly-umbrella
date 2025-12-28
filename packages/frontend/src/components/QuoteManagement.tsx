@@ -103,6 +103,8 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   // Form state for RFQ creation
   const [formData, setFormData] = useState({
@@ -774,12 +776,23 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Input
+                    <select
                       id="category"
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      placeholder="e.g., Construction Materials"
-                    />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      disabled={loadingCategories}
+                    >
+                      <option value="">Select a category (optional)</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {loadingCategories && (
+                      <p className="text-xs text-gray-500 mt-1">Loading categories...</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="supplierId">Target Supplier (Optional)</Label>
