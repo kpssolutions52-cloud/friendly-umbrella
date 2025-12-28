@@ -48,7 +48,7 @@ interface QuoteRequest {
   requestedPrice: number | null;
   currency: string;
   message: string | null;
-  status: 'pending' | 'responded' | 'accepted' | 'rejected' | 'expired' | 'cancelled';
+  status: 'pending' | 'responded' | 'accepted' | 'rejected' | 'expired' | 'cancelled' | 'deleted';
   requestedBy: {
     id: string;
     email: string;
