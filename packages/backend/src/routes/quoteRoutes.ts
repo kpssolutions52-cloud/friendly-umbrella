@@ -181,13 +181,15 @@ router.post(
         });
       }
 
-      // Create RFQs
+      // Create RFQs in bulk
       const results = {
         created: [] as any[],
         failed: [] as Array<{ row: number; title: string; error: string }>,
       };
 
-      for (const rfqData of parsed.valid) {
+      // Process each valid RFQ record
+      for (let i = 0; i < parsed.valid.length; i++) {
+        const rfqData = parsed.valid[i];
         try {
           const rfq = await quoteService.createGeneralRFQ(
             req.tenantId!,
@@ -210,8 +212,13 @@ router.post(
             title: rfqData.title,
           });
         } catch (error: any) {
+          // Calculate row number: CSV has header (row 1), so valid rows start at row 2
+          // We need to account for invalid rows that were skipped
+          // For simplicity, we'll use a sequential number starting from 2
+          // Note: This is approximate as invalid rows are excluded from parsed.valid
+          const rowNumber = i + 2; // +2 for header row (1) and 0-based index
           results.failed.push({
-            row: parsed.valid.indexOf(rfqData) + 2, // +2 for header and 0-based index
+            row: rowNumber,
             title: rfqData.title,
             error: error.message || 'Failed to create RFQ',
           });
@@ -341,7 +348,13 @@ router.post(
 router.get(
   '/quotes',
   [
-    query('status').optional().isIn(Object.values(QuoteStatus)).withMessage('Invalid status'),
+    query('status').optional().custom((value) => {
+      // Allow 'all' and all QuoteStatus values including 'deleted'
+      if (value === 'all' || Object.values(QuoteStatus).includes(value)) {
+        return true;
+      }
+      throw new Error('Invalid status');
+    }).withMessage('Invalid status'),
     query('supplierId').optional().isUUID().withMessage('Invalid supplier ID'),
     query('companyId').optional().isUUID().withMessage('Invalid company ID'),
     query('productId').optional().isUUID().withMessage('Invalid product ID'),
@@ -361,8 +374,9 @@ router.get(
 
       let quoteRequests;
       if (tenantType === 'company') {
+        const statusParam = req.query.status as string | undefined;
         quoteRequests = await quoteService.getCompanyQuoteRequests(tenantId, {
-          status: req.query.status as QuoteStatus | undefined,
+          status: statusParam === 'all' ? 'all' : (statusParam as QuoteStatus | undefined),
           supplierId: req.query.supplierId as string | undefined,
           productId: req.query.productId as string | undefined,
           search: req.query.search as string | undefined,
@@ -526,6 +540,32 @@ router.post(
       }
 
       const quoteRequest = await quoteService.cancelQuoteRequest(
+        req.params.id,
+        req.tenantId!
+      );
+
+      res.json({ quoteRequest });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// DELETE /api/v1/quotes/:id - Delete a quote request (Company only - Soft delete)
+router.delete(
+  '/quotes/:id',
+  requireTenantType('company'),
+  [
+    param('id').isUUID().withMessage('Invalid quote request ID'),
+  ],
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const quoteRequest = await quoteService.deleteQuoteRequest(
         req.params.id,
         req.tenantId!
       );
