@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -481,15 +481,17 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
     }
   };
 
-  const filteredRFQs = rfqs.filter(rfq => {
-    if (!searchQuery) return true;
+  const filteredRFQs = useMemo(() => {
+    if (!searchQuery.trim()) return rfqs;
     const searchLower = searchQuery.toLowerCase();
-    const message = rfq.message || '';
-    return (
-      message.toLowerCase().includes(searchLower) ||
-      rfq.company.name.toLowerCase().includes(searchLower)
-    );
-  });
+    return rfqs.filter(rfq => {
+      const message = rfq.message || '';
+      return (
+        message.toLowerCase().includes(searchLower) ||
+        rfq.company.name.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [rfqs, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -541,6 +543,12 @@ Concrete Mixing Service,Looking for ready-mix concrete delivery service.,Constru
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
+              onKeyDown={(e) => {
+                // Prevent form submission if Enter is pressed
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
             />
           </div>
           <select
