@@ -20,7 +20,8 @@ import {
   Plus,
   Upload,
   Download,
-  X
+  X,
+  Search as SearchIcon
 } from 'lucide-react';
 
 interface QuoteRequest {
@@ -91,7 +92,8 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>(''); // Input value (updated immediately)
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced search query (triggers API call)
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'status' | 'expiresAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
@@ -121,6 +123,16 @@ export function QuoteManagement({ tenantType }: QuoteManagementProps) {
 
   const isCompany = tenantType === 'company';
 
+  // Debounce search input - update searchQuery after user stops typing for 500ms
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  // Load quote requests when filters change (including debounced searchQuery)
   useEffect(() => {
     loadQuoteRequests();
   }, [selectedStatus, searchQuery, sortBy, sortOrder]);
