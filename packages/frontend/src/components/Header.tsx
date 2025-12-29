@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ showAuthButtons = true, className = '' }: HeaderProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
 
   return (
@@ -58,7 +58,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => router.push('/auth/logout')} 
+                      onClick={logout} 
                       className="text-xs sm:text-sm"
                     >
                       Logout

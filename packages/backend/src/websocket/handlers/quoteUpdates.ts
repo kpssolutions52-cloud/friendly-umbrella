@@ -9,7 +9,7 @@ export function broadcastQuoteUpdate(
     companyId: string;
     supplierId: string;
     status: string;
-    event: 'quote:created' | 'quote:responded' | 'quote:accepted' | 'quote:rejected' | 'quote:cancelled' | 'quote:countered';
+    event: 'quote:created' | 'quote:responded' | 'quote:accepted' | 'quote:rejected' | 'quote:cancelled' | 'quote:countered' | 'quote:deleted';
   }
 ) {
   // Notify the company
