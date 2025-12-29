@@ -119,44 +119,43 @@ test.describe('Complete End-to-End Workflow', () => {
     await page.fill('input[type="password"]', 'password123');
     await page.click('button[type="submit"]');
 
-    // Wait for navigation - could be dashboard or error
-    await page.waitForTimeout(3000);
+    // Wait for navigation - users are now redirected to home page (/) instead of dashboard
+    // Wait for URL to change from login page (timeout after 10 seconds)
+    try {
+      await page.waitForURL(url => !url.includes('/auth/login'), { timeout: 10000 });
+    } catch (e) {
+      // If waitForURL times out, check current URL anyway
+    }
     
-    // Check if login was successful (redirected to dashboard) or if there's an error
+    // Give a moment for the page to fully load
+    await page.waitForTimeout(1000);
+    
+    // Check if login was successful - users are redirected to home page (/) or their dashboard
     const urlAfterApproval = page.url();
+    const isOnHomePage = urlAfterApproval === 'http://localhost:3000/' || 
+                         urlAfterApproval === 'http://localhost:3000' ||
+                         urlAfterApproval.match(/^http:\/\/localhost:3000\/\?/);
     const isOnDashboard = urlAfterApproval.includes('/supplier/dashboard') || 
                           urlAfterApproval.includes('/company/dashboard') || 
                           urlAfterApproval.includes('/admin/dashboard');
-    const hasError = await page.locator('[class*="error"], [class*="bg-red-50"]').count() > 0;
     
-    // If not on dashboard and no error, wait a bit more for navigation
-    if (!isOnDashboard && !hasError) {
-      await page.waitForTimeout(2000);
-      // Re-check URL after waiting
-      const finalUrl = page.url();
-      const finalIsOnDashboard = finalUrl.includes('/supplier/dashboard') || 
-                                 finalUrl.includes('/company/dashboard') || 
-                                 finalUrl.includes('/admin/dashboard');
-      if (finalIsOnDashboard) {
-        await expect(page).toHaveURL(/\/supplier\/dashboard/);
-        const token = await page.evaluate(() => localStorage.getItem('accessToken'));
-        expect(token).toBeTruthy();
-        return; // Exit early if successful
-      }
-    }
-    
-    // Verify we're on the supplier dashboard or check for error message
-    if (isOnDashboard) {
-      await expect(page).toHaveURL(/\/supplier\/dashboard/);
-    } else {
-      // If login failed, check the error message
-      const errorText = await page.locator('[class*="error"], [class*="bg-red-50"]').textContent();
-      throw new Error(`Login failed after approval. Current URL: ${urlAfterApproval}. Error: ${errorText || 'Unknown error'}`);
-    }
-
-    // Verify login was successful
+    // Verify login was successful - check for access token first
     const token = await page.evaluate(() => localStorage.getItem('accessToken'));
     expect(token).toBeTruthy();
+    
+    // If not on expected page, check for errors
+    if (!isOnHomePage && !isOnDashboard) {
+      const hasError = await page.locator('[class*="error"], [class*="bg-red-50"]').count() > 0;
+      if (hasError) {
+        const errorText = await page.locator('[class*="error"], [class*="bg-red-50"]').textContent().catch(() => 'Unknown error');
+        throw new Error(`Login failed after approval. Current URL: ${urlAfterApproval}. Error: ${errorText}`);
+      }
+      // If no error but not on expected page, throw error with URL info
+      throw new Error(`Unexpected URL after login. Expected home page (/) or dashboard, got: ${urlAfterApproval}`);
+    }
+    
+    // Login successful - user is on home page (/) or dashboard
+    expect(isOnHomePage || isOnDashboard).toBeTruthy();
   });
 
   test('complete product and price management workflow', async ({ supplierAdminPage, companyAdminPage }) => {
