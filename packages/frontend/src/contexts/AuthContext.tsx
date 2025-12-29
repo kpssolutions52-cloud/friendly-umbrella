@@ -153,21 +153,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get tenantType from refreshed user or response
     const updatedUser = await getCurrentUser().catch(() => null);
     
-    // Check if super admin
+    // Check if super admin - only redirect super admins, all others go to home page
     if (response.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
       router.push(returnUrl || '/admin/dashboard');
       return;
     }
     
-    // Handle customer - redirect to customer dashboard or returnUrl
-    if (response.user.role === 'customer' || updatedUser?.role === 'customer') {
-      router.push(returnUrl || '/customer/dashboard');
-      return;
-    }
-    
-    // Handle other users with tenants
-    const tenantType = (updatedUser as any)?.tenant?.type || (response.user as any)?.tenantType || 'supplier';
-    router.push(returnUrl || getDashboardPath(tenantType));
+    // All other users (customers, suppliers, companies, service providers) go to home page
+    // They can see Products/Services tabs and browse the shop
+    router.push(returnUrl || '/');
   };
 
   const register = async (input: RegisterInput, returnUrl?: string) => {
@@ -194,20 +188,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get tenantType from refreshed user
     const updatedUser = await getCurrentUser().catch(() => null);
     
-    // Check if super admin
+    // Check if super admin - only redirect super admins, all others go to home page
     if (authResponse.user.role === 'super_admin' || updatedUser?.role === 'super_admin') {
       router.push(returnUrl || '/admin/dashboard');
       return;
     }
     
-    // Handle customer - redirect to customer dashboard or returnUrl
-    if (authResponse.user.role === 'customer' || updatedUser?.role === 'customer') {
-      router.push(returnUrl || '/customer/dashboard');
-      return;
-    }
-    
-    const tenantType = (updatedUser as any)?.tenant?.type || (authResponse.user as any)?.tenantType || 'supplier';
-    router.push(returnUrl || getDashboardPath(tenantType));
+    // All other users (customers, suppliers, companies, service providers) go to home page
+    // They can see Products/Services tabs and browse the shop
+    router.push(returnUrl || '/');
   };
 
   const logout = () => {

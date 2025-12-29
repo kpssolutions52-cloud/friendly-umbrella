@@ -95,30 +95,19 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop' | 'rfq'>('shop');
   const productsPerPage = 20;
 
-  // Handle auth redirects - separate effect to avoid loops
+  // Removed auto-redirect - allow ALL logged-in users to browse the Shop page with Products/Services tabs
+  // Only super admins are redirected (they have special admin dashboards)
+  // All other users (customers, suppliers, companies, service providers) can stay on home page
   useEffect(() => {
     if (!authLoading && user) {
-      // Redirect to appropriate dashboard
+      // Only redirect super admins to their dashboard
       if (user.role === 'super_admin') {
         router.push('/admin/dashboard');
         return;
       }
-      if (user.role === 'customer') {
-        router.push('/customer/dashboard');
-        return;
-      }
-      if (user.tenant) {
-        let dashboardPath: string;
-        if (user.tenant.type === 'supplier') {
-          dashboardPath = '/supplier/dashboard';
-        } else if (user.tenant.type === 'service_provider') {
-          dashboardPath = '/service-provider/dashboard';
-        } else {
-          dashboardPath = '/company/dashboard';
-        }
-        router.push(dashboardPath);
-        return;
-      }
+      // All other users (customers, suppliers, companies, service providers) stay on home page
+      // They can see Products/Services tabs and browse the shop
+      // They can manually navigate to their dashboard via the header navigation if needed
     }
   }, [authLoading, user, router]);
 

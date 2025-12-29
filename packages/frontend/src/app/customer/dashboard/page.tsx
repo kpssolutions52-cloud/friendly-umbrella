@@ -34,11 +34,17 @@ interface SearchProduct {
 }
 
 export default function CustomerDashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const router = useRouter();
   
-  // Redirect if not customer
+  // Redirect customers to home page where they can see Products/Services tabs
   useEffect(() => {
+    if (!loading && user && user.role === 'customer') {
+      router.push('/');
+      return;
+    }
+    
+    // Redirect if not customer
     if (user && user.role !== 'customer') {
       if (user.role === 'super_admin') {
         router.push('/admin/dashboard');
@@ -48,7 +54,7 @@ export default function CustomerDashboardPage() {
         router.push('/company/dashboard');
       }
     }
-  }, [user, router]);
+  }, [user, router, loading]);
 
   if (!user || user.role !== 'customer') {
     return (
