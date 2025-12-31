@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -513,257 +513,220 @@ export default function Home() {
 
         {/* Shop Section */}
         {activeSection === 'shop' && (
-          <>
-        {/* Products vs Services - Modern Segmented Control */}
-        <div className="mb-6 flex justify-center">
-          <div className="inline-flex bg-gray-100 rounded-lg p-1 shadow-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('products');
-                setSelectedMainCategoryId('');
-                setSelectedSubCategoryId('');
-                setSelectedSupplier('');
-                setSubCategories([]);
-                setSubServiceCategories([]);
-                setCurrentPage(1);
-              }}
-              className={`relative px-6 sm:px-8 py-2.5 sm:py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
-                activeTab === 'products'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Products
-              {products.length > 0 && activeTab === 'products' && (
-                <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm font-normal">
-                  ({getFilteredProducts(products).length})
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('services');
-                setSelectedMainCategoryId('');
-                setSelectedSubCategoryId('');
-                setSelectedSupplier('');
-                setSubCategories([]);
-                setSubServiceCategories([]);
-                setCurrentPage(1);
-              }}
-              className={`relative px-6 sm:px-8 py-2.5 sm:py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
-                activeTab === 'services'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Services
-              {products.length > 0 && activeTab === 'services' && (
-                <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm font-normal">
-                  ({getFilteredProducts(products).length})
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-        {/* Market-Standard Search & Filter Bar - Desktop Only */}
-        <div className="mb-6 hidden md:block">
-          {/* Search Bar - Desktop Only */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-4">
-            <form onSubmit={handleSearch} className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 relative">
-                  <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-10 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-gray-50 focus:bg-white transition-all"
-                  />
-                  {searchQuery && (
+          <div className="flex gap-6">
+            {/* Left Sidebar - Fixed/Sticky */}
+            <div className="hidden md:flex md:flex-col md:w-80 lg:w-72 xl:w-80 flex-shrink-0">
+              <div className="sticky top-4 bg-white rounded-lg border border-gray-200 shadow-sm p-5 max-h-[calc(100vh-120px)] overflow-y-auto">
+                {/* Products vs Services Tabs */}
+                <div className="mb-6">
+                  <div className="inline-flex bg-gray-100 rounded-lg p-1 shadow-sm w-full">
                     <button
                       type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => {
+                        setActiveTab('products');
+                        setSelectedMainCategoryId('');
+                        setSelectedSubCategoryId('');
+                        setSelectedSupplier('');
+                        setSubCategories([]);
+                        setSubServiceCategories([]);
+                        setCurrentPage(1);
+                      }}
+                      className={`flex-1 relative px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${
+                        activeTab === 'products'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
                     >
-                      <X className="w-5 h-5" />
+                      Products
+                      {products.length > 0 && activeTab === 'products' && (
+                        <span className="ml-1.5 text-xs font-normal">
+                          ({getFilteredProducts(products).length})
+                        </span>
+                      )}
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('services');
+                        setSelectedMainCategoryId('');
+                        setSelectedSubCategoryId('');
+                        setSelectedSupplier('');
+                        setSubCategories([]);
+                        setSubServiceCategories([]);
+                        setCurrentPage(1);
+                      }}
+                      className={`flex-1 relative px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${
+                        activeTab === 'services'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Services
+                      {products.length > 0 && activeTab === 'services' && (
+                        <span className="ml-1.5 text-xs font-normal">
+                          ({getFilteredProducts(products).length})
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                {/* Filter Button - Desktop */}
-                <button
-                  type="button"
-                  onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-                  className={`hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
-                    selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <SlidersHorizontal className="w-5 h-5" />
-                  <span className="font-medium">Filters</span>
-                  {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000) && (
-                    <span className="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-bold">
-                      {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000].filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-                {/* Filter Button - Mobile */}
-                <button
-                  type="button"
-                  onClick={() => setShowFilterSidebar(!showFilterSidebar)}
-                  className={`md:hidden p-3 rounded-lg border-2 transition-all ${
-                    selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-200'
-                  }`}
-                >
-                  <SlidersHorizontal className="w-5 h-5" />
-                  {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000) && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[10px] flex items-center justify-center text-white font-bold">
-                      {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000].filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </form>
-              </div>
-              
-          {/* Active Filter Chips - Compact - Desktop Only */}
-          {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || searchQuery || priceRange[0] > 0 || priceRange[1] < 10000) && (
-            <div className="flex flex-wrap items-center gap-2 mb-4 hidden md:flex">
-              {searchQuery && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium">
-                  <SearchIcon className="w-3.5 h-3.5" />
-                  {searchQuery}
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="hover:bg-blue-200 rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedMainCategoryId && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-medium">
-                  {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedMainCategoryId('');
-                      setSelectedSubCategoryId('');
-                      setSubCategories([]);
-                      setSubServiceCategories([]);
-                      setCurrentPage(1);
-                    }}
-                    className="hover:bg-indigo-200 rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedSubCategoryId && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-lg text-xs font-medium">
-                  {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedSubCategoryId('');
-                      setCurrentPage(1);
-                    }}
-                    className="hover:bg-purple-200 rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedSupplier && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-medium">
-                  {(activeTab === 'products' ? suppliers : serviceProviders).find(p => p.id === selectedSupplier)?.name || 'Provider'}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedSupplier('');
-                      setCurrentPage(1);
-                    }}
-                    className="hover:bg-amber-200 rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {(priceRange[0] > 0 || priceRange[1] < 10000) && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
-                  ${priceRange[0]} - ${priceRange[1]}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPriceRange([0, 10000]);
-                    }}
-                    className="hover:bg-green-200 rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedMainCategoryId('');
-                  setSelectedSubCategoryId('');
-                  setSelectedSupplier('');
-                  setPriceRange([0, 10000]);
-                  setSubCategories([]);
-                  setSubServiceCategories([]);
-                  setCurrentPage(1);
-                }}
-                className="text-xs font-medium text-gray-600 hover:text-gray-900 underline"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Filter Sidebar - Market Standard */}
-        {showFilterSidebar && (
-          <>
-            {/* Mobile Overlay */}
-            <div 
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
-              onClick={() => setShowFilterSidebar(false)}
-            />
-            {/* Filter Sidebar */}
-            <div className={`fixed md:sticky top-20 left-0 h-full md:h-auto w-80 md:w-64 bg-white border-r md:border border-gray-200 shadow-xl md:shadow-sm z-50 md:z-10 overflow-y-auto ${
-              showFilterSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-            } transition-transform duration-300`}>
-              <div className="p-4 md:p-5">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                {/* Search Bar */}
+                <div className="mb-6">
+                  <form onSubmit={handleSearch}>
+                    <div className="relative">
+                      <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-10 h-10 text-sm border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-gray-50 focus:bg-white transition-all"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                {/* Sort By */}
+                <div className="mb-6">
+                  <label htmlFor="sort-select-sidebar" className="block text-sm font-semibold text-gray-900 mb-2">
+                    Sort by
+                  </label>
+                  <select
+                    id="sort-select-sidebar"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="name-a-z">Name: A to Z</option>
+                    <option value="name-z-a">Name: Z to A</option>
+                  </select>
+                </div>
+
+                {/* Active Filter Chips */}
+                {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || searchQuery || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                  <div className="mb-6">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {searchQuery && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-medium">
+                          <SearchIcon className="w-3 h-3" />
+                          {searchQuery.length > 15 ? searchQuery.substring(0, 15) + '...' : searchQuery}
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="hover:bg-blue-200 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {selectedMainCategoryId && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-medium">
+                          {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMainCategoryId('');
+                              setSelectedSubCategoryId('');
+                              setSubCategories([]);
+                              setSubServiceCategories([]);
+                              setCurrentPage(1);
+                            }}
+                            className="hover:bg-indigo-200 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {selectedSubCategoryId && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-100 text-purple-800 rounded-lg text-xs font-medium">
+                          {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSubCategoryId('');
+                              setCurrentPage(1);
+                            }}
+                            className="hover:bg-purple-200 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {selectedSupplier && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-medium">
+                          {(activeTab === 'products' ? suppliers : serviceProviders).find(p => p.id === selectedSupplier)?.name || 'Provider'}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedSupplier('');
+                              setCurrentPage(1);
+                            }}
+                            className="hover:bg-amber-200 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      {(priceRange[0] > 0 || priceRange[1] < 10000) && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
+                          ${priceRange[0]} - ${priceRange[1]}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPriceRange([0, 10000]);
+                            }}
+                            className="hover:bg-green-200 rounded p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedMainCategoryId('');
+                          setSelectedSubCategoryId('');
+                          setSelectedSupplier('');
+                          setPriceRange([0, 10000]);
+                          setSubCategories([]);
+                          setSubServiceCategories([]);
+                          setCurrentPage(1);
+                        }}
+                        className="text-xs font-medium text-gray-600 hover:text-gray-900 underline"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filters Section */}
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-blue-600" />
                     Filters
                   </h3>
-                  <button
-                    onClick={() => setShowFilterSidebar(false)}
-                    className="md:hidden p-1.5 rounded-lg hover:bg-gray-100"
-              >
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
 
-                {/* Price Range Filter */}
-                {activeTab === 'products' && (
-                  <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Price Range
-                    </label>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
+                  {/* Price Range Filter */}
+                  {activeTab === 'products' && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Price Range
+                      </label>
+                      <div className="flex items-center gap-2">
                         <Input
                           type="number"
                           placeholder="Min"
@@ -781,299 +744,554 @@ export default function Home() {
                         />
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Category Filter */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    Category
-                  </label>
-                  <div className="space-y-2">
-                    <div className="relative">
-                  <select
-                    key={`main-category-${activeTab}`}
-                    value={selectedMainCategoryId}
-                    onChange={(e) => handleMainCategoryChange(e.target.value)}
-                        className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  >
-                    <option value="">All Categories</option>
-                    {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
-                    {selectedMainCategoryId && (
+                  {/* Category Filter */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      Category
+                    </label>
+                    <div className="space-y-2">
                       <div className="relative">
-                  <select
-                    key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
-                    value={selectedSubCategoryId}
-                    onChange={(e) => handleSubCategoryChange(e.target.value)}
-                          disabled={loadingSubCategories}
-                          className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
-                  >
-                    <option value="">
-                      {loadingSubCategories 
-                        ? 'Loading...' 
-                          : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
-                            ? 'No subcategories' 
-                            : 'All Subcategories'}
-                    </option>
-                    {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
-                      <option key={subCat.id} value={subCat.id}>
-                        {subCat.name}
-                      </option>
-                    ))}
-                  </select>
+                        <select
+                          key={`main-category-${activeTab}`}
+                          value={selectedMainCategoryId}
+                          onChange={(e) => handleMainCategoryChange(e.target.value)}
+                          className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                        >
+                          <option value="">All Categories</option>
+                          {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
                         <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                       </div>
-                    )}
+                      {selectedMainCategoryId && (
+                        <div className="relative">
+                          <select
+                            key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
+                            value={selectedSubCategoryId}
+                            onChange={(e) => handleSubCategoryChange(e.target.value)}
+                            disabled={loadingSubCategories}
+                            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
+                          >
+                            <option value="">
+                              {loadingSubCategories 
+                                ? 'Loading...' 
+                                : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                                  ? 'No subcategories' 
+                                  : 'All Subcategories'}
+                            </option>
+                            {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                              <option key={subCat.id} value={subCat.id}>
+                                {subCat.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Supplier/Provider Filter */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                      {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
+                    </label>
+                    <div className="relative">
+                      <select
+                        key={`supplier-${activeTab}`}
+                        value={selectedSupplier}
+                        onChange={(e) => handleSupplierChange(e.target.value)}
+                        className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                      >
+                        <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                        {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Apply/Clear Buttons */}
+                  <div className="flex gap-2 pt-4 border-t border-gray-200">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage(1);
+                        loadProducts();
+                      }}
+                      className="flex-1"
+                    >
+                      Apply Filters
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedMainCategoryId('');
+                        setSelectedSubCategoryId('');
+                        setSelectedSupplier('');
+                        setPriceRange([0, 10000]);
+                        setSubCategories([]);
+                        setSubServiceCategories([]);
+                        setCurrentPage(1);
+                      }}
+                      className="flex-1"
+                    >
+                      Clear
+                    </Button>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Supplier/Provider Filter */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
-                  </label>
-                  <div className="relative">
-                  <select
-                    key={`supplier-${activeTab}`}
-                    value={selectedSupplier}
-                    onChange={(e) => handleSupplierChange(e.target.value)}
-                      className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                  >
-                    <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
-                    {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
-                      <option key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </option>
-                    ))}
-                  </select>
-                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Apply/Clear Buttons */}
-                <div className="flex gap-2 pt-4 border-t border-gray-200">
-                  <Button
+            {/* Right Content Area - Scrollable with page */}
+            <div className="flex-1 min-w-0">
+              {/* Mobile: Products/Services Tabs */}
+              <div className="mb-6 flex justify-center md:hidden">
+                <div className="inline-flex bg-gray-100 rounded-lg p-1 shadow-sm">
+                  <button
                     type="button"
                     onClick={() => {
-                      setCurrentPage(1);
-                      loadProducts();
-                      if (window.innerWidth < 768) {
-                        setShowFilterSidebar(false);
-                      }
-                    }}
-                    className="flex-1"
-                  >
-                    Apply Filters
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
+                      setActiveTab('products');
                       setSelectedMainCategoryId('');
                       setSelectedSubCategoryId('');
                       setSelectedSupplier('');
-                      setPriceRange([0, 10000]);
                       setSubCategories([]);
                       setSubServiceCategories([]);
                       setCurrentPage(1);
                     }}
-                    className="flex-1"
+                    className={`relative px-6 sm:px-8 py-2.5 sm:py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                      activeTab === 'products'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
-                    Clear
-                  </Button>
+                    Products
+                    {products.length > 0 && activeTab === 'products' && (
+                      <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm font-normal">
+                        ({getFilteredProducts(products).length})
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('services');
+                      setSelectedMainCategoryId('');
+                      setSelectedSubCategoryId('');
+                      setSelectedSupplier('');
+                      setSubCategories([]);
+                      setSubServiceCategories([]);
+                      setCurrentPage(1);
+                    }}
+                    className={`relative px-6 sm:px-8 py-2.5 sm:py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                      activeTab === 'services'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Services
+                    {products.length > 0 && activeTab === 'services' && (
+                      <span className="ml-1.5 sm:ml-2 text-xs sm:text-sm font-normal">
+                        ({getFilteredProducts(products).length})
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
-          </div>
-          </>
-        )}
 
-        {/* Products/Services Section */}
-        <div className="mb-6 flex gap-6">
-
-          {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                Sort by:
-              </label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 sm:flex-initial rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-              >
-                <option value="price-low-high">Price: Low to High</option>
-                <option value="price-high-low">Price: High to Low</option>
-                <option value="name-a-z">Name: A to Z</option>
-                <option value="name-z-a">Name: Z to A</option>
-              </select>
-            </div>
-          </div>
-
-          {isLoadingProducts ? (
-            <div className="text-center py-12 sm:py-16">
-              <div className="inline-block h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-              <p className="mt-4 text-gray-500 text-sm sm:text-base">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-12 sm:py-16 bg-white rounded-xl shadow-sm border border-gray-100">
-              <svg className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="mt-4 text-gray-500 text-sm sm:text-base">No products found. Try adjusting your search or filters.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
-                {sortProducts(getFilteredProducts(products)).map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onViewDetails={() => {
-                      if (user) {
-                        router.push(`/products/${product.id}`);
-                      } else {
-                        router.push(`/auth/login?returnUrl=${encodeURIComponent(`/products/${product.id}`)}`);
-                      }
-                    }}
-                  />
-                ))}
+              {/* Mobile: Search Bar */}
+              <div className="mb-6 md:hidden">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200">
+                  <form onSubmit={handleSearch} className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 relative">
+                        <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder={activeTab === 'products' ? 'Search products...' : 'Search services...'}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-12 pr-10 h-12 text-base border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-gray-50 focus:bg-white transition-all"
+                        />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilterSidebar(!showFilterSidebar)}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        <SlidersHorizontal className="w-5 h-5" />
+                        {(selectedMainCategoryId || selectedSubCategoryId || selectedSupplier || priceRange[0] > 0 || priceRange[1] < 10000) && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[10px] flex items-center justify-center text-white font-bold">
+                            {[selectedMainCategoryId, selectedSubCategoryId, selectedSupplier, priceRange[0] > 0 || priceRange[1] < 10000].filter(Boolean).length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
 
-            {/* Enhanced Pagination */}
-              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
-                {/* Pagination Info - Always show */}
-                <div className="text-sm text-gray-600">
-                  Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
-                  <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
-                  <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
-              {totalPages > 1 && (
-                    <span className="ml-2 text-gray-500">
-                      (Page {currentPage} of {totalPages})
-                    </span>
-                  )}
+              {/* Mobile: Sort By */}
+              <div className="mb-4 md:hidden">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="sort-select-mobile" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    Sort by:
+                  </label>
+                  <select
+                    id="sort-select-mobile"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  >
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="name-a-z">Name: A to Z</option>
+                    <option value="name-z-a">Name: Z to A</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Products Grid */}
+              {isLoadingProducts ? (
+                <div className="text-center py-12 sm:py-16">
+                  <div className="inline-block h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                  <p className="mt-4 text-gray-500 text-sm sm:text-base">Loading {activeTab === 'products' ? 'products' : 'services'}...</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-12 sm:py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+                  <svg className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                  <p className="mt-4 text-gray-500 text-sm sm:text-base">No products found. Try adjusting your search or filters.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
+                    {sortProducts(getFilteredProducts(products)).map((product) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        onViewDetails={() => {
+                          if (user) {
+                            router.push(`/products/${product.id}`);
+                          } else {
+                            router.push(`/auth/login?returnUrl=${encodeURIComponent(`/products/${product.id}`)}`);
+                          }
+                        }}
+                      />
+                    ))}
                   </div>
 
-                {/* Pagination Controls - Only show when multiple pages */}
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setCurrentPage(currentPage - 1);
-                      }}
-                      disabled={currentPage === 1}
-                      className="min-w-[80px]"
-                    >
-                      Previous
-                    </Button>
-
-                    {/* Page Numbers with Ellipsis */}
-                    <div className="flex items-center gap-1">
-                      {/* Always show first page */}
-                      {currentPage > 3 && totalPages > 7 && (
-                        <>
-                          <Button
-                            variant={currentPage === 1 ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(1);
-                            }}
-                            className="min-w-[40px]"
-                          >
-                            1
-                          </Button>
-                          {currentPage > 4 && (
-                            <span className="px-2 text-gray-400">...</span>
-                          )}
-                        </>
-                      )}
-
-                      {/* Dynamic page numbers */}
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum: number;
-                        if (totalPages <= 7) {
-                          // Show all pages if 7 or fewer
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          // Show first 5 pages
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          // Show last 5 pages
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          // Show 2 pages before and after current
-                          pageNum = currentPage - 2 + i;
-                        }
-
-                        // Skip if already shown (first page)
-                        if (currentPage > 3 && totalPages > 7 && pageNum === 1) {
-                          return null;
-                        }
-
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={currentPage === pageNum ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(pageNum);
-                            }}
-                            className="min-w-[40px]"
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-
-                      {/* Show ellipsis and last page if needed */}
-                      {currentPage < totalPages - 3 && totalPages > 7 && (
-                        <>
-                          {currentPage < totalPages - 4 && (
-                            <span className="px-2 text-gray-400">...</span>
-                          )}
-                          <Button
-                            variant={currentPage === totalPages ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => {
-                              setCurrentPage(totalPages);
-                            }}
-                            className="min-w-[40px]"
-                          >
-                            {totalPages}
-                          </Button>
-                        </>
+                  {/* Enhanced Pagination */}
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                    {/* Pagination Info - Always show */}
+                    <div className="text-sm text-gray-600">
+                      Showing <span className="font-medium text-gray-900">{products.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
+                      <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
+                      <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
+                      {totalPages > 1 && (
+                        <span className="ml-2 text-gray-500">
+                          (Page {currentPage} of {totalPages})
+                        </span>
                       )}
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setCurrentPage(currentPage + 1);
-                      }}
-                      disabled={currentPage === totalPages}
-                      className="min-w-[80px]"
-                    >
-                      Next
-                    </Button>
+                    {/* Pagination Controls - Only show when multiple pages */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCurrentPage(currentPage - 1);
+                          }}
+                          disabled={currentPage === 1}
+                          className="min-w-[80px]"
+                        >
+                          Previous
+                        </Button>
+
+                        {/* Page Numbers with Ellipsis */}
+                        <div className="flex items-center gap-1">
+                          {/* Always show first page */}
+                          {currentPage > 3 && totalPages > 7 && (
+                            <>
+                              <Button
+                                variant={currentPage === 1 ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentPage(1);
+                                }}
+                                className="min-w-[40px]"
+                              >
+                                1
+                              </Button>
+                              {currentPage > 4 && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                            </>
+                          )}
+
+                          {/* Dynamic page numbers */}
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 7) {
+                              // Show all pages if 7 or fewer
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              // Show first 5 pages
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              // Show last 5 pages
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              // Show 2 pages before and after current
+                              pageNum = currentPage - 2 + i;
+                            }
+
+                            // Skip if already shown (first page)
+                            if (currentPage > 3 && totalPages > 7 && pageNum === 1) {
+                              return null;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={currentPage === pageNum ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentPage(pageNum);
+                                }}
+                                className="min-w-[40px]"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          })}
+
+                          {/* Show ellipsis and last page if needed */}
+                          {currentPage < totalPages - 3 && totalPages > 7 && (
+                            <>
+                              {currentPage < totalPages - 4 && (
+                                <span className="px-2 text-gray-400">...</span>
+                              )}
+                              <Button
+                                variant={currentPage === totalPages ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setCurrentPage(totalPages);
+                                }}
+                                className="min-w-[40px]"
+                              >
+                                {totalPages}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCurrentPage(currentPage + 1);
+                          }}
+                          disabled={currentPage === totalPages}
+                          className="min-w-[80px]"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
+                </>
+              )}
+            </div>
+
+            {/* Mobile Filter Sidebar */}
+            {showFilterSidebar && (
+              <>
+                {/* Mobile Overlay */}
+                <div 
+                  className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                  onClick={() => setShowFilterSidebar(false)}
+                />
+                {/* Filter Sidebar */}
+                <div className={`fixed top-0 left-0 h-full w-80 bg-white border-r border-gray-200 shadow-xl z-50 overflow-y-auto ${
+                  showFilterSidebar ? 'translate-x-0' : '-translate-x-full'
+                } transition-transform duration-300`}>
+                  <div className="p-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                        Filters
+                      </h3>
+                      <button
+                        onClick={() => setShowFilterSidebar(false)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100"
+                      >
+                        <X className="w-5 h-5 text-gray-500" />
+                      </button>
+                    </div>
+
+                    {/* Price Range Filter */}
+                    {activeTab === 'products' && (
+                      <div className="mb-6">
+                        <label className="block text-sm font-semibold text-gray-900 mb-3">
+                          Price Range
+                        </label>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Input
+                              type="number"
+                              placeholder="Min"
+                              value={priceRange[0] || ''}
+                              onChange={(e) => setPriceRange([Number(e.target.value) || 0, priceRange[1]])}
+                              className="flex-1 h-9 text-sm"
+                            />
+                            <span className="text-gray-400">-</span>
+                            <Input
+                              type="number"
+                              placeholder="Max"
+                              value={priceRange[1] === 10000 ? '' : priceRange[1]}
+                              onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 10000])}
+                              className="flex-1 h-9 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Category Filter */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-900 mb-3">
+                        Category
+                      </label>
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <select
+                            key={`mobile-main-category-${activeTab}`}
+                            value={selectedMainCategoryId}
+                            onChange={(e) => handleMainCategoryChange(e.target.value)}
+                            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                          >
+                            <option value="">All Categories</option>
+                            {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                        {selectedMainCategoryId && (
+                          <div className="relative">
+                            <select
+                              key={`mobile-sub-category-${activeTab}-${selectedMainCategoryId}`}
+                              value={selectedSubCategoryId}
+                              onChange={(e) => handleSubCategoryChange(e.target.value)}
+                              disabled={loadingSubCategories}
+                              className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
+                            >
+                              <option value="">
+                                {loadingSubCategories 
+                                  ? 'Loading...' 
+                                  : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                                    ? 'No subcategories' 
+                                    : 'All Subcategories'}
+                              </option>
+                              {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                                <option key={subCat.id} value={subCat.id}>
+                                  {subCat.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Supplier/Provider Filter */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-semibold text-gray-900 mb-3">
+                        {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
+                      </label>
+                      <div className="relative">
+                        <select
+                          key={`mobile-supplier-${activeTab}`}
+                          value={selectedSupplier}
+                          onChange={(e) => handleSupplierChange(e.target.value)}
+                          className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                        >
+                          <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                          {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                            <option key={provider.id} value={provider.id}>
+                              {provider.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Apply/Clear Buttons */}
+                    <div className="flex gap-2 pt-4 border-t border-gray-200">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setCurrentPage(1);
+                          loadProducts();
+                          setShowFilterSidebar(false);
+                        }}
+                        className="flex-1"
+                      >
+                        Apply Filters
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMainCategoryId('');
+                          setSelectedSubCategoryId('');
+                          setSelectedSupplier('');
+                          setPriceRange([0, 10000]);
+                          setSubCategories([]);
+                          setSubServiceCategories([]);
+                          setCurrentPage(1);
+                        }}
+                        className="flex-1"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-          </>
         )}
       </main>
 
