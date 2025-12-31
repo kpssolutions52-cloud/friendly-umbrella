@@ -449,7 +449,7 @@ export default function Home() {
       <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white overflow-hidden">
         {/* Dark overlay for better contrast */}
         <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="relative max-w-[95%] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="text-center">
             <h2 className="text-2xl sm:text-4xl font-bold mb-2 text-white">Real-Time Pricing for Construction Professionals</h2>
             <p className="text-sm sm:text-lg text-white/95 max-w-2xl mx-auto">
@@ -460,7 +460,7 @@ export default function Home() {
       </div>
 
       {/* Section Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="max-w-[95%] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="flex justify-center mb-6">
           <div className="inline-flex bg-white rounded-lg p-1 shadow-md border border-gray-200">
             <button
@@ -504,7 +504,7 @@ export default function Home() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
+      <main className="max-w-[95%] 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1">
         {/* AI Quote Section */}
         {activeSection === 'ai-quote' && (
           <div className="mb-8">
@@ -523,7 +523,7 @@ export default function Home() {
         {activeSection === 'shop' && (
           <div className="flex gap-6">
             {/* Left Sidebar - Fixed/Sticky */}
-            <div className="hidden md:flex md:flex-col md:w-80 lg:w-72 xl:w-80 flex-shrink-0">
+            <div className="hidden md:flex md:flex-col md:w-80 lg:w-80 xl:w-80 flex-shrink-0">
               <div className="sticky top-4 bg-white rounded-lg border border-gray-200 shadow-sm p-5 max-h-[calc(100vh-120px)] overflow-y-auto">
                 {/* Products vs Services Tabs */}
                 <div className="mb-6">
@@ -1033,7 +1033,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-3 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
                     {sortProducts(getFilteredProducts(products)).map((product) => (
                       <ProductCard
                         key={product.id}
