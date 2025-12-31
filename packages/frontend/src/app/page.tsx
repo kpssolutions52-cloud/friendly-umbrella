@@ -14,7 +14,7 @@ import { Footer } from '@/components/Footer';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { AIQuoteSection } from '@/components/AIQuoteSection';
 import { RFQSection } from '@/components/RFQSection';
-import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag, FileText } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag, FileText } from 'lucide-react';
 
 interface PublicProduct {
   id: string;
@@ -94,6 +94,12 @@ export default function Home() {
   const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
   const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop' | 'rfq'>('shop');
   const productsPerPage = 20;
+  // Accordion state for filters (all collapsed by default)
+  const [expandedFilters, setExpandedFilters] = useState({
+    priceRange: false,
+    category: false,
+    supplier: false,
+  });
 
   // Removed auto-redirect - allow ALL logged-in users to browse the Shop page with Products/Services tabs
   // Only super admins are redirected (they have special admin dashboards)
@@ -440,11 +446,13 @@ export default function Home() {
       <Header />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white overflow-hidden">
+        {/* Dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Real-Time Pricing for Construction Professionals</h2>
-            <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto mb-6">
+            <h2 className="text-2xl sm:text-4xl font-bold mb-2 text-white">Real-Time Pricing for Construction Professionals</h2>
+            <p className="text-sm sm:text-lg text-white/95 max-w-2xl mx-auto">
               Compare prices from multiple suppliers and service providers
             </p>
           </div>
@@ -715,108 +723,145 @@ export default function Home() {
 
                 {/* Filters Section */}
                 <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-6 flex items-center gap-2">
                     <SlidersHorizontal className="w-4 h-4 text-blue-600" />
                     Filters
                   </h3>
 
-                  {/* Price Range Filter */}
+                  {/* Price Range Filter Accordion */}
                   {activeTab === 'products' && (
-                    <div className="mb-6">
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Price Range
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Min"
-                          value={priceRange[0] || ''}
-                          onChange={(e) => setPriceRange([Number(e.target.value) || 0, priceRange[1]])}
-                          className="flex-1 h-9 text-sm"
-                        />
-                        <span className="text-gray-400">-</span>
-                        <Input
-                          type="number"
-                          placeholder="Max"
-                          value={priceRange[1] === 10000 ? '' : priceRange[1]}
-                          onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 10000])}
-                          className="flex-1 h-9 text-sm"
-                        />
-                      </div>
+                    <div className="mb-8">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedFilters(prev => ({ ...prev, priceRange: !prev.priceRange }))}
+                        className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 mb-0 hover:text-blue-600 transition-colors"
+                      >
+                        <span>Price Range</span>
+                        {expandedFilters.priceRange ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      {expandedFilters.priceRange && (
+                        <div className="mt-3">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Min"
+                              value={priceRange[0] || ''}
+                              onChange={(e) => setPriceRange([Number(e.target.value) || 0, priceRange[1]])}
+                              className="flex-1 h-9 text-sm"
+                            />
+                            <span className="text-gray-400">-</span>
+                            <Input
+                              type="number"
+                              placeholder="Max"
+                              value={priceRange[1] === 10000 ? '' : priceRange[1]}
+                              onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 10000])}
+                              className="flex-1 h-9 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Category Filter */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      Category
-                    </label>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <select
-                          key={`main-category-${activeTab}`}
-                          value={selectedMainCategoryId}
-                          onChange={(e) => handleMainCategoryChange(e.target.value)}
-                          className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                        >
-                          <option value="">All Categories</option>
-                          {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                      </div>
-                      {selectedMainCategoryId && (
+                  {/* Category Filter Accordion */}
+                  <div className="mb-8">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFilters(prev => ({ ...prev, category: !prev.category }))}
+                      className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 mb-0 hover:text-blue-600 transition-colors"
+                    >
+                      <span>Category</span>
+                      {expandedFilters.category ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                    {expandedFilters.category && (
+                      <div className="mt-3 space-y-2">
                         <div className="relative">
                           <select
-                            key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
-                            value={selectedSubCategoryId}
-                            onChange={(e) => handleSubCategoryChange(e.target.value)}
-                            disabled={loadingSubCategories}
-                            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
+                            key={`main-category-${activeTab}`}
+                            value={selectedMainCategoryId}
+                            onChange={(e) => handleMainCategoryChange(e.target.value)}
+                            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                           >
-                            <option value="">
-                              {loadingSubCategories 
-                                ? 'Loading...' 
-                                : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
-                                  ? 'No subcategories' 
-                                  : 'All Subcategories'}
-                            </option>
-                            {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
-                              <option key={subCat.id} value={subCat.id}>
-                                {subCat.name}
+                            <option value="">All Categories</option>
+                            {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
                               </option>
                             ))}
                           </select>
                           <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
-                      )}
-                    </div>
+                        {selectedMainCategoryId && (
+                          <div className="relative">
+                            <select
+                              key={`sub-category-${activeTab}-${selectedMainCategoryId}`}
+                              value={selectedSubCategoryId}
+                              onChange={(e) => handleSubCategoryChange(e.target.value)}
+                              disabled={loadingSubCategories}
+                              className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors disabled:bg-gray-50"
+                            >
+                              <option value="">
+                                {loadingSubCategories 
+                                  ? 'Loading...' 
+                                  : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                                    ? 'No subcategories' 
+                                    : 'All Subcategories'}
+                              </option>
+                              {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                                <option key={subCat.id} value={subCat.id}>
+                                  {subCat.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Supplier/Provider Filter */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
-                      {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
-                    </label>
-                    <div className="relative">
-                      <select
-                        key={`supplier-${activeTab}`}
-                        value={selectedSupplier}
-                        onChange={(e) => handleSupplierChange(e.target.value)}
-                        className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                      >
-                        <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
-                        {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
-                          <option key={provider.id} value={provider.id}>
-                            {provider.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    </div>
+                  {/* Supplier/Provider Filter Accordion */}
+                  <div className="mb-8">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFilters(prev => ({ ...prev, supplier: !prev.supplier }))}
+                      className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 mb-0 hover:text-blue-600 transition-colors"
+                    >
+                      <span>{activeTab === 'products' ? 'Supplier' : 'Service Provider'}</span>
+                      {expandedFilters.supplier ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                    {expandedFilters.supplier && (
+                      <div className="mt-3">
+                        <div className="relative">
+                          <select
+                            key={`supplier-${activeTab}`}
+                            value={selectedSupplier}
+                            onChange={(e) => handleSupplierChange(e.target.value)}
+                            className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                          >
+                            <option value="">All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}</option>
+                            {(activeTab === 'products' ? suppliers : serviceProviders).map((provider) => (
+                              <option key={provider.id} value={provider.id}>
+                                {provider.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Apply/Clear Buttons */}
