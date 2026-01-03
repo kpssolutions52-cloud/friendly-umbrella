@@ -231,7 +231,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                               <h4 className="font-semibold text-sm text-gray-900">{product.name}</h4>
                               <p className="text-xs text-gray-500 mt-1">{product.supplierName}</p>
                             </div>
-                            {product.price && (
+                            {product.price !== null && product.price !== undefined && (
                               <div className="text-right">
                                 <div className="text-sm font-bold text-green-600">
                                   {product.currency} {product.price.toFixed(2)}

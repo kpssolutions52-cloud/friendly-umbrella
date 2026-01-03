@@ -245,7 +245,7 @@ export function AIQuoteSection() {
                               <p className="text-xs text-gray-600 mt-2 line-clamp-3">{product.description}</p>
                             )}
                           </div>
-                          {product.price && (
+                          {product.price !== null && product.price !== undefined && (
                             <div className="text-right ml-3 flex-shrink-0">
                               <div className="text-lg font-bold text-green-600">
                                 {product.currency} {product.price.toFixed(2)}
@@ -407,7 +407,7 @@ export function AIQuoteSection() {
                     <p className="text-sm font-semibold text-gray-700">Cost Estimate</p>
                   </div>
                   <div className="space-y-3 text-sm text-gray-600">
-                    {message.costEstimate.estimatedRange && (
+                    {message.costEstimate.estimatedRange && message.costEstimate.estimatedRange.min !== null && message.costEstimate.estimatedRange.min !== undefined && message.costEstimate.estimatedRange.max !== null && message.costEstimate.estimatedRange.max !== undefined && (
                       <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                         <p className="font-medium text-gray-900 mb-1">Estimated Range:</p>
                         <p className="text-lg font-bold text-green-700">
@@ -435,7 +435,7 @@ export function AIQuoteSection() {
                                 {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
                               </div>
                               <p className="font-semibold text-gray-900 ml-2">
-                                {item.currency} {item.estimatedCost.toFixed(2)}
+                                {item.currency} {item.estimatedCost !== null && item.estimatedCost !== undefined ? item.estimatedCost.toFixed(2) : 'N/A'}
                               </p>
                             </div>
                           ))}
