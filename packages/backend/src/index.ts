@@ -37,11 +37,23 @@ const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '');
 const getAllowedOrigins = () => {
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
   
+  // Default allowed origins (Vercel preview and production)
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'https://friendly-umbrella-frontend.vercel.app',
+  ];
+  
   // Support comma-separated origins for multiple frontends
+  let userOrigins: string[] = [];
   if (corsOrigin.includes(',')) {
-    return corsOrigin.split(',').map(normalizeOrigin);
+    userOrigins = corsOrigin.split(',').map(normalizeOrigin);
+  } else {
+    userOrigins = [normalizeOrigin(corsOrigin)];
   }
-  return normalizeOrigin(corsOrigin);
+  
+  // Combine user origins with defaults, removing duplicates
+  const allOrigins = [...new Set([...defaultOrigins, ...userOrigins])];
+  return allOrigins;
 };
 
 const corsOptions = {
