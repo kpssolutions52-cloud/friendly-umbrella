@@ -137,7 +137,7 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
         <div className="mt-auto flex-shrink-0">
           {isService ? (
             // Service Card: Show rate per hour
-            ratePerHour !== null ? (
+            ratePerHour !== null && ratePerHour !== undefined ? (
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-bold text-blue-600">
@@ -157,15 +157,15 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
             displayPrice !== null ? (
               <div>
                 <div className="flex items-baseline gap-1.5 flex-wrap">
-                  {hasSpecialPrice && product.defaultPrice && (
+                  {hasSpecialPrice && product.defaultPrice && product.defaultPrice.price !== null && product.defaultPrice.price !== undefined && (
                     <span className="text-xs text-gray-400 line-through">
                       {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
                     </span>
                   )}
                   <span className="text-lg font-bold text-gray-900">
-                    {priceCurrency} {displayPrice.toFixed(2)}
+                    {priceCurrency} {displayPrice !== null && displayPrice !== undefined ? displayPrice.toFixed(2) : '0.00'}
                   </span>
-                  {hasSpecialPrice && discountPercentage !== null && (
+                  {hasSpecialPrice && discountPercentage !== null && discountPercentage !== undefined && (
                     <span className="text-xs text-green-600 font-semibold">
                       ({discountPercentage.toFixed(0)}% off)
                     </span>
