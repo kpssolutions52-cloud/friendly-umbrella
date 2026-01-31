@@ -46,9 +46,23 @@ router.post(
         command: command.trim(),
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Supplier chat error:', error);
-      next(error);
+      console.error('Supplier chat error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code,
+      });
+      
+      // Return more detailed error for debugging
+      res.status(500).json({
+        error: {
+          message: error.message || 'Internal Server Error',
+          statusCode: 500,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        },
+      });
     }
   }
 );

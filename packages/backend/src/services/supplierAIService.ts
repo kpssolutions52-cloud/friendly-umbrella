@@ -94,16 +94,49 @@ export async function processSupplierCommand(
 
   // Handle different intents
   if (intent.intent === 'update_price' && intent.productName && intent.price !== undefined) {
-    // Update existing product price
-    const product = await prisma.product.findFirst({
-      where: {
-        supplierId,
-        name: {
-          contains: intent.productName,
-          mode: 'insensitive',
+    // Update existing product price - handle both old and new schemas
+    let product: any;
+
+    try {
+      // Try new schema first
+      product = await prisma.product.findFirst({
+        where: {
+          supplierId,
+          name: {
+            contains: intent.productName,
+            mode: 'insensitive',
+          },
         },
-      },
-    });
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product search');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE supplier_id::text = ${supplierId}::text
+              AND LOWER(name) LIKE LOWER(${'%' + intent.productName + '%'})
+              LIMIT 1
+            `
+          );
+
+          if (result && result.length > 0) {
+            product = result[0];
+          } else {
+            product = null;
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product search failed:', oldSchemaError);
+          product = null;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     if (!product) {
       return {
@@ -111,14 +144,57 @@ export async function processSupplierCommand(
       };
     }
 
-    // Update price
-    const updatedProduct = await prisma.product.update({
-      where: { id: product.id },
-      data: {
-        price: intent.price,
-        ...(intent.unit && { unit: intent.unit }),
-      },
-    });
+    // Update price - handle both old and new schemas
+    let updatedProduct: any;
+
+    try {
+      // Try new schema first
+      updatedProduct = await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          price: intent.price,
+          ...(intent.unit && { unit: intent.unit }),
+        },
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product update');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const updateData: any[] = [intent.price, product.id];
+          let updateQuery = Prisma.sql`UPDATE products SET price = ${intent.price}, updated_at = NOW()`;
+          
+          if (intent.unit) {
+            updateQuery = Prisma.sql`UPDATE products SET price = ${intent.price}, unit = ${intent.unit}, updated_at = NOW()`;
+          }
+          
+          await prisma.$executeRaw(
+            Prisma.sql`${updateQuery} WHERE id = ${product.id}`
+          );
+
+          // Fetch updated product
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE id = ${product.id}
+            `
+          );
+
+          if (result && result.length > 0) {
+            updatedProduct = result[0];
+          } else {
+            updatedProduct = product; // Fallback to original
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product update failed:', oldSchemaError);
+          throw new Error(`Failed to update product: ${oldSchemaError.message || 'Unknown error'}`);
+        }
+      } else {
+        throw error;
+      }
+    }
 
     // Handle company-specific pricing if companyId is provided
     if (intent.companyId) {
@@ -184,18 +260,49 @@ export async function processSupplierCommand(
       },
     };
   } else if (intent.intent === 'add_product' && intent.productName && intent.price !== undefined) {
-    // Add new product
-    const newProduct = await prisma.product.create({
-      data: {
-        supplierId,
-        name: intent.productName,
-        price: intent.price,
-        unit: intent.unit || 'unit',
-      },
-    });
+    // Add new product - handle both old and new schemas
+    let newProduct: any;
+
+    try {
+      // Try new schema first
+      newProduct = await prisma.product.create({
+        data: {
+          supplierId,
+          name: intent.productName,
+          price: intent.price,
+          unit: intent.unit || 'unit',
+        },
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product creation');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              INSERT INTO products (id, supplier_id, name, price, unit, created_at, updated_at)
+              VALUES (gen_random_uuid(), ${supplierId}::text, ${intent.productName}, ${intent.price}, ${intent.unit || 'unit'}, NOW(), NOW())
+              RETURNING id, supplier_id as "supplierId", name, price, unit, created_at as "createdAt", updated_at as "updatedAt"
+            `
+          );
+
+          if (result && result.length > 0) {
+            newProduct = result[0];
+          } else {
+            throw new Error('Failed to create product in old schema');
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product creation failed:', oldSchemaError);
+          throw new Error(`Failed to create product: ${oldSchemaError.message || 'Unknown error'}`);
+        }
+      } else {
+        throw error;
+      }
+    }
 
     return {
-      answer: `✅ Added new product: ${newProduct.name} at $${newProduct.price}/${newProduct.unit}`,
+      answer: `✅ Added new product: ${newProduct.name} at $${Number(newProduct.price).toFixed(2)}/${newProduct.unit}`,
       action: {
         type: 'product_added',
         data: {
