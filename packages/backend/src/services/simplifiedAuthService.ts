@@ -209,6 +209,11 @@ export class SimplifiedAuthService {
         throw createError(403, 'User organization not found');
       }
 
+      // Check if user type is valid (not null)
+      if (!user.type || (user.type !== 'qs' && user.type !== 'supplier')) {
+        throw createError(403, 'User account is not properly configured. Please contact support.');
+      }
+
       const userType = user.type;
       const organizationId = user.organizationId;
       const organizationType = user.organization.type;
