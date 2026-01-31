@@ -56,7 +56,7 @@ export function LandingPage() {
                 size="lg" 
                 variant="outline" 
                 className="border-2 border-white text-white hover:bg-white/10 text-base sm:text-lg px-8 py-6 h-auto font-semibold"
-                onClick={() => router.push('/chat')}
+                onClick={() => router.push('/auth/demo')}
               >
                 Try Demo
               </Button>
