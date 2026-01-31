@@ -48,19 +48,25 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
           </div>
           
           {showAuthButtons && (
-            <div className="flex items-center gap-2 sm:gap-4">
-              <PWAInstallButton />
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4">
+              <div className="hidden sm:block">
+                <PWAInstallButton />
+              </div>
               {user ? (
                 <>
-                  <span className="hidden sm:inline text-sm text-gray-600">
+                  <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 truncate max-w-[120px]">
                     {user.firstName} {user.lastName}
                   </span>
                   
                   {/* MVP 1: Show navigation links based on user type */}
                   {user.type === 'qs' && (
                     <Link href="/chat">
-                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                        <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                      >
+                        <MessageSquare className="h-4 w-4 sm:mr-1.5" />
                         <span className="hidden sm:inline">AI Chat</span>
                         <span className="sm:hidden">Chat</span>
                       </Button>
@@ -70,15 +76,23 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   {(user.type === 'supplier' || user.tenant?.type === 'supplier') && (
                     <>
                       <Link href="/supplier/chat">
-                        <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                          <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                        >
+                          <MessageSquare className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">AI Chat</span>
                           <span className="sm:hidden">Chat</span>
                         </Button>
                       </Link>
                       <Link href="/supplier/products">
-                        <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                          <Package className="h-4 w-4 mr-1 sm:mr-2" />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                        >
+                          <Package className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">Products</span>
                           <span className="sm:hidden">Items</span>
                         </Button>
@@ -91,9 +105,9 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     variant="outline" 
                     size="sm" 
                     onClick={logout} 
-                    className="text-xs sm:text-sm"
+                    className="text-xs sm:text-sm touch-target px-2 sm:px-3"
                   >
-                    <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
+                    <LogOut className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Logout</span>
                     <span className="sm:hidden">Out</span>
                   </Button>
@@ -101,13 +115,22 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
               ) : (
                 <>
                   <Link href="/auth/login">
-                    <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                      Sign In
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                    >
+                      <span className="hidden sm:inline">Sign In</span>
+                      <span className="sm:hidden">In</span>
                     </Button>
                   </Link>
                   <Link href="/auth/register-simple">
-                    <Button size="sm" className="text-xs sm:text-sm">
-                      Register
+                    <Button 
+                      size="sm" 
+                      className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                    >
+                      <span className="hidden sm:inline">Register</span>
+                      <span className="sm:hidden">Join</span>
                     </Button>
                   </Link>
                 </>

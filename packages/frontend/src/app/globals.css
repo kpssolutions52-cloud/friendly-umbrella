@@ -95,6 +95,19 @@
   @apply list-decimal;
 }
 
+/* Mobile touch targets - minimum 44x44px for accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (min-width: 640px) {
+  .touch-target {
+    min-height: auto;
+    min-width: auto;
+  }
+}
+
 .prose li {
   @apply mb-1.5 sm:mb-2 text-sm sm:text-base;
 }
