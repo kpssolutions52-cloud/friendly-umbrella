@@ -26,6 +26,7 @@ const docPaths: Record<string, string> = {
   'product-overview': 'docs/PRODUCT_OVERVIEW.md',
   'quick-start': 'docs/QUICK_START.md',
   'multi-company': 'docs/MULTI_COMPANY_ARCHITECTURE.md',
+  'dual-ai-interface': 'docs/DUAL_AI_INTERFACE.md',
   'quote-workflow': 'docs/QUOTE_WORKFLOW_GUIDE.md',
   
   // Technical

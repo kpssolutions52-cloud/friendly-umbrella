@@ -23,7 +23,12 @@
    - Independent projects
    - Company-specific pricing
 
-4. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
+4. **[Dual AI Interface](./DUAL_AI_INTERFACE.md)** 💬
+   - QS & Supplier natural language
+   - AI chat for both user types
+   - Price updates via chat
+
+5. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
    - Complete quote-to-order workflow
    - How to use the workflow
    - Step-by-step guide
