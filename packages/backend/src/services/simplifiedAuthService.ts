@@ -178,32 +178,84 @@ export class SimplifiedAuthService {
           throw new Error('No organization found - checking old schema');
         }
       } catch (error: any) {
-        // Try old schema (with tenant relation)
+        // Try old schema using raw SQL (more reliable than Prisma when relation doesn't exist)
         try {
-          user = await (prisma as any).user.findUnique({
-            where: { email: input.email },
-            include: {
-              tenant: true,
-            },
-          });
+          console.log('[SimplifiedAuthService] Trying old schema with raw SQL...');
+          
+          // Use raw SQL to query user with tenant (old schema)
+          const result = await prisma.$queryRaw<any[]>`
+            SELECT 
+              u.id,
+              u.email,
+              u.password_hash as "passwordHash",
+              u.first_name as "firstName",
+              u.last_name as "lastName",
+              u.role,
+              u.status,
+              u.is_active as "isActive",
+              u.tenant_id as "tenantId",
+              t.id as "tenantId",
+              t.name as "tenantName",
+              t.type as "tenantType",
+              t.status as "tenantStatus",
+              t.is_active as "tenantIsActive"
+            FROM users u
+            LEFT JOIN tenants t ON u.tenant_id = t.id
+            WHERE u.email = ${input.email}
+            LIMIT 1
+          `;
 
-          if (user && user.tenant) {
-            // Old schema - map to new schema format
-            organization = user.tenant;
-            // Map role to type
-            if (user.role === 'company_staff' || user.role === 'company_admin') {
-              userType = 'qs';
-            } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
-              userType = 'supplier';
+          if (result && result.length > 0) {
+            const row = result[0];
+            user = {
+              id: row.id,
+              email: row.email,
+              passwordHash: row.passwordHash,
+              firstName: row.firstName,
+              lastName: row.lastName,
+              role: row.role,
+              status: row.status,
+              isActive: row.isActive,
+              tenantId: row.tenantId,
+            };
+
+            if (row.tenantId && row.tenantType) {
+              // Old schema - map to new schema format
+              organization = {
+                id: row.tenantId,
+                name: row.tenantName,
+                type: row.tenantType,
+                status: row.tenantStatus,
+                isActive: row.tenantIsActive,
+              };
+              
+              // Map role to type
+              if (user.role === 'company_staff' || user.role === 'company_admin') {
+                userType = 'qs';
+              } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
+                userType = 'supplier';
+              } else {
+                throw createError(401, 'Invalid user role for demo login');
+              }
+              
+              organizationId = row.tenantId;
+              organizationType = row.tenantType;
             } else {
-              throw createError(401, 'Invalid user role for demo login');
+              throw createError(401, 'Invalid email or password - no tenant found');
             }
-            organizationId = user.tenantId;
-            organizationType = user.tenant.type;
           } else {
             throw createError(401, 'Invalid email or password');
           }
         } catch (oldSchemaError: any) {
+          console.error('[SimplifiedAuthService] Old schema query failed:', oldSchemaError);
+          // If it's a table not found error, the old schema doesn't exist
+          if (oldSchemaError.message?.includes('relation "tenants" does not exist')) {
+            throw createError(401, 'Invalid email or password');
+          }
+          // Re-throw createError instances
+          if (oldSchemaError.statusCode || oldSchemaError.status) {
+            throw oldSchemaError;
+          }
           // Neither schema worked
           throw createError(401, 'Invalid email or password');
         }
