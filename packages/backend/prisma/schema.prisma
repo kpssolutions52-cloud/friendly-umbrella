@@ -71,6 +71,7 @@ model Product {
   id         String      @id @default(uuid())
   supplierId String      @map("supplier_id")
   name       String      @db.VarChar(255)
+  sku        String      @db.VarChar(100) // SKU (Stock Keeping Unit) - auto-generated if not provided
   price      Decimal     @db.Decimal(12, 2) // Base/default price
   unit       String      @db.VarChar(50)
   updatedAt  DateTime    @updatedAt @map("updated_at")

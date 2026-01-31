@@ -194,10 +194,15 @@ export async function processSupplierCommand(
     };
   } else if (intent.intent === 'add_product' && intent.productName && intent.price !== undefined) {
     // Add new product - NEW SCHEMA ONLY
+    // Generate SKU automatically: first 3 letters of product name (uppercase) + timestamp
+    const productNamePrefix = intent.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
+    const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
+    
     const newProduct = await prisma.product.create({
       data: {
         supplierId,
         name: intent.productName,
+        sku,
         price: intent.price,
         unit: intent.unit || 'unit',
       },
