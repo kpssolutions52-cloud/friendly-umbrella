@@ -41,6 +41,7 @@ export default function SupplierChatPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
 
   // Redirect if not authenticated or not supplier
   useEffect(() => {
@@ -127,6 +128,15 @@ export default function SupplierChatPage() {
         response.action.type === 'product_deleted' ||
         response.action.type === 'product_updated'
       )) {
+        // Highlight the affected product
+        if (response.action.data?.product?.id) {
+          setHighlightedProductId(response.action.data.product.id);
+          // Remove highlight after 3 seconds
+          setTimeout(() => {
+            setHighlightedProductId(null);
+          }, 3000);
+        }
+        
         // Small delay to ensure backend has processed the change
         setTimeout(() => {
           refreshProducts();
@@ -355,7 +365,11 @@ export default function SupplierChatPage() {
                 {products.map((product) => (
                   <div
                     key={product.id}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                    className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-all duration-300 ${
+                      highlightedProductId === product.id
+                        ? 'border-green-500 shadow-lg ring-2 ring-green-200 bg-green-50'
+                        : 'border-gray-200'
+                    }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="text-base font-semibold text-gray-900 flex-1">
