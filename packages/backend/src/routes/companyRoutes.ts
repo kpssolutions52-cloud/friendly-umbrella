@@ -98,9 +98,15 @@ router.post(
         }
 
         // Find matching products across all suppliers
+        // Filter to ensure supplierId is not null and supplier exists
         const products = await prisma.product.findMany({
           where: {
             isActive: true,
+            supplierId: { not: null },
+            supplier: {
+              type: { in: ['supplier', 'service_provider'] },
+              isActive: true,
+            },
             OR: searchConditions,
           },
           include: {

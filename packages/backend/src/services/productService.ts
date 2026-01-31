@@ -50,6 +50,10 @@ export class ProductService {
   async getSupplierProducts(supplierId: string, includeInactive = false, page = 1, limit = 20, type?: 'product' | 'service') {
     const where: any = {
       supplierId,
+      supplier: {
+        type: { in: ['supplier', 'service_provider'] },
+        isActive: true,
+      },
       ...(includeInactive ? {} : { isActive: true }),
       ...(type ? { type } : {}),
     };

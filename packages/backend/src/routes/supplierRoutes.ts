@@ -139,9 +139,14 @@ router.get(
       }
 
       // Build where clause
+      // Filter to ensure supplierId is not null and supplier exists
       const where: any = {
         supplierId,
         isActive: true,
+        supplier: {
+          type: 'supplier',
+          isActive: true,
+        },
       };
 
       if (category) {
@@ -371,8 +376,14 @@ router.get(
       const skip = (page - 1) * limit;
 
       // Build where clause
+      // Filter to ensure supplierId is not null and supplier exists
       const where: any = {
         isActive: true,
+        supplierId: { not: null },
+        supplier: {
+          type: { in: ['supplier', 'service_provider'] },
+          isActive: true,
+        },
       };
 
       if (supplierId) {
