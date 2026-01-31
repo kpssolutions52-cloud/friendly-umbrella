@@ -147,142 +147,30 @@ export class SimplifiedAuthService {
 
   /**
    * Login user
-   * Supports both old schema (tenant, role) and new schema (organization, type)
+   * NEW SCHEMA ONLY
    */
   async login(input: SimplifiedLoginInput) {
     try {
-      // Try to find user - check if we have new schema (organization) or old schema (tenant)
-      let user: any = null;
-      let organization: any = null;
-      let userType: 'qs' | 'supplier' | null = null;
-      let organizationId: string | null = null;
-      let organizationType: 'company' | 'supplier' | null = null;
+      // Find user - NEW SCHEMA ONLY
+      const user = await prisma.user.findUnique({
+        where: { email: input.email },
+        include: {
+          organization: true,
+        },
+      });
 
-      try {
-        // Try new schema first (with organization relation)
-        user = await prisma.user.findUnique({
-          where: { email: input.email },
-          include: {
-            organization: true,
-          },
-        });
-
-        if (user && user.organization) {
-          // New schema
-          organization = user.organization;
-          userType = user.type;
-          organizationId = user.organizationId;
-          organizationType = user.organization.type;
-        } else if (user) {
-          // User exists but no organization - might be old schema
-          throw new Error('No organization found - checking old schema');
-        }
-      } catch (error: any) {
-        console.log('[SimplifiedAuthService] New schema query failed, trying old schema:', error.message);
-        // Try old schema using raw SQL (more reliable than Prisma when relation doesn't exist)
-        try {
-          console.log('[SimplifiedAuthService] Trying old schema with raw SQL...');
-          
-          // Use raw SQL to query user with tenant (old schema)
-          const result = await prisma.$queryRaw<any[]>`
-            SELECT 
-              u.id,
-              u.email,
-              u.password_hash as "passwordHash",
-              u.first_name as "firstName",
-              u.last_name as "lastName",
-              u.role,
-              u.status,
-              u.is_active as "isActive",
-              u.tenant_id as "userTenantId",
-              t.id as "tenantId",
-              t.name as "tenantName",
-              t.type as "tenantType",
-              t.status as "tenantStatus",
-              t.is_active as "tenantIsActive"
-            FROM users u
-            LEFT JOIN tenants t ON u.tenant_id = t.id
-            WHERE u.email = ${input.email}
-            LIMIT 1
-          `;
-
-          if (result && result.length > 0) {
-            const row = result[0];
-            console.log('[SimplifiedAuthService] Found user in old schema:', {
-              email: row.email,
-              role: row.role,
-              hasTenant: !!row.tenantId,
-              tenantType: row.tenantType,
-              passwordHashLength: row.passwordHash?.length,
-            });
-            
-            user = {
-              id: row.id,
-              email: row.email,
-              passwordHash: row.passwordHash?.trim(), // Trim any whitespace
-              firstName: row.firstName,
-              lastName: row.lastName,
-              role: row.role,
-              status: row.status,
-              isActive: row.isActive,
-              tenantId: row.userTenantId || row.tenantId,
-            };
-
-            if (row.tenantId && row.tenantType) {
-              // Old schema - map to new schema format
-              organization = {
-                id: row.tenantId,
-                name: row.tenantName,
-                type: row.tenantType,
-                status: row.tenantStatus,
-                isActive: row.tenantIsActive,
-              };
-              
-              // Map role to type
-              if (user.role === 'company_staff' || user.role === 'company_admin') {
-                userType = 'qs';
-              } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
-                userType = 'supplier';
-              } else {
-                throw createError(401, 'Invalid user role for demo login');
-              }
-              
-              organizationId = row.tenantId;
-              organizationType = row.tenantType;
-            } else {
-              throw createError(401, 'Invalid email or password - no tenant found');
-            }
-          } else {
-            console.log('[SimplifiedAuthService] No user found in old schema for:', input.email);
-            throw createError(401, 'Invalid email or password');
-          }
-        } catch (oldSchemaError: any) {
-          console.error('[SimplifiedAuthService] Old schema query failed:', oldSchemaError);
-          // If it's a table not found error, the old schema doesn't exist
-          if (oldSchemaError.message?.includes('relation "tenants" does not exist')) {
-            throw createError(401, 'Invalid email or password');
-          }
-          // Re-throw createError instances
-          if (oldSchemaError.statusCode || oldSchemaError.status) {
-            throw oldSchemaError;
-          }
-          // Neither schema worked
-          throw createError(401, 'Invalid email or password');
-        }
-      }
-
-      if (!user || !userType || !organizationId || !organizationType || !organization) {
+      if (!user) {
         throw createError(401, 'Invalid email or password');
       }
 
-      // Check if user is active (old schema has isActive, new schema doesn't need it)
-      if ((user as any).isActive === false) {
-        throw createError(403, 'Account is inactive');
+      if (!user.organization) {
+        throw createError(403, 'User organization not found');
       }
 
-      if ((user as any).status === 'pending') {
-        throw createError(403, 'Account is pending approval');
-      }
+      const userType = user.type;
+      const organizationId = user.organizationId;
+      const organizationType = user.organization.type;
+      const organization = user.organization;
 
       // Verify password
       const { comparePassword } = await import('../utils/password');
