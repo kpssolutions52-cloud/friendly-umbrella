@@ -114,12 +114,13 @@ export async function processSupplierCommand(
         console.log('[SupplierAIService] Trying old schema with raw SQL for product search');
         try {
           const { Prisma } = await import('@prisma/client');
+          const searchPattern = `%${intent.productName}%`;
           const result = await prisma.$queryRaw<any[]>(
             Prisma.sql`
               SELECT id, supplier_id as "supplierId", name, price, unit
               FROM products
               WHERE supplier_id::text = ${supplierId}::text
-              AND LOWER(name) LIKE LOWER(${'%' + intent.productName + '%'})
+              AND LOWER(name) LIKE LOWER(${searchPattern})
               LIMIT 1
             `
           );
