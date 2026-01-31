@@ -1,0 +1,316 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
+import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export default function SupplierProductsPage() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    price: '',
+    unit: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Redirect if not authenticated or not supplier
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login');
+      return;
+    }
+    if (user?.type !== 'supplier') {
+      router.push('/');
+      return;
+    }
+  }, [isAuthenticated, user, router]);
+
+  // Load products
+  useEffect(() => {
+    if (isAuthenticated && user?.type === 'supplier') {
+      loadProducts();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      // Note: This endpoint needs to be created in the backend
+      // For now, we'll use a placeholder
+      const response = await apiGet<{ products: Product[] }>(
+        '/api/v1/products?supplier=true'
+      );
+      setProducts(response.products || []);
+    } catch (error: any) {
+      console.error('Failed to load products:', error);
+      // For MVP 1, if endpoint doesn't exist, show empty state
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = () => {
+    setFormData({ name: '', price: '', unit: '' });
+    setEditingProduct(null);
+    setShowAddForm(true);
+  };
+
+  const handleEdit = (product: Product) => {
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      unit: product.unit,
+    });
+    setEditingProduct(product);
+    setShowAddForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.price || !formData.unit) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      if (editingProduct) {
+        // Update existing product
+        await apiPut(`/api/v1/products/${editingProduct.id}`, {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+        });
+      } else {
+        // Create new product
+        await apiPost('/api/v1/products', {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+        });
+      }
+      setShowAddForm(false);
+      setEditingProduct(null);
+      setFormData({ name: '', price: '', unit: '' });
+      loadProducts();
+    } catch (error: any) {
+      console.error('Failed to save product:', error);
+      alert(error?.error?.message || 'Failed to save product. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) {
+      return;
+    }
+
+    try {
+      await apiDelete(`/api/v1/products/${productId}`);
+      loadProducts();
+    } catch (error: any) {
+      console.error('Failed to delete product:', error);
+      alert(error?.error?.message || 'Failed to delete product. Please try again.');
+    }
+  };
+
+  if (!isAuthenticated || user?.type !== 'supplier') {
+    return null; // Will redirect
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage your product inventory and prices
+              </p>
+            </div>
+            <Button onClick={handleAdd} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Button>
+          </div>
+        </div>
+
+        {/* Add/Edit Form */}
+        {showAddForm && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">
+              {editingProduct ? 'Edit Product' : 'Add New Product'}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Product Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                  placeholder="e.g., Cement"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="price">Price *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
+                    required
+                    placeholder="48.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="unit">Unit *</Label>
+                  <Input
+                    id="unit"
+                    value={formData.unit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, unit: e.target.value })
+                    }
+                    required
+                    placeholder="e.g., bag, ton, kg"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    editingProduct ? 'Update Product' : 'Add Product'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingProduct(null);
+                    setFormData({ name: '', price: '', unit: '' });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Products List */}
+        {loading ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+            <p className="text-gray-500 mt-2">Loading products...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-500 mb-4">No products yet.</p>
+            <Button onClick={handleAdd}>Add Your First Product</Button>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Updated
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {product.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        ${product.price.toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{product.unit}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {new Date(product.updatedAt).toLocaleDateString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

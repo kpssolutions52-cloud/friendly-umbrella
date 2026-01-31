@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
+import { MessageSquare, Package, LayoutDashboard } from 'lucide-react';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -54,6 +55,37 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   <span className="hidden sm:inline text-sm text-gray-600">
                     {user.firstName} {user.lastName}
                   </span>
+                  
+                  {/* MVP 1: Show navigation links based on user type */}
+                  {user.type === 'qs' && (
+                    <Link href="/chat">
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                        <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">AI Chat</span>
+                        <span className="sm:hidden">Chat</span>
+                      </Button>
+                    </Link>
+                  )}
+                  
+                  {(user.type === 'supplier' || user.tenant?.type === 'supplier') && (
+                    <>
+                      <Link href="/supplier/chat">
+                        <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                          <MessageSquare className="h-4 w-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">AI Chat</span>
+                          <span className="sm:hidden">Chat</span>
+                        </Button>
+                      </Link>
+                      <Link href="/supplier/products">
+                        <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                          <Package className="h-4 w-4 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">Products</span>
+                          <span className="sm:hidden">Items</span>
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                  
                   {user.role === 'customer' ? (
                     <Button 
                       variant="outline" 
@@ -80,7 +112,9 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                       }} 
                       className="text-xs sm:text-sm"
                     >
-                      Dashboard
+                      <LayoutDashboard className="h-4 w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Dashboard</span>
+                      <span className="sm:hidden">Dash</span>
                     </Button>
                   )}
                 </>
@@ -91,7 +125,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                       Sign In
                     </Button>
                   </Link>
-                  <Link href="/auth/register">
+                  <Link href="/auth/register-simple">
                     <Button size="sm" className="text-xs sm:text-sm">
                       Register
                     </Button>

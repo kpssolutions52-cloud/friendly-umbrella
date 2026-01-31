@@ -14,8 +14,15 @@ import tenantAdminRoutes from './tenantAdminRoutes';
 import publicRoutes from './publicRoutes';
 import companyRoutes from './companyRoutes';
 import quoteRoutes from './quoteRoutes';
+import chatRoutes from './chatRoutes';
+import supplierChatRoutes from './supplierChatRoutes';
+import simplifiedAuthRoutes from './simplifiedAuthRoutes';
+import simplifiedProductRoutes from './simplifiedProductRoutes';
 
 export function setupRoutes(app: Express) {
+  // IMPORTANT: Simplified auth routes for MVP 1 (2-step registration)
+  app.use('/api/v1', simplifiedAuthRoutes);
+  
   // IMPORTANT: Auth routes must be registered FIRST to ensure public auth endpoints
   // (register, login, tenants) are accessible before any authenticated routes
   app.use('/api/v1', authRoutes);
@@ -28,6 +35,13 @@ export function setupRoutes(app: Express) {
   // IMPORTANT: AI Quote route must be registered early (before other authenticated routes)
   // to allow optional authentication for guests, companies, suppliers, and service providers
   app.use('/api/v1', quoteRoutes);
+  
+  // MVP 1: AI Chat routes (QS and Supplier)
+  app.use('/api/v1', chatRoutes); // QS chat
+  app.use('/api/v1', supplierChatRoutes); // Supplier chat
+  
+  // MVP 1: Simplified Product routes (for suppliers)
+  app.use('/api/v1', simplifiedProductRoutes);
   
   // Super admin routes (requires super_admin role)
   app.use('/api/v1/admin', superAdminRoutes);

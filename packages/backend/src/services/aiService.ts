@@ -28,17 +28,22 @@ interface SupplierData {
 
 /**
  * Format supplier data for AI context
+ * Marks the best (lowest) price
  */
 function formatSupplierData(supplierData: SupplierData[]): string {
   if (!supplierData || supplierData.length === 0) {
     return 'No supplier data available.';
   }
 
+  // Find best price (lowest)
+  const bestPrice = Math.min(...supplierData.map((item) => item.price));
+
   return supplierData
-    .map(
-      (item) =>
-        `- ${item.supplier}: ${item.product} - $${item.price}/${item.unit}`
-    )
+    .map((item) => {
+      const isBest = item.price === bestPrice;
+      const marker = isBest ? '⭐ BEST PRICE' : '';
+      return `- ${item.supplier}: ${item.product} - $${item.price}/${item.unit} ${marker}`;
+    })
     .join('\n');
 }
 
@@ -128,7 +133,10 @@ and cost calculations.
     systemPrompt += `Current supplier prices:
 ${formatSupplierData(supplierData)}
 
-Always include these real supplier prices in your answer when relevant. Highlight the best price.`;
+IMPORTANT: Always include these real supplier prices in your answer when relevant. 
+The price marked with "⭐ BEST PRICE" is the lowest price available. 
+Always mention this best price prominently in your response, for example: 
+"The best price is $X from Supplier Y (⭐ BEST PRICE)".`;
   } else {
     systemPrompt += `You can provide general information about construction materials and pricing, but note that real-time supplier prices are not currently available.`;
   }
