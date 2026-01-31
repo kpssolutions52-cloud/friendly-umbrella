@@ -5,7 +5,6 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma';
-import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/authMiddleware';
 import { requireSupplier } from '../middleware/permissionsMiddleware';
 import { body, param, validationResult } from 'express-validator';
