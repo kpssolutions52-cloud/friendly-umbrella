@@ -205,6 +205,11 @@ export class SimplifiedAuthService {
         throw createError(401, 'Invalid email or password');
       }
 
+      // Check if user has organizationId
+      if (!user.organizationId) {
+        throw createError(403, 'User account is missing organization. Please contact support.');
+      }
+
       if (!user.organization) {
         throw createError(403, 'User organization not found');
       }
