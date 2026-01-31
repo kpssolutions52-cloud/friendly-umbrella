@@ -18,18 +18,23 @@
 2. **[Quick Start](./QUICK_START.md)** 🚀
    - Get started in 3 steps
 
+3. **[Multi-Company Architecture](./MULTI_COMPANY_ARCHITECTURE.md)** 🏢
+   - Multiple companies
+   - Independent projects
+   - Company-specific pricing
+
 ### Technical
 
-3. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
+4. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
    - System design
    - Technology stack
    - How it's built
 
-4. **[Database](./DATABASE_SCHEMA.md)** 🗄️
+5. **[Database](./DATABASE_SCHEMA.md)** 🗄️
    - Database structure
    - Tables
 
-5. **[Implementation](./IMPLEMENTATION_GUIDE.md)** 📋
+6. **[Implementation](./IMPLEMENTATION_GUIDE.md)** 📋
    - How to build
    - Code examples
 

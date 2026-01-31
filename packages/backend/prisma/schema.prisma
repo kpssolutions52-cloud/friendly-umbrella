@@ -23,8 +23,10 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users    User[]
-  products Product[] @relation("SupplierProducts")
+  users         User[]          @relation("OrganizationUsers")
+  products      Product[]       @relation("SupplierProducts")
+  projects      Project[]      @relation("CompanyProjects")
+  companyPrices CompanyPrice[] @relation("CompanyPrices") // Company-specific prices
 
   @@index([type])
   @@map("organizations")
@@ -46,7 +48,9 @@ model User {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
+  projects      Project[]   @relation("ProjectOwner")
+  quotes        Quote[]     @relation("QuoteCreator")
 
   @@index([organizationId])
   @@index([email])
@@ -64,14 +68,116 @@ model Product {
   id         String      @id @default(uuid())
   supplierId String      @map("supplier_id")
   name       String      @db.VarChar(255)
-  price      Decimal     @db.Decimal(12, 2)
+  price      Decimal     @db.Decimal(12, 2) // Base/default price
   unit       String      @db.VarChar(50)
   updatedAt  DateTime    @updatedAt @map("updated_at")
   createdAt  DateTime    @default(now()) @map("created_at")
 
-  supplier Organization @relation("SupplierProducts", fields: [supplierId], references: [id], onDelete: Cascade)
+  supplier      Organization @relation("SupplierProducts", fields: [supplierId], references: [id], onDelete: Cascade)
+  companyPrices CompanyPrice[] // Company-specific prices
   
   @@index([name])
   @@index([supplierId])
   @@map("products")
+}
+
+// Company-Specific Prices (Special prices for specific companies)
+model CompanyPrice {
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  companyId  String   @map("company_id")
+  price      Decimal  @db.Decimal(12, 2) // Special price for this company
+  effectiveFrom DateTime @default(now()) @map("effective_from")
+  effectiveUntil DateTime? @map("effective_until") // null = no expiration
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  company Organization @relation("CompanyPrices", fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, companyId, effectiveFrom]) // One price per product-company-effectiveFrom
+  @@index([productId])
+  @@index([companyId])
+  @@index([effectiveFrom])
+  @@map("company_prices")
+}
+
+// Projects (QS Projects - each company manages independently)
+model Project {
+  id          String        @id @default(uuid())
+  companyId   String        @map("company_id")
+  ownerId     String        @map("owner_id")
+  name        String        @db.VarChar(255)
+  description String?       @db.Text
+  type        String?       @db.VarChar(100) // commercial, residential, etc.
+  location    String?       @db.VarChar(255)
+  status      ProjectStatus @default(planning)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  company Organization @relation("CompanyProjects", fields: [companyId], references: [id], onDelete: Cascade)
+  owner   User         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  quotes  Quote[]
+
+  @@index([companyId])
+  @@index([ownerId])
+  @@index([status])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  planning
+  active
+  completed
+  cancelled
+}
+
+// Quotes (Project Quotes)
+model Quote {
+  id          String      @id @default(uuid())
+  projectId   String?     @map("project_id")
+  createdById String      @map("created_by_id")
+  title       String      @db.VarChar(255)
+  description String?     @db.Text
+  totalAmount Decimal     @db.Decimal(12, 2)
+  status      QuoteStatus @default(draft)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  project Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  creator User        @relation("QuoteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  items   QuoteItem[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@index([status])
+  @@map("quotes")
+}
+
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  rejected
+}
+
+// Quote Items (Materials in Quote)
+model QuoteItem {
+  id        String   @id @default(uuid())
+  quoteId   String   @map("quote_id")
+  productId String?  @map("product_id")
+  name      String   @db.VarChar(255)
+  quantity  Decimal  @db.Decimal(10, 2)
+  unit      String   @db.VarChar(50)
+  price     Decimal  @db.Decimal(12, 2)
+  total     Decimal  @db.Decimal(12, 2)
+  supplier  String?  @db.VarChar(255) // Supplier name
+  createdAt DateTime @default(now()) @map("created_at")
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@index([productId])
+  @@map("quote_items")
 }
