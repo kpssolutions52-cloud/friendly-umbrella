@@ -158,7 +158,7 @@ Format prices clearly with currency symbols. For calculations, show your work st
         { role: 'user', content: question },
       ],
       temperature: 0.7,
-      maxTokens: 1500,
+      // max_tokens: 1500, // Removed - let OpenAI use default
     });
 
     return response.choices[0].message.content || 'I apologize, I could not generate a response.';

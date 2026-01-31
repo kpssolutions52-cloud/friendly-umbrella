@@ -9,7 +9,7 @@ import {
   getCurrentUser,
   storeTokens,
   clearTokens,
-  isAuthenticated,
+  isAuthenticated as checkIsAuthenticated,
   LoginInput,
   RegisterInput,
   AuthResponse,
@@ -18,6 +18,7 @@ import {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthenticated: boolean;
   login: (input: LoginInput, returnUrl?: string) => Promise<void>;
   register: (input: RegisterInput, returnUrl?: string) => Promise<void>;
   logout: () => void;
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('CRITICAL: Loading state stuck - forcing to false');
           setLoading(false);
           // Clear tokens if we can't verify auth
-          if (isAuthenticated()) {
+          if (checkIsAuthenticated()) {
             clearTokens();
             setUser(null);
           }
@@ -102,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, isMobile ? 8000 : 15000); // 8s mobile, 15s desktop
     
     // Check if user is already authenticated
-    if (isAuthenticated()) {
+    if (checkIsAuthenticated()) {
       // Add a hard timeout that ALWAYS triggers to prevent infinite loading
       // This is a safety net in case refreshUser hangs
       const hardTimeoutId = setTimeout(() => {
@@ -218,11 +219,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return '/company/dashboard';
   }
 
+  // Calculate isAuthenticated based on user and tokens
+  const isAuthenticatedValue = !!user && checkIsAuthenticated();
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
+        isAuthenticated: isAuthenticatedValue,
         login,
         register,
         logout,

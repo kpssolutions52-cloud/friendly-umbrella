@@ -4,13 +4,23 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
       "@platform/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "prisma/seed.ts", "clear-database.ts", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/__tests__/**",
+    "**/e2e/**",
+    "prisma/seed.ts",
+    "clear-database.ts",
+    "**/*.spec.ts"
+  ]
 }
 
 

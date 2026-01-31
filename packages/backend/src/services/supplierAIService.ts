@@ -61,7 +61,7 @@ Return only valid JSON, no other text.`;
       ],
       temperature: 0.1,
       response_format: { type: 'json_object' },
-      max_tokens: 200,
+      // max_tokens: 200, // Removed - let OpenAI use default
     });
 
     const content = response.choices[0].message.content;
@@ -249,7 +249,7 @@ Be concise and helpful. If the supplier wants to update a price, guide them on t
           { role: 'user', content: command },
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        // max_tokens: 500, // Removed - let OpenAI use default
       });
 
       return {
