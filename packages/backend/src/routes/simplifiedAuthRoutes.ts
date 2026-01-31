@@ -37,9 +37,12 @@ router.get(
         });
       }
 
+      console.log('[AuthRoutes] Fetching organizations with type:', type);
       const result = await simplifiedAuthService.getOrganizations(type);
+      console.log('[AuthRoutes] Found organizations:', result.organizations.length);
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[AuthRoutes] Error in /auth/organizations:', error);
       next(error);
     }
   }
@@ -73,9 +76,12 @@ router.post(
         });
       }
 
+      console.log('[AuthRoutes] Registering user:', { email: input.email, userType: input.userType });
       const result = await simplifiedAuthService.register(input);
+      console.log('[AuthRoutes] Registration successful for:', input.email);
       res.status(201).json(result);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[AuthRoutes] Error in /auth/register:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }

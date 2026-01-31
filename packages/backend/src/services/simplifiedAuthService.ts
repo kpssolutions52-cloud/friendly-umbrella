@@ -27,14 +27,15 @@ export class SimplifiedAuthService {
    * Register a new user (2-step: user type → organization)
    */
   async register(input: SimplifiedRegisterInput) {
-    // Validate email is unique
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
+    try {
+      // Validate email is unique
+      const existingUser = await prisma.user.findUnique({
+        where: { email: input.email },
+      });
 
-    if (existingUser) {
-      throw createError(409, 'Email already registered');
-    }
+      if (existingUser) {
+        throw createError(409, 'Email already registered');
+      }
 
     // Hash password
     const passwordHash = await hashPassword(input.password);
@@ -133,22 +134,32 @@ export class SimplifiedAuthService {
       accessToken,
       refreshToken,
     };
+    } catch (error: any) {
+      console.error('[SimplifiedAuthService] Registration error:', error);
+      // Re-throw createError instances as-is
+      if (error.statusCode || error.status) {
+        throw error;
+      }
+      // Wrap other errors
+      throw createError(500, `Registration failed: ${error.message || 'Unknown error'}`);
+    }
   }
 
   /**
    * Login user
    */
   async login(input: SimplifiedLoginInput) {
-    const user = await prisma.user.findUnique({
-      where: { email: input.email },
-      include: {
-        organization: true,
-      },
-    });
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: input.email },
+        include: {
+          organization: true,
+        },
+      });
 
-    if (!user) {
-      throw createError(401, 'Invalid email or password');
-    }
+      if (!user) {
+        throw createError(401, 'Invalid email or password');
+      }
 
     // Verify password
     const { comparePassword } = await import('../utils/password');
@@ -195,26 +206,43 @@ export class SimplifiedAuthService {
       accessToken,
       refreshToken,
     };
+    } catch (error: any) {
+      console.error('[SimplifiedAuthService] Login error:', error);
+      // Re-throw createError instances as-is
+      if (error.statusCode || error.status) {
+        throw error;
+      }
+      // Wrap other errors
+      throw createError(500, `Login failed: ${error.message || 'Unknown error'}`);
+    }
   }
 
   /**
    * Get organizations for registration (for joining existing)
    */
   async getOrganizations(type: 'company' | 'supplier') {
-    const organizations = await prisma.organization.findMany({
-      where: { type },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        email: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    try {
+      // Map 'company'/'supplier' to OrgType enum
+      const orgType = type === 'company' ? 'company' : 'supplier';
+      
+      const organizations = await prisma.organization.findMany({
+        where: { type: orgType },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          email: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
 
-    return { organizations };
+      return { organizations };
+    } catch (error: any) {
+      console.error('[SimplifiedAuthService] Error fetching organizations:', error);
+      throw createError(500, `Failed to fetch organizations: ${error.message || 'Unknown error'}`);
+    }
   }
 }
 
