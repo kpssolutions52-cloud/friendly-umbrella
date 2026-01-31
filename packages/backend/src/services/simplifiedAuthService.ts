@@ -296,11 +296,27 @@ export class SimplifiedAuthService {
       
       console.log('[SimplifiedAuthService] Password verified successfully for:', input.email);
 
-      // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { updatedAt: new Date() },
-      });
+      // Update last login - handle both old and new schemas
+      try {
+        // Try new schema update first
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { updatedAt: new Date() },
+        });
+      } catch (updateError: any) {
+        // If update fails (e.g., old schema), try raw SQL update
+        if (updateError.message?.includes('column') && updateError.message?.includes('does not exist')) {
+          console.log('[SimplifiedAuthService] Using raw SQL for update (old schema)');
+          await prisma.$executeRaw`
+            UPDATE users 
+            SET updated_at = NOW()
+            WHERE id = ${user.id}
+          `;
+        } else {
+          // Re-throw if it's a different error
+          throw updateError;
+        }
+      }
 
       // Generate tokens (compatible with JWT utility)
       const role = userType === 'qs' ? 'company_staff' : 'supplier_staff';
