@@ -190,16 +190,17 @@ router.get(
       const userType = user.type;
       const organization = user.organization;
 
-      // Return user in format expected by frontend (compatible with both old and new schema)
-      const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || null;
+      // Return user in format expected by frontend (NEW SCHEMA ONLY)
+      const userName = user.name || null;
+      const nameParts = userName ? userName.split(' ') : [];
       res.json({
         id: user.id,
         email: user.email,
         name: userName,
-        firstName: user.firstName || userName?.split(' ')[0] || null,
-        lastName: user.lastName || userName?.split(' ').slice(1).join(' ') || null,
+        firstName: nameParts[0] || null,
+        lastName: nameParts.slice(1).join(' ') || null,
         type: userType, // 'qs' | 'supplier'
-        role: user.role || (userType === 'qs' ? 'company_staff' : 'supplier_staff'), // For compatibility
+        role: userType === 'qs' ? 'company_staff' : 'supplier_staff', // For compatibility with frontend
         organization: {
           id: organization.id,
           name: organization.name,
