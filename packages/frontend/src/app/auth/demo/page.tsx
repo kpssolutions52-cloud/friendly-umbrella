@@ -42,7 +42,7 @@ function DemoLoginForm() {
           email: account.email,
           password: account.password,
         },
-        accountType === 'qs' ? '/chat' : '/supplier/products'
+        accountType === 'qs' ? '/chat' : '/supplier/chat'
       );
     } catch (err: any) {
       console.error('Demo login error:', err);

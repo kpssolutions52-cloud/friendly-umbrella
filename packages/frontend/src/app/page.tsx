@@ -105,9 +105,9 @@ export default function Home() {
         router.push('/admin/dashboard');
         return;
       }
-      // Redirect suppliers to their products page
+      // Redirect suppliers to their chat page (with dashboard)
       if (user.type === 'supplier' || user.tenant?.type === 'supplier') {
-        router.push('/supplier/products');
+        router.push('/supplier/chat');
         return;
       }
       // Redirect QS to chat
