@@ -1,475 +1,713 @@
-# Implementation Guide - Simplifying to Core MVP
+# Implementation Guide - QS AI Agent
 
-## 🎯 Goal: Remove 70% of Complexity, Launch in 2-3 Weeks
+## 🎯 Implementation Overview
 
-This guide shows exactly what to remove, what to keep, and how to implement the simplified MVP.
-
----
-
-## 📋 STEP 1: Database Simplification
-
-### Files to Modify
-
-#### 1. `packages/backend/prisma/schema.prisma`
-- **Action:** Replace entire file with simplified schema (see `SIMPLIFIED_SCHEMA.md`)
-- **Impact:** Removes 7+ tables, simplifies relationships
-
-#### 2. Database Migrations
-- **Action:** Create new migration: `npx prisma migrate dev --name simplify_to_core_mvp`
-- **Impact:** Drops unused tables, simplifies schema
+This guide provides step-by-step instructions for implementing the QS AI Agent system.
 
 ---
 
-## 📋 STEP 2: Backend Simplification
+## 📋 Prerequisites
 
-### Files to Remove
+### Required Knowledge
+- Node.js/TypeScript
+- Next.js/React
+- PostgreSQL
+- Redis
+- OpenAI API
 
-#### Authentication & Authorization
-- ❌ `packages/backend/src/services/tenantAdminService.ts` - Remove approval workflows
-- ❌ `packages/backend/src/services/superAdminService.ts` - Remove super admin features
-- ❌ `packages/backend/src/routes/tenantAdminRoutes.ts` - Remove tenant admin routes
-- ❌ `packages/backend/src/routes/superAdminRoutes.ts` - Remove super admin routes
-- ❌ `packages/backend/src/middleware/roleMiddleware.ts` - Remove role-based access (if exists)
+### Required Accounts
+- OpenAI API key
+- PostgreSQL database
+- Redis instance
 
-#### Pricing Features
-- ❌ `packages/backend/src/services/privatePriceService.ts` - Remove private pricing
-- ❌ `packages/backend/src/routes/privatePriceRoutes.ts` - Remove private price routes
-- ❌ `packages/backend/src/services/priceAuditService.ts` - Remove audit logging
-- ❌ `packages/backend/src/services/analyticsService.ts` - Remove analytics
+---
 
-#### RFQ System
-- ❌ `packages/backend/src/services/quoteService.ts` - Remove quote requests
-- ❌ `packages/backend/src/routes/quoteRoutes.ts` - Remove quote routes
-- ❌ `packages/backend/src/services/quoteResponseService.ts` - Remove quote responses
+## 🏗️ Implementation Phases
 
-#### WebSocket
-- ❌ `packages/backend/src/services/websocketService.ts` - Remove real-time updates
-- ❌ `packages/backend/src/socketHandlers/` - Remove all socket handlers
-- **Note:** Keep WebSocket code commented for future use
+### Phase 1: Core Infrastructure (Week 1)
 
-#### Categories
-- ❌ `packages/backend/src/services/categoryService.ts` - Remove categories
-- ❌ `packages/backend/src/routes/categoryRoutes.ts` - Remove category routes
+#### 1.1 Database Setup
 
-### Files to Simplify
+**Step 1: Create Database Schema**
 
-#### 1. `packages/backend/src/services/authService.ts`
-**Remove:**
-- Role assignment logic
-- Approval workflow
-- Status management (pending/active/rejected)
-- Permission management
+```sql
+-- Run migration scripts in order:
+-- 1. migration-01-backup-existing-data.sql
+-- 2. migration-02-create-new-schema.sql
+-- 3. migration-03-migrate-data.sql
+-- 4. migration-04-swap-tables.sql
+```
 
-**Keep:**
-- Simple signup (email, password, organization name, organization type)
-- Simple login
-- JWT token generation
+**Step 2: Update Prisma Schema**
 
-**Simplified Signup:**
+```bash
+cd packages/backend
+npx prisma generate
+npx prisma db push
+```
+
+**Step 3: Verify Schema**
+
+```sql
+-- Check tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;
+```
+
+#### 1.2 Backend Setup
+
+**Step 1: Install Dependencies**
+
+```bash
+cd packages/backend
+npm install openai redis ioredis
+npm install --save-dev @types/ioredis
+```
+
+**Step 2: Environment Variables**
+
+```env
+# .env
+DATABASE_URL="postgresql://..."
+REDIS_URL="redis://..."
+OPENAI_API_KEY="sk-..."
+OPENAI_MODEL="gpt-4"
+```
+
+**Step 3: Core Services**
+
+Create these services:
+- `aiService.ts` - AI Agent core
+- `learningService.ts` - Self-learning engine
+- `projectService.ts` - Project management
+- `quoteService.ts` - Quote generation
+- `cacheService.ts` - Redis caching
+
+#### 1.3 Frontend Setup
+
+**Step 1: Install Dependencies**
+
+```bash
+cd packages/frontend
+npm install
+```
+
+**Step 2: Create Pages**
+
+- `/app/chat/page.tsx` - AI Chat interface
+- `/app/projects/page.tsx` - Project management
+- `/app/quotes/page.tsx` - Quote views
+
+---
+
+### Phase 2: AI Agent Core (Week 2)
+
+#### 2.1 Natural Language Processing
+
+**File: `packages/backend/src/services/aiService.ts`**
+
 ```typescript
-// BEFORE: Complex with roles, approvals, etc.
-async register(data: RegisterDto) {
-  // ... complex role logic
-  // ... approval workflow
-  // ... permission assignment
-}
+import OpenAI from 'openai';
+import { prisma } from '../utils/prisma';
+import { getLearningContext } from './learningService';
+import { getProjectContext } from './projectService';
 
-// AFTER: Simple signup
-async register(data: { email, password, organizationName, organizationType }) {
-  // 1. Create organization
-  const org = await prisma.organization.create({
-    data: { name, type, email }
-  });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function processQSQuery(
+  userId: string,
+  query: string
+): Promise<{
+  answer: string;
+  action?: any;
+  quote?: any;
+  project?: any;
+}> {
+  // 1. Get context
+  const learningContext = await getLearningContext(userId);
+  const projectContext = await getProjectContext(userId);
   
-  // 2. Create user
-  const user = await prisma.user.create({
-    data: { email, passwordHash, organizationId: org.id }
-  });
+  // 2. Detect intent
+  const intent = await detectIntent(query);
   
-  // 3. Return token
-  return generateToken(user);
+  // 3. Extract entities
+  const entities = await extractEntities(query);
+  
+  // 4. Execute action
+  const actionResult = await executeAction(intent, entities, userId);
+  
+  // 5. Generate response
+  const response = await generateResponse(
+    query,
+    intent,
+    actionResult,
+    learningContext,
+    projectContext
+  );
+  
+  // 6. Learn from interaction
+  await learnFromInteraction(userId, query, intent, entities, response);
+  
+  return response;
 }
 ```
 
-#### 2. `packages/backend/src/services/productService.ts`
-**Remove:**
-- SKU validation
-- Category assignment
-- Service-specific fields
-- Default/Private price logic
-- Audit logging
+#### 2.2 Intent Recognition
 
-**Keep:**
-- Create product (name, price, unit)
-- Update product
-- Delete product
-- List products (by supplier)
-- Search products (by name)
-
-**Simplified Create:**
 ```typescript
-// BEFORE: Complex with categories, SKU, types, etc.
-async createProduct(data: CreateProductDto) {
-  // ... category logic
-  // ... SKU validation
-  // ... type handling
-  // ... default price creation
+async function detectIntent(query: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      {
+        role: 'system',
+        content: `You are an intent classifier. Classify the user's query into one of:
+        - price_query: Asking about prices
+        - quote_generation: Requesting quote generation
+        - project_management: Creating/managing projects
+        - cost_calculation: Calculating costs
+        - general_question: General QS questions
+        
+        Respond with only the intent name.`
+      },
+      { role: 'user', content: query }
+    ],
+    temperature: 0.1,
+  });
+  
+  return response.choices[0].message.content?.trim() || 'general_question';
 }
+```
 
-// AFTER: Simple create
-async createProduct(supplierId: string, data: { name, price, unit }) {
-  return prisma.product.create({
+#### 2.3 Entity Extraction
+
+```typescript
+async function extractEntities(query: string): Promise<any> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      {
+        role: 'system',
+        content: `Extract entities from the query. Return JSON:
+        {
+          "products": ["cement", "steel"],
+          "quantities": {"cement": 100, "steel": 50},
+          "project": "Office Building",
+          "units": {"cement": "bags", "steel": "units"}
+        }`
+      },
+      { role: 'user', content: query }
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.1,
+  });
+  
+  return JSON.parse(response.choices[0].message.content || '{}');
+}
+```
+
+---
+
+### Phase 3: Self-Learning Engine (Week 3)
+
+#### 3.1 Interaction Tracking
+
+**File: `packages/backend/src/services/learningService.ts`**
+
+```typescript
+export async function learnFromInteraction(
+  userId: string,
+  query: string,
+  intent: string,
+  entities: any,
+  response: any
+) {
+  // 1. Store interaction
+  await prisma.aIInteraction.create({
     data: {
-      supplierId,
-      name: data.name,
-      price: data.price,
-      unit: data.unit
+      userId,
+      query,
+      intent,
+      entities,
+      response: response.answer,
+      context: {
+        project: entities.project,
+        timestamp: new Date().toISOString(),
+      },
+    },
+  });
+  
+  // 2. Update preferences
+  await updateUserPreferences(userId, intent, entities, response);
+  
+  // 3. Learn patterns
+  await learnPatterns(userId, intent, entities);
+}
+```
+
+#### 3.2 Preference Learning
+
+```typescript
+async function updateUserPreferences(
+  userId: string,
+  intent: string,
+  entities: any,
+  response: any
+) {
+  const existing = await prisma.userPreference.findUnique({
+    where: { userId },
+  });
+  
+  const preferences = existing?.preferences || {};
+  
+  // Learn supplier preferences
+  if (intent === 'quote_generation' && response.quote) {
+    response.quote.items.forEach((item: any) => {
+      if (item.supplier) {
+        preferences.preferredSuppliers = preferences.preferredSuppliers || {};
+        preferences.preferredSuppliers[item.name] = item.supplier;
+      }
+    });
+  }
+  
+  // Learn material patterns
+  if (entities.products) {
+    preferences.commonMaterials = preferences.commonMaterials || [];
+    entities.products.forEach((product: string) => {
+      if (!preferences.commonMaterials.includes(product)) {
+        preferences.commonMaterials.push(product);
+      }
+    });
+  }
+  
+  await prisma.userPreference.upsert({
+    where: { userId },
+    create: {
+      userId,
+      preferences,
+      patterns: existing?.patterns || {},
+      context: existing?.context || {},
+    },
+    update: {
+      preferences,
+    },
+  });
+}
+```
+
+#### 3.3 Pattern Recognition
+
+```typescript
+async function learnPatterns(
+  userId: string,
+  intent: string,
+  entities: any
+) {
+  // Analyze recent interactions
+  const recentInteractions = await prisma.aIInteraction.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+  
+  // Find patterns
+  const projectPatterns: any = {};
+  
+  recentInteractions.forEach((interaction) => {
+    const project = interaction.entities?.project;
+    const products = interaction.entities?.products || [];
+    
+    if (project && products.length > 0) {
+      projectPatterns[project] = projectPatterns[project] || [];
+      products.forEach((product: string) => {
+        if (!projectPatterns[project].includes(product)) {
+          projectPatterns[project].push(product);
+        }
+      });
     }
   });
+  
+  // Update patterns
+  await prisma.userPreference.update({
+    where: { userId },
+    data: {
+      patterns: {
+        projectPatterns,
+      },
+    },
+  });
 }
 ```
 
-#### 3. `packages/backend/src/routes/authRoutes.ts`
-**Remove:**
-- Registration type selection
-- Approval status endpoints
-- Tenant listing for registration
+---
 
-**Keep:**
-- `POST /api/v1/auth/register` - Simple signup
-- `POST /api/v1/auth/login` - Simple login
-- `GET /api/v1/auth/me` - Get current user
+### Phase 4: Project Management (Week 4)
 
-#### 4. `packages/backend/src/routes/productRoutes.ts`
-**Remove:**
-- Private price endpoints
-- Default price endpoints
-- Category endpoints
-- Analytics endpoints
+#### 4.1 Project Service
 
-**Keep:**
-- `GET /api/v1/products` - List supplier's products
-- `POST /api/v1/products` - Create product
-- `GET /api/v1/products/:id` - Get product
-- `PUT /api/v1/products/:id` - Update product
-- `DELETE /api/v1/products/:id` - Delete product
-- `GET /api/v1/products/search` - Search products (for companies)
-
-#### 5. `packages/backend/src/middleware/authMiddleware.ts`
-**Simplify:**
-- Remove role checking
-- Remove permission checking
-- Just verify JWT and attach user to request
+**File: `packages/backend/src/services/projectService.ts`**
 
 ```typescript
-// BEFORE: Complex with roles, permissions
-async function authMiddleware(req, res, next) {
-  // ... role checking
-  // ... permission checking
-  // ... tenant validation
+export async function createProject(
+  userId: string,
+  name: string,
+  description?: string,
+  type?: string
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { organization: true },
+  });
+  
+  if (!user || user.organization.type !== 'company') {
+    throw new Error('Only QS users can create projects');
+  }
+  
+  return await prisma.project.create({
+    data: {
+      companyId: user.organizationId,
+      ownerId: userId,
+      name,
+      description,
+      type,
+      status: 'planning',
+    },
+  });
 }
 
-// AFTER: Simple auth
-async function authMiddleware(req, res, next) {
-  const token = extractToken(req);
-  const user = await verifyToken(token);
-  req.user = user;
-  next();
+export async function getProjectContext(userId: string) {
+  const projects = await prisma.project.findMany({
+    where: {
+      ownerId: userId,
+      status: { in: ['planning', 'active'] },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 5,
+  });
+  
+  return {
+    activeProjects: projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      status: p.status,
+    })),
+    currentProject: projects[0]?.name,
+  };
 }
 ```
 
 ---
 
-## 📋 STEP 3: Frontend Simplification
+### Phase 5: Quote Generation (Week 5)
 
-### Files to Remove
+#### 5.1 Quote Service
 
-#### Admin Features
-- ❌ `packages/frontend/app/admin/` - Remove entire admin directory
-- ❌ `packages/frontend/components/admin/` - Remove admin components
-- ❌ `packages/frontend/lib/api/adminApi.ts` - Remove admin API
+**File: `packages/backend/src/services/quoteService.ts`**
 
-#### User Management
-- ❌ `packages/frontend/app/company/users/` - Remove user management
-- ❌ `packages/frontend/app/supplier/users/` - Remove user management
-- ❌ `packages/frontend/components/UserManagement.tsx` - Remove user management
-- ❌ `packages/frontend/lib/api/tenantAdminApi.ts` - Remove tenant admin API
-
-#### RFQ Features
-- ❌ `packages/frontend/app/company/rfq/` - Remove RFQ pages
-- ❌ `packages/frontend/components/RFQ/` - Remove RFQ components
-- ❌ `packages/frontend/lib/api/rfqApi.ts` - Remove RFQ API
-
-#### Private Pricing
-- ❌ `packages/frontend/components/PrivatePrice/` - Remove private price components
-- ❌ Private price UI elements from product pages
-
-#### Analytics
-- ❌ `packages/frontend/app/supplier/analytics/` - Remove analytics pages
-- ❌ Analytics components
-
-### Files to Simplify
-
-#### 1. `packages/frontend/app/auth/register/page.tsx`
-**Remove:**
-- Registration type dropdown
-- Tenant selection
-- Role selection
-- Approval messaging
-
-**Keep:**
-- Email input
-- Password input
-- Organization name input
-- Organization type (supplier/company) - simple radio buttons
-
-**Simplified Form:**
-```tsx
-// BEFORE: Complex with types, tenants, roles
-<Select name="registrationType" />
-<Select name="tenantId" />
-<Select name="role" />
-
-// AFTER: Simple form
-<input name="email" />
-<input name="password" />
-<input name="organizationName" />
-<Radio name="organizationType" options={['supplier', 'company']} />
-```
-
-#### 2. `packages/frontend/app/supplier/products/page.tsx`
-**Remove:**
-- SKU input
-- Category selection
-- Service type selection
-- Default/Private price tabs
-- Analytics links
-
-**Keep:**
-- Product name input
-- Price input
-- Unit input
-- Add/Edit/Delete buttons
-- Simple list view
-
-#### 3. `packages/frontend/app/company/products/page.tsx`
-**Remove:**
-- Private price indicators
-- Price comparison charts
-- Export buttons
-- RFQ buttons
-
-**Keep:**
-- Search input
-- Product list with prices
-- Supplier name display
-- Simple price comparison
-
-#### 4. `packages/frontend/lib/api/productApi.ts`
-**Remove:**
-- Private price endpoints
-- Default price endpoints
-- Category endpoints
-- Analytics endpoints
-
-**Keep:**
-- `getProducts()` - List products
-- `createProduct()` - Create product
-- `updateProduct()` - Update product
-- `deleteProduct()` - Delete product
-- `searchProducts()` - Search products
-
----
-
-## 📋 STEP 4: Shared Types Simplification
-
-### Files to Modify
-
-#### `packages/shared/src/types/index.ts`
-**Remove:**
-- UserRole enum
-- UserStatus enum
-- TenantStatus enum
-- PriceType enum
-- QuoteStatus enum
-- PrivatePrice type
-- DefaultPrice type
-- QuoteRequest type
-- QuoteResponse type
-- Category types
-
-**Keep:**
-- User type (simplified)
-- Organization type (simplified)
-- Product type (simplified)
-
-**Simplified Types:**
 ```typescript
-// BEFORE: Complex with roles, statuses, etc.
-export type User = {
-  id: string;
-  role: UserRole;
-  status: UserStatus;
-  permissions: Json;
-  // ... many fields
-};
-
-// AFTER: Simple user
-export type User = {
-  id: string;
-  email: string;
-  name?: string;
-  organizationId: string;
-};
-
-// BEFORE: Complex product
-export type Product = {
-  id: string;
-  sku: string;
-  type: ProductType;
-  categoryId?: string;
-  defaultPrice?: DefaultPrice;
-  privatePrices?: PrivatePrice[];
-  // ... many fields
-};
-
-// AFTER: Simple product
-export type Product = {
-  id: string;
-  name: string;
-  price: number;
-  unit: string;
-  supplierId: string;
-};
+export async function generateQuote(
+  userId: string,
+  projectId: string | null,
+  materials: Array<{ name: string; quantity: number; unit: string }>
+) {
+  // 1. Get user preferences
+  const preferences = await getUserPreferences(userId);
+  
+  // 2. Query products for each material
+  const quoteItems = [];
+  let totalAmount = 0;
+  
+  for (const material of materials) {
+    // Query products
+    const products = await prisma.product.findMany({
+      where: {
+        name: {
+          contains: material.name,
+          mode: 'insensitive',
+        },
+      },
+      include: { supplier: true },
+      orderBy: { price: 'asc' },
+      take: 1, // Best price
+    });
+    
+    if (products.length > 0) {
+      const product = products[0];
+      const itemTotal = Number(product.price) * material.quantity;
+      
+      quoteItems.push({
+        productId: product.id,
+        name: material.name,
+        quantity: material.quantity,
+        unit: material.unit,
+        price: Number(product.price),
+        total: itemTotal,
+        supplier: product.supplier.name,
+      });
+      
+      totalAmount += itemTotal;
+    }
+  }
+  
+  // 3. Create quote
+  const quote = await prisma.quote.create({
+    data: {
+      projectId,
+      createdById: userId,
+      title: `Quote for ${projectId ? 'Project' : 'Materials'}`,
+      totalAmount,
+      status: 'draft',
+      items: {
+        create: quoteItems,
+      },
+    },
+    include: {
+      items: true,
+      project: true,
+    },
+  });
+  
+  return quote;
+}
 ```
 
 ---
 
-## 📋 STEP 5: Remove Unused Dependencies
+### Phase 6: Frontend Implementation (Week 6)
 
-### `package.json` Files
+#### 6.1 AI Chat Interface
 
-#### `packages/backend/package.json`
-**Remove (if not used elsewhere):**
-- Socket.io (WebSocket) - if only used for real-time
-- Analytics libraries
-- Complex validation libraries
+**File: `packages/frontend/src/app/chat/page.tsx`**
 
-**Keep:**
-- Express
-- Prisma
-- JWT
-- bcrypt
-- Basic validation (Zod)
+```typescript
+'use client';
 
-#### `packages/frontend/package.json`
-**Remove:**
-- Chart libraries (if only for analytics)
-- Complex form libraries (if not needed)
+import { useState } from 'react';
 
-**Keep:**
-- Next.js
-- React
-- Tailwind CSS
-- Basic form handling
-
----
-
-## 📋 STEP 6: Update Documentation
-
-### Files to Update
-
-#### `README.md`
-- Remove complex feature list
-- Update to show only core features
-- Simplify user roles section
-- Remove approval workflow documentation
-
-#### `docs/ARCHITECTURE.md`
-- Mark as "Legacy - See SIMPLIFIED_MVP_PLAN.md"
-- Or create simplified version
-
-#### Create New Docs
-- ✅ `docs/SIMPLIFIED_MVP_PLAN.md` (already created)
-- ✅ `docs/SIMPLIFIED_SCHEMA.md` (already created)
-- ✅ `docs/IMPLEMENTATION_GUIDE.md` (this file)
-
----
-
-## 🎯 IMPLEMENTATION CHECKLIST
-
-### Week 1: Database & Backend
-- [ ] Replace Prisma schema with simplified version
-- [ ] Run migration
-- [ ] Simplify auth service
-- [ ] Simplify product service
-- [ ] Remove unused services
-- [ ] Simplify routes
-- [ ] Remove middleware complexity
-- [ ] Update API tests
-
-### Week 2: Frontend
-- [ ] Simplify registration page
-- [ ] Simplify login page
-- [ ] Simplify supplier dashboard
-- [ ] Simplify company dashboard
-- [ ] Remove admin pages
-- [ ] Remove user management
-- [ ] Remove RFQ features
-- [ ] Update API clients
-- [ ] Update types
-
-### Week 3: Testing & Polish
-- [ ] End-to-end testing
-- [ ] Fix bugs
-- [ ] Update documentation
-- [ ] Prepare for launch
-
----
-
-## 📊 EXPECTED RESULTS
-
-### Code Reduction
-- **Backend:** ~60% less code
-- **Frontend:** ~70% less code
-- **Database:** ~70% less schema
-- **Total:** ~65% reduction
-
-### Development Time
-- **Current MVP:** 8 weeks
-- **Simplified MVP:** 2-3 weeks
-- **Time Saved:** 5-6 weeks
-
-### Complexity Reduction
-- **API Endpoints:** 30+ → 8 endpoints
-- **Database Tables:** 10+ → 3 tables
-- **User Roles:** 5 roles → 0 roles (just types)
-- **Features:** 20+ → 6 core features
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Array<{role: string; content: string}>>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    
+    setLoading(true);
+    setMessages([...messages, { role: 'user', content: input }]);
+    
+    try {
+      const response = await fetch('/api/v1/agent/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: input }),
+      });
+      
+      const data = await response.json();
+      
+      setMessages([
+        ...messages,
+        { role: 'user', content: input },
+        { role: 'assistant', content: data.answer },
+      ]);
+      
+      setInput('');
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+            <div className={`inline-block p-3 rounded-lg ${
+              msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+            }`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            className="flex-1 p-2 border rounded"
+            placeholder="Ask the AI Agent anything..."
+            disabled={loading}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
 
 ---
 
-## 🚀 LAUNCH STRATEGY
+## 🧪 Testing
 
-1. **Launch Simplified MVP** (2-3 weeks)
-2. **Get User Feedback** (2-4 weeks)
-3. **Add Features Based on Requests:**
-   - If users ask for private pricing → Add it
-   - If users ask for roles → Add them
-   - If users ask for real-time → Add WebSocket
-   - If users ask for export → Add CSV export
+### Unit Tests
 
-**Build what users need, not what you think they need.**
+```typescript
+// tests/services/aiService.test.ts
+describe('AI Service', () => {
+  it('should detect price query intent', async () => {
+    const intent = await detectIntent('What is the price of cement?');
+    expect(intent).toBe('price_query');
+  });
+  
+  it('should extract entities correctly', async () => {
+    const entities = await extractEntities('100 bags of cement');
+    expect(entities.products).toContain('cement');
+    expect(entities.quantities.cement).toBe(100);
+  });
+});
+```
+
+### Integration Tests
+
+```typescript
+// tests/integration/chat.test.ts
+describe('Chat API', () => {
+  it('should generate quote for project', async () => {
+    const response = await request(app)
+      .post('/api/v1/agent/chat')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        question: 'Generate quote for Office Building project',
+      });
+    
+    expect(response.status).toBe(200);
+    expect(response.body.quote).toBeDefined();
+  });
+});
+```
 
 ---
 
-## 💡 KEY PRINCIPLES
+## 🚀 Deployment
 
-1. **Start Simple** - 3 steps max for any flow
-2. **Remove Friction** - No approvals, no waiting
-3. **Obvious Value** - Instant price visibility
-4. **Add Later** - Only when users ask
-5. **Measure Success** - Track signups, usage, requests
+### Environment Setup
+
+```bash
+# Production environment variables
+DATABASE_URL="postgresql://..."
+REDIS_URL="redis://..."
+OPENAI_API_KEY="sk-..."
+NODE_ENV="production"
+```
+
+### Build Commands
+
+```bash
+# Backend
+cd packages/backend
+npm run build
+
+# Frontend
+cd packages/frontend
+npm run build
+```
+
+### Deployment Steps
+
+1. **Database Migration**
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+2. **Build Applications**
+   ```bash
+   npm run build
+   ```
+
+3. **Deploy to Production**
+   - Backend: Deploy to Railway/Render
+   - Frontend: Deploy to Vercel
+   - Database: PostgreSQL (managed)
+   - Cache: Redis (managed)
 
 ---
 
-**Remember:** The best product solves the problem with the fewest features.
+## 📋 Implementation Checklist
+
+### Week 1: Core Infrastructure
+- [ ] Database schema created
+- [ ] Prisma schema updated
+- [ ] Backend dependencies installed
+- [ ] Environment variables configured
+- [ ] Core services created
+
+### Week 2: AI Agent Core
+- [ ] Natural language processing
+- [ ] Intent recognition
+- [ ] Entity extraction
+- [ ] Action execution
+- [ ] Response generation
+
+### Week 3: Self-Learning
+- [ ] Interaction tracking
+- [ ] Preference learning
+- [ ] Pattern recognition
+- [ ] Knowledge base updates
+
+### Week 4: Project Management
+- [ ] Project CRUD operations
+- [ ] Project context retrieval
+- [ ] Project-based quotes
+
+### Week 5: Quote Generation
+- [ ] Quote generation logic
+- [ ] Supplier data queries
+- [ ] Quote formatting
+- [ ] Quote saving
+
+### Week 6: Frontend
+- [ ] AI Chat interface
+- [ ] Project management UI
+- [ ] Quote views
+- [ ] Dashboard
+
+### Week 7: Testing & Polish
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Performance optimization
+- [ ] UI/UX polish
+
+### Week 8: Deployment
+- [ ] Production environment setup
+- [ ] Database migration
+- [ ] Application deployment
+- [ ] Monitoring setup
+
+---
+
+## ✅ Implementation Summary
+
+**This guide covers:**
+- ✅ Complete implementation steps
+- ✅ Code examples for all components
+- ✅ Testing strategies
+- ✅ Deployment process
+- ✅ Week-by-week checklist
+
+**Ready to start building!**

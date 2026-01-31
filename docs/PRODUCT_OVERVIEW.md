@@ -1,36 +1,51 @@
-# Product Overview - AI QS Assistant (ConstructGPT/QSGPT)
+# QS AI Agent - Product Overview
 
-## 🎯 What Is This Product?
+## 🎯 What Is This?
 
-**ConstructGPT / QSGPT** is an AI-powered assistant designed specifically for Quantity Surveyors (QS professionals) in the construction industry.
+**QS AI Agent** is a complete AI-powered assistant for Quantity Surveyors that eliminates the need for phone calls and manual follow-ups.
 
-### In Simple Terms
-
-Imagine you're a Quantity Surveyor and you need to know:
-- "What's the current price of cement?"
-- "How much will 100 bags of cement and 50 steel bars cost?"
-- "What's the difference between M20 and M25 concrete?"
-
-Instead of making phone calls to multiple suppliers, you simply **ask the AI assistant** and get instant answers with **real supplier prices**.
+Think of it as **"ChatGPT for Quantity Surveyors"** - but with:
+- ✅ Real-time supplier prices (always up-to-date)
+- ✅ Self-learning AI (gets smarter over time)
+- ✅ Project management (organize your work)
+- ✅ Automatic quote generation (instant quotes)
+- ✅ No phone calls needed (everything automated)
 
 ---
 
 ## 💡 The Problem We Solve
 
-### Before (The Old Way)
+### The Old Way (Without AI Agent)
 
-1. QS needs price for cement
-2. Calls Supplier A → Wait for callback → Get price
-3. Calls Supplier B → Wait for callback → Get price
-4. Calls Supplier C → Wait for callback → Get price
-5. Compares prices manually
-6. **Time wasted: 2-3 hours**
+**Scenario: QS needs a quote for a project**
 
-### After (With AI QS Assistant)
+1. **Call Supplier A** → Wait for callback (30 min)
+2. **Call Supplier B** → Wait for callback (30 min)
+3. **Call Supplier C** → Wait for callback (30 min)
+4. **Compare prices manually** → 10 minutes
+5. **Create quote document** → 20 minutes
+6. **Follow up with suppliers** → More calls
+7. **Update project files** → Manual entry
 
-1. QS types: "What's the price of cement?"
-2. AI responds instantly with all supplier prices
-3. **Time saved: 2-3 hours → 10 seconds**
+**Total Time: 2-3 hours**  
+**Frustration: High**  
+**Efficiency: Low**
+
+### The New Way (With QS AI Agent)
+
+**Scenario: QS needs a quote for a project**
+
+1. **Ask AI Agent:** "Generate quote for Office Building project"
+2. **AI Agent:**
+   - Queries all suppliers instantly
+   - Gets real-time prices
+   - Generates formatted quote
+   - Saves to project
+3. **Get complete quote** → 10 seconds
+
+**Total Time: 10 seconds**  
+**Frustration: None**  
+**Efficiency: Maximum**
 
 ---
 
@@ -38,209 +53,346 @@ Instead of making phone calls to multiple suppliers, you simply **ask the AI ass
 
 ### For QS Professionals
 
+#### 1. Natural Language Interface
+
+**Just ask like you're talking to a colleague:**
+
 ```
-1. Sign Up (30 seconds)
-   - Email, password, company name
-   - Instant access (no approvals)
+You: "What's the price of cement?"
+AI Agent: "Based on current supplier data:
+          - ABC Supplies: $50/bag
+          - DEF Materials: $52/bag
+          - GHI Builders: $48/bag
+          Best price: $48/bag from GHI Builders"
 
-2. Ask Questions (10 seconds)
-   - Type: "What's the price of cement?"
-   - Get instant answer with real supplier prices
+You: "Create a new project for office building"
+AI Agent: "✅ Project 'Office Building' created!
+          What materials do you need?"
 
-3. Get Calculations (30 seconds)
-   - Type: "How much for 100 bags of cement?"
-   - Get calculated total with best prices
-
-4. Generate Quotes (1 minute)
-   - Describe your project
-   - Get formatted quote with supplier prices
+You: "Generate quote for this project with 100 bags cement, 50 steel bars"
+AI Agent: "📋 Quote generated for Office Building:
+          - Cement (100 bags): $4,800
+          - Steel Bars (50 units): $10,000
+          Total: $14,800
+          Quote saved to project!"
 ```
+
+#### 2. Project Management
+
+**Organize everything by project:**
+
+- **Create Projects** - "Create project for warehouse"
+- **Add Materials** - "Add cement to Office Building project"
+- **Generate Quotes** - "Generate quote for Office Building"
+- **Track History** - "Show me all quotes for Office Building"
+- **Compare Quotes** - "Compare quotes for this project"
+
+#### 3. Self-Learning
+
+**The AI Agent learns and remembers:**
+
+- **Your Preferences** - "I always prefer GHI Builders"
+- **Project Patterns** - Office projects use Cement+Steel+Sand
+- **Your Questions** - Remembers common queries
+- **Supplier Patterns** - Learns pricing trends
+
+**Result:** Gets smarter and more helpful over time!
+
+---
 
 ### For Suppliers
 
-```
-1. Sign Up (30 seconds)
-   - Email, password, supplier name
-   - Instant access
+#### 1. Simple Product Entry
 
-2. Add Products (1 minute per product)
-   - Product name: "Cement"
-   - Price: $50
-   - Unit: "bag"
-   - Done! Prices appear in AI answers immediately
+**Add products in 1 minute:**
+
 ```
+Product Name: Cement
+Price: 50.00
+Unit: bag
+[Save]
+
+✅ Done! Your product now appears in AI answers
+```
+
+#### 2. Real-Time Updates
+
+**Update prices instantly:**
+
+```
+Change price: $50 → $48
+[Save]
+
+✅ AI Agent uses new price immediately
+✅ All QS professionals see updated price
+```
+
+#### 3. Automatic Visibility
+
+**Your products appear automatically:**
+
+- No manual quote requests
+- No phone calls needed
+- AI Agent queries your data
+- Instant visibility to all QS professionals
 
 ---
 
 ## 🚀 Key Features
 
-### 1. AI Chat Interface
-- **Natural language questions** - Ask like you're talking to a colleague
-- **Instant answers** - No waiting, no phone calls
-- **Real supplier data** - All prices are current and accurate
+### 1. Natural Language AI (Like ChatGPT)
 
-### 2. Real-Time Price Data
-- **Always up-to-date** - Suppliers update prices, AI answers update automatically
+- **Ask anything** - "What's the price of cement?"
+- **Complex queries** - "How much for 100 bags cement and 50 steel bars?"
+- **Project questions** - "Generate quote for Office Building"
+- **Follow-ups** - "What about sand? Add that too"
+
+### 2. Real-Time Supplier Data
+
+- **Always current** - Prices update automatically
 - **Multiple suppliers** - See all options at once
-- **Best price highlighted** - AI shows you the best deal
+- **Best prices** - AI highlights best deals
+- **No outdated info** - Everything is real-time
 
-### 3. Smart Calculations
-- **Quantity calculations** - "100 bags of cement" → Get total cost
-- **Multi-product quotes** - "Cement, steel, sand" → Get complete quote
-- **Price comparisons** - See all suppliers side-by-side
+### 3. Self-Learning Engine
 
-### 4. Simple for Suppliers
-- **Easy product entry** - Just name, price, unit
-- **Quick updates** - Change price in seconds
-- **Instant visibility** - Products appear in AI answers immediately
+- **Learns preferences** - Remembers your favorite suppliers
+- **Recognizes patterns** - Office projects = Cement+Steel+Sand
+- **Improves responses** - Gets better with every interaction
+- **Remembers context** - Knows what project you're working on
 
----
+### 4. Project Management
 
-## 👥 Who Uses This?
+- **Create projects** - Organize by project
+- **Project quotes** - Quotes tied to projects
+- **Track costs** - See project spending
+- **History** - All quotes saved per project
 
-### Primary Users: Quantity Surveyors
-- **What they do:** Estimate construction costs, prepare quotes, manage projects
-- **What they need:** Quick access to current material prices
-- **How we help:** Instant AI answers with real supplier prices
+### 5. Automatic Quote Generation
 
-### Secondary Users: Suppliers
-- **What they do:** Provide construction materials
-- **What they need:** Easy way to share prices with QS professionals
-- **How we help:** Simple product management, instant visibility
+- **Instant quotes** - Generated in seconds
+- **Real-time prices** - Always current
+- **Formatted output** - Professional quotes
+- **Save to projects** - Organized automatically
 
 ---
 
-## 🎯 Core Value Proposition
+## 🎯 Use Cases
+
+### Use Case 1: Quick Price Check
+
+**Before:** Call 3 suppliers, wait 2 hours  
+**After:** Ask AI Agent, get answer in 10 seconds
+
+```
+You: "What's the price of cement?"
+AI Agent: [Shows all supplier prices instantly]
+```
+
+### Use Case 2: Project Quote
+
+**Before:** Multiple calls, manual calculations, document creation (2-3 hours)  
+**After:** One question, instant quote (30 seconds)
+
+```
+You: "Generate quote for Office Building project"
+AI Agent: [Generates complete quote with all materials]
+```
+
+### Use Case 3: Project Management
+
+**Before:** Manual tracking, spreadsheets, phone calls  
+**After:** AI Agent manages everything automatically
+
+```
+You: "Show me all quotes for Office Building"
+AI Agent: [Shows all quotes, comparisons, history]
+```
+
+### Use Case 4: Cost Comparison
+
+**Before:** Manual comparison across suppliers  
+**After:** AI Agent compares automatically
+
+```
+You: "Compare prices for cement across all suppliers"
+AI Agent: [Shows comparison with best price highlighted]
+```
+
+---
+
+## 💰 Benefits
 
 ### For QS Professionals
-**"Get construction pricing answers instantly, without making a single phone call."**
+
+- ⚡ **Save Time** - 2-3 hours → 10 seconds
+- 💰 **Better Prices** - See all suppliers at once
+- 📊 **Accurate Quotes** - Real-time prices, no guesswork
+- 🎯 **Focus on Work** - Less time on phone calls
+- 🧠 **Smart Assistant** - Learns your preferences
+- 📁 **Organized** - Projects and quotes managed automatically
 
 ### For Suppliers
-**"Get your prices in front of QS professionals instantly, without manual quotes."**
 
----
-
-## 📊 What Makes This Different?
-
-### vs. Traditional Methods
-- ❌ Phone calls → ✅ Instant AI chat
-- ❌ Manual price comparison → ✅ Automatic comparison
-- ❌ Outdated catalogs → ✅ Real-time prices
-- ❌ Hours of work → ✅ Seconds
-
-### vs. Other Pricing Platforms
-- ❌ Complex UI → ✅ Simple chat interface
-- ❌ Just data display → ✅ AI-powered answers
-- ❌ Static information → ✅ Context-aware responses
-
-### vs. ChatGPT
-- ❌ Outdated training data → ✅ Real-time supplier prices
-- ❌ General knowledge → ✅ Construction-specific expertise
-- ❌ No calculations → ✅ Automatic cost calculations
-
----
-
-## 🏗️ How It's Built
-
-### Technology Stack
-
-**AI Engine:**
-- OpenAI GPT-4 - Powers the AI assistant
-
-**Data Storage:**
-- PostgreSQL - Stores supplier and product data
-- Redis - Caches responses for speed
-
-**Application:**
-- Node.js/Express - Backend API
-- Next.js - Frontend web application
-
-**Architecture:**
-- Simple 3-table database (Organizations, Users, Products)
-- Real-time data integration
-- Smart caching for performance
-
----
-
-## 📈 Benefits
-
-### For QS Professionals
-- ⚡ **Save time** - Hours → Seconds
-- 💰 **Better prices** - See all suppliers at once
-- 📊 **Accurate quotes** - Real-time prices, no guesswork
-- 🎯 **Focus on work** - Less time on phone calls
-
-### For Suppliers
-- 🚀 **Instant visibility** - Products appear in AI answers immediately
-- 📝 **Easy management** - Simple product entry
-- 💼 **More opportunities** - Reach more QS professionals
-- ⏱️ **Less admin** - No manual quote requests
+- 🚀 **Instant Visibility** - Products appear in AI answers immediately
+- 📝 **Easy Management** - Simple product entry
+- 💼 **More Opportunities** - Reach all QS professionals
+- ⏱️ **Less Admin** - No manual quote requests
+- 📊 **Real-Time Updates** - Prices update instantly
 
 ### For the Industry
-- 🌍 **Digital transformation** - Move from phone calls to AI
+
+- 🌍 **Digital Transformation** - Move from phone calls to AI
 - 📊 **Transparency** - Clear pricing across suppliers
 - ⚡ **Efficiency** - Faster project estimates
 - 💡 **Innovation** - AI-powered construction tools
 
 ---
 
-## 🎓 Example Use Cases
+## 🎓 Example Interactions
 
-### Use Case 1: Quick Price Check
-**QS:** "What's the price of cement?"
-**AI:** "Based on current supplier data:
-- ABC Supplies: $50/bag
-- DEF Materials: $52/bag
-- GHI Builders: $48/bag
-Best price: $48/bag from GHI Builders"
+### Example 1: Simple Price Query
 
-### Use Case 2: Cost Calculation
-**QS:** "How much for 100 bags of cement and 50 steel bars?"
-**AI:** "Here's your quote with best prices:
-- Cement (100 bags): $4,800 (GHI Builders @ $48/bag)
-- Steel Bars (50 units): $10,000 (Metal Works @ $200/unit)
-Total: $14,800"
+```
+You: "What's the price of cement?"
 
-### Use Case 3: Specification Question
-**QS:** "What's the difference between M20 and M25 concrete?"
-**AI:** "M20 vs M25 Concrete:
-- M20: 20 MPa strength, standard construction
-- M25: 25 MPa strength, higher load-bearing
-Current prices:
-- M20: $120/cubic meter
-- M25: $135/cubic meter
-Price difference: $15/cubic meter (12.5% more)"
+AI Agent: "Based on current supplier data:
+          - ABC Supplies: $50/bag
+          - DEF Materials: $52/bag
+          - GHI Builders: $48/bag
+          
+          Best price: $48/bag from GHI Builders
+          (Your preferred supplier for cement)"
+```
+
+### Example 2: Project Creation & Quote
+
+```
+You: "Create a new project for office building"
+
+AI Agent: "✅ Project 'Office Building' created!
+          What materials do you need for this project?"
+
+You: "I need 100 bags of cement, 50 steel bars, and 200kg of sand"
+
+AI Agent: "📋 Generating quote for Office Building...
+          
+          Quote for Office Building:
+          ┌─────────────────────────────────────────┐
+          │ Material      Qty    Price    Total     │
+          │ ─────────────────────────────────────── │
+          │ Cement        100    $48/bag  $4,800    │
+          │ Steel Bars    50     $200/u   $10,000   │
+          │ Sand          200kg  $2/kg    $400     │
+          │ ─────────────────────────────────────── │
+          │ Total: $15,200                          │
+          └─────────────────────────────────────────┘
+          
+          ✅ Quote saved to 'Office Building' project
+          [View Quote] [Export PDF] [Compare Suppliers]"
+```
+
+### Example 3: Project Management
+
+```
+You: "Show me all quotes for Office Building"
+
+AI Agent: "📊 Project: Office Building
+          
+          Quotes:
+          - Quote #1 (Jan 15): $15,200
+          - Quote #2 (Jan 20): $14,800 ⭐ Best
+          - Quote #3 (Feb 1): $15,500
+          
+          💡 Best quote: $14,800 (Jan 20)
+          Price trend: Decreasing 📉"
+```
+
+---
+
+## 🏗️ How It's Built
+
+### Technology
+
+- **AI Engine:** OpenAI GPT-4 (natural language)
+- **Database:** PostgreSQL (projects, quotes, products)
+- **Cache:** Redis (fast responses)
+- **Learning:** Self-learning engine (improves over time)
+- **Frontend:** Next.js (chat interface)
+- **Backend:** Node.js/Express (AI Agent engine)
+
+### Architecture
+
+- **3 simple database tables** (Organizations, Users, Products)
+- **Self-learning engine** (learns from interactions)
+- **Real-time data integration** (supplier prices)
+- **Project management system** (organize by project)
+- **Automatic quote generation** (instant quotes)
 
 ---
 
 ## 🚀 Getting Started
 
 ### For QS Professionals
-1. Sign up (30 seconds)
-2. Start asking questions
-3. Get instant answers with real prices
+
+1. **Sign Up** (30 seconds)
+   - Select "I'm a QS Professional"
+   - Create or join company
+   - Instant access
+
+2. **Ask First Question** (10 seconds)
+   - "What's the price of cement?"
+   - Get instant answer
+
+3. **Create Project** (30 seconds)
+   - "Create project for office building"
+   - Start managing projects
+
+4. **Generate Quote** (30 seconds)
+   - "Generate quote for this project"
+   - Get complete quote instantly
+
+**Total time to value: < 2 minutes**
 
 ### For Suppliers
-1. Sign up (30 seconds)
-2. Add your products and prices
-3. They appear in AI answers immediately
+
+1. **Sign Up** (30 seconds)
+   - Select "I'm a Supplier"
+   - Create or join supplier organization
+   - Instant access
+
+2. **Add Products** (1 minute per product)
+   - Product name, price, unit
+   - Products appear in AI answers immediately
+
+3. **Update Prices** (30 seconds)
+   - Change price
+   - AI Agent uses new price immediately
+
+**Total time to value: < 2 minutes**
+
+---
+
+## 🎯 The "Wow" Moment
+
+**"I can ask the AI Agent anything about construction pricing, and it gives me instant answers with real supplier prices, manages my projects, and generates quotes automatically - all without making a single phone call!"**
 
 ---
 
 ## 📞 Support
 
 - **Documentation:** See [User Guides](./user-guide/)
-- **Technical Docs:** See [AI Architecture](./AI_ARCHITECTURE.md)
-- **Issues:** Check [Troubleshooting](./TROUBLESHOOTING_AUTH.md)
+- **Technical Docs:** See [Complete Architecture](./QS_AI_AGENT_ARCHITECTURE.md)
+- **Visual Guides:** See [Visual Guide](./VISUAL_GUIDE.md)
 
 ---
 
 ## 🎯 Vision
 
-**"Every Quantity Surveyor should have instant access to construction pricing information, powered by AI and real-time supplier data."**
+**"Every Quantity Surveyor should have an AI Agent that handles all pricing, quoting, and project management tasks - powered by real-time supplier data and self-learning AI."**
 
-We're building the future of construction cost estimation - simple, fast, and AI-powered.
+We're building the future of construction cost estimation - intelligent, automated, and AI-powered.
 
 ---
 
-**Ready to get started?** See [Getting Started Guide](./user-guide/getting-started.md)
+**Ready to get started?** See [Quick Start Guide](./QUICK_START.md)
