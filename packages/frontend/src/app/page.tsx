@@ -97,13 +97,14 @@ export default function Home() {
   const productsPerPage = 20;
 
   // Redirect suppliers to their products page, QS to chat, others can browse
+  // Only redirect if we're on the home page (not if user navigated to a specific page)
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && window.location.pathname === '/') {
       if (user.type === 'supplier' || user.tenant?.type === 'supplier') {
         router.push('/supplier/products');
         return;
       }
-      if (user.type === 'qs' && window.location.pathname === '/') {
+      if (user.type === 'qs') {
         router.push('/chat');
         return;
       }

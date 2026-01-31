@@ -32,7 +32,8 @@ export default function SupplierChatPage() {
       router.push('/auth/login');
       return;
     }
-    if (user?.type !== 'supplier') {
+    // Check both new schema (type) and old schema (tenant.type)
+    if (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier') {
       router.push('/');
       return;
     }
@@ -91,7 +92,8 @@ export default function SupplierChatPage() {
     }
   };
 
-  if (!isAuthenticated || user?.type !== 'supplier') {
+  // Check both new schema (type) and old schema (tenant.type)
+  if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
   }
 
