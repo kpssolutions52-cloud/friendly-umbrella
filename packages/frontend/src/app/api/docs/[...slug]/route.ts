@@ -2,6 +2,21 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 
+// Redirects for old documentation paths
+const redirects: Record<string, string> = {
+  'user-guide/getting-started': 'quick-start',
+  'user-guide/rfq-guide': 'product-overview',
+  'user-guide/supplier-guide': 'product-overview',
+  'user-guide/company-guide': 'multi-company',
+  'user-guide/api-testing': 'implementation',
+  'technical/architecture': 'architecture',
+  'technical/api-reference': 'architecture',
+  'technical/rfq-system': 'architecture',
+  'technical/price-management-flow': 'database',
+  'technical/setup': 'implementation',
+  'technical/deployment': 'implementation',
+};
+
 // Only new QS AI Agent documentation
 const docPaths: Record<string, string> = {
   // Main index
@@ -51,10 +66,17 @@ export async function GET(
   { params }: { params: { slug: string[] } }
 ) {
   const slug = params.slug?.join('/') || '';
+  
+  // Check for redirects first
+  if (redirects[slug]) {
+    return NextResponse.redirect(new URL(`/docs/${redirects[slug]}`, request.url), 301);
+  }
+  
   const filePath = docPaths[slug];
 
   if (!filePath) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    // Redirect unknown paths to main docs page
+    return NextResponse.redirect(new URL('/docs', request.url), 301);
   }
 
   try {
@@ -63,6 +85,7 @@ export async function GET(
     return NextResponse.json({ content });
   } catch (error) {
     console.error('Failed to read docs file:', filePath, error);
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    // Redirect to main docs page on error
+    return NextResponse.redirect(new URL('/docs', request.url), 301);
   }
 }
