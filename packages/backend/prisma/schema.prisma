@@ -27,6 +27,8 @@ model Organization {
   products      Product[]       @relation("SupplierProducts")
   projects      Project[]      @relation("CompanyProjects")
   companyPrices CompanyPrice[] @relation("CompanyPrices") // Company-specific prices
+  quoteResponses QuoteResponse[] @relation("SupplierQuoteResponses")
+  orders        Order[]         @relation("SupplierOrders")
 
   @@index([type])
   @@map("organizations")
@@ -51,6 +53,7 @@ model User {
   organization Organization @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
   projects      Project[]   @relation("ProjectOwner")
   quotes        Quote[]     @relation("QuoteCreator")
+  quoteRequests QuoteRequest[] @relation("QuoteRequestCreator")
 
   @@index([organizationId])
   @@index([email])
@@ -75,6 +78,8 @@ model Product {
 
   supplier      Organization @relation("SupplierProducts", fields: [supplierId], references: [id], onDelete: Cascade)
   companyPrices CompanyPrice[] // Company-specific prices
+  quoteResponseItems QuoteResponseItem[]
+  orderItems    OrderItem[]    @relation("OrderProduct")
   
   @@index([name])
   @@index([supplierId])
@@ -118,6 +123,8 @@ model Project {
   company Organization @relation("CompanyProjects", fields: [companyId], references: [id], onDelete: Cascade)
   owner   User         @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   quotes  Quote[]
+  quoteRequests QuoteRequest[] @relation("ProjectQuoteRequests")
+  orders  Order[]      @relation("ProjectOrders")
 
   @@index([companyId])
   @@index([ownerId])
@@ -180,4 +187,321 @@ model QuoteItem {
   @@index([quoteId])
   @@index([productId])
   @@map("quote_items")
+}
+
+// Quote Request (QS requests quotes from suppliers)
+model QuoteRequest {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  createdById String   @map("created_by_id")
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  status      QuoteRequestStatus @default(pending)
+  deadline    DateTime?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project   Project        @relation("ProjectQuoteRequests", fields: [projectId], references: [id], onDelete: Cascade)
+  creator   User           @relation("QuoteRequestCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  items     QuoteRequestItem[]
+  responses QuoteResponse[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@index([status])
+  @@map("quote_requests")
+}
+
+enum QuoteRequestStatus {
+  pending
+  in_progress
+  completed
+  cancelled
+}
+
+// Quote Request Items (Materials needed)
+model QuoteRequestItem {
+  id             String   @id @default(uuid())
+  quoteRequestId String   @map("quote_request_id")
+  name           String   @db.VarChar(255)
+  description    String?
+  quantity       Decimal  @db.Decimal(10, 2)
+  unit           String   @db.VarChar(50)
+  specifications String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+
+  @@index([quoteRequestId])
+  @@map("quote_request_items")
+}
+
+// Quote Response (Supplier submits quote)
+model QuoteResponse {
+  id             String   @id @default(uuid())
+  quoteRequestId String   @map("quote_request_id")
+  supplierId     String   @map("supplier_id")
+  totalAmount    Decimal  @db.Decimal(12, 2)
+  validUntil     DateTime? @map("valid_until")
+  notes          String?  @db.Text
+  status         QuoteResponseStatus @default(submitted)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  supplier     Organization @relation("SupplierQuoteResponses", fields: [supplierId], references: [id], onDelete: Cascade)
+  items        QuoteResponseItem[]
+  negotiations Negotiation[]
+  order        Order?
+
+  @@index([quoteRequestId])
+  @@index([supplierId])
+  @@index([status])
+  @@map("quote_responses")
+}
+
+enum QuoteResponseStatus {
+  submitted
+  under_review
+  approved
+  rejected
+  negotiating
+  expired
+}
+
+// Quote Response Items (Supplier's pricing)
+model QuoteResponseItem {
+  id              String   @id @default(uuid())
+  quoteResponseId String   @map("quote_response_id")
+  quoteRequestItemId String? @map("quote_request_item_id")
+  productId       String?  @map("product_id")
+  name            String   @db.VarChar(255)
+  quantity        Decimal  @db.Decimal(10, 2)
+  unit            String   @db.VarChar(50)
+  price           Decimal  @db.Decimal(12, 2)
+  total           Decimal  @db.Decimal(12, 2)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  quoteResponse QuoteResponse @relation(fields: [quoteResponseId], references: [id], onDelete: Cascade)
+  product       Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quoteResponseId])
+  @@index([productId])
+  @@map("quote_response_items")
+}
+
+// Negotiation (QS negotiates with supplier)
+model Negotiation {
+  id              String   @id @default(uuid())
+  quoteResponseId String   @map("quote_response_id")
+  initiatedBy     String   @db.VarChar(20) // qs | supplier
+  message         String   @db.Text
+  proposedAmount  Decimal? @db.Decimal(12, 2)
+  status          NegotiationStatus @default(open)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  quoteResponse QuoteResponse @relation(fields: [quoteResponseId], references: [id], onDelete: Cascade)
+
+  @@index([quoteResponseId])
+  @@index([status])
+  @@map("negotiations")
+}
+
+enum NegotiationStatus {
+  open
+  accepted
+  rejected
+  counter_offered
+}
+
+// Order (After quote approval)
+model Order {
+  id              String   @id @default(uuid())
+  quoteResponseId String   @unique @map("quote_response_id")
+  projectId       String   @map("project_id")
+  supplierId      String   @map("supplier_id")
+  orderNumber     String   @unique @db.VarChar(50)
+  totalAmount     Decimal  @db.Decimal(12, 2)
+  status          OrderStatus @default(pending)
+  orderDate       DateTime @default(now()) @map("order_date")
+  expectedDeliveryDate DateTime? @map("expected_delivery_date")
+  actualDeliveryDate DateTime? @map("actual_delivery_date")
+  deliveryAddress String?  @db.VarChar(500) @map("delivery_address")
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  quoteResponse QuoteResponse @relation(fields: [quoteResponseId], references: [id], onDelete: Cascade)
+  project       Project       @relation("ProjectOrders", fields: [projectId], references: [id], onDelete: Cascade)
+  supplier      Organization  @relation("SupplierOrders", fields: [supplierId], references: [id], onDelete: Cascade)
+  items         OrderItem[]
+  deliveries    Delivery[]
+  certificates  Certificate[]
+  payments      Payment[]
+  qualityInspection QualityInspection?
+
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  in_production
+  ready_for_delivery
+  in_transit
+  delivered
+  quality_check
+  quality_approved
+  quality_rejected
+  completed
+  cancelled
+}
+
+// Order Items
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String   @map("order_id")
+  productId       String?  @map("product_id")
+  name            String   @db.VarChar(255)
+  quantity        Decimal  @db.Decimal(10, 2)
+  unit            String   @db.VarChar(50)
+  price           Decimal  @db.Decimal(12, 2)
+  total           Decimal  @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation("OrderProduct", fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// Delivery Tracking
+model Delivery {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  status      DeliveryStatus @default(scheduled)
+  trackingNumber String? @db.VarChar(100) @map("tracking_number")
+  carrier     String?  @db.VarChar(100)
+  estimatedDate DateTime? @map("estimated_date")
+  actualDate  DateTime? @map("actual_date")
+  deliveryNotes String? @db.Text @map("delivery_notes")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+enum DeliveryStatus {
+  scheduled
+  in_transit
+  out_for_delivery
+  delivered
+  delayed
+  failed
+}
+
+// Quality Inspection
+model QualityInspection {
+  id          String   @id @default(uuid())
+  orderId     String   @unique @map("order_id")
+  inspectedBy String   @map("inspected_by")
+  status      QualityStatus @default(pending)
+  notes       String?  @db.Text
+  inspectionDate DateTime? @map("inspection_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("quality_inspections")
+}
+
+enum QualityStatus {
+  pending
+  passed
+  failed
+  conditional
+}
+
+// Certificates
+model Certificate {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  type        CertificateType
+  title       String   @db.VarChar(255)
+  fileUrl     String?  @db.VarChar(500) @map("file_url")
+  issuedBy    String?  @db.VarChar(255) @map("issued_by")
+  issueDate   DateTime? @map("issue_date")
+  expiryDate  DateTime? @map("expiry_date")
+  status      CertificateStatus @default(requested)
+  uploadedBy  String?  @db.VarChar(50) @map("uploaded_by") // supplier | qs
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([type])
+  @@map("certificates")
+}
+
+enum CertificateType {
+  material_certificate
+  test_certificate
+  quality_certificate
+  compliance_certificate
+  warranty_certificate
+}
+
+enum CertificateStatus {
+  requested
+  submitted
+  under_review
+  approved
+  rejected
+}
+
+// Payment
+model Payment {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  amount      Decimal  @db.Decimal(12, 2)
+  status      PaymentStatus @default(pending)
+  paymentDate DateTime? @map("payment_date")
+  paymentMethod String? @db.VarChar(50) @map("payment_method")
+  reference   String?  @db.VarChar(100)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  processed
+  completed
+  failed
+  cancelled
 }
