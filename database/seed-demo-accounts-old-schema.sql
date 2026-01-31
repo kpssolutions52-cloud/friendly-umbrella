@@ -62,7 +62,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000011',
   '00000000-0000-0000-0000-000000000001',
   'demo.qs@constructionguru.com',
-  '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- Replace with actual hash
+  '$2a$10$PocqDPcRsoyxbTw6bHWJPufiF.SI.eEEs9kAymNRF4K5.WfQA6VIK', -- DemoQS123!
   'Demo',
   'QS Professional',
   'company_staff',
@@ -99,7 +99,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000012',
   '00000000-0000-0000-0000-000000000002',
   'demo.supplier@constructionguru.com',
-  '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- Replace with actual hash
+  '$2a$10$PocqDPcRsoyxbTw6bHWJPufiF.SI.eEEs9kAymNRF4K5.WfQA6VIK', -- DemoQS123!
   'Demo',
   'Supplier',
   'supplier_staff',
