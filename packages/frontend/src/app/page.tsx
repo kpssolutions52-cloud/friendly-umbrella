@@ -96,31 +96,27 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop' | 'rfq'>('shop');
   const productsPerPage = 20;
 
-  // Redirect suppliers to their products page, QS to chat, others can browse
+  // Redirect users to appropriate pages when landing on home page
   // Only redirect if we're on the home page (not if user navigated to a specific page)
   useEffect(() => {
     if (!authLoading && user && window.location.pathname === '/') {
-      if (user.type === 'supplier' || user.tenant?.type === 'supplier') {
-        router.push('/supplier/products');
-        return;
-      }
-      if (user.type === 'qs') {
-        router.push('/chat');
-        return;
-      }
-    }
-  }, [authLoading, user, router]);
-  // All other users (customers, suppliers, companies, service providers) can stay on home page
-  useEffect(() => {
-    if (!authLoading && user) {
-      // Only redirect super admins to their dashboard
+      // Redirect super admins to their dashboard
       if (user.role === 'super_admin') {
         router.push('/admin/dashboard');
         return;
       }
-      // All other users (customers, suppliers, companies, service providers) stay on home page
+      // Redirect suppliers to their products page
+      if (user.type === 'supplier' || user.tenant?.type === 'supplier') {
+        router.push('/supplier/products');
+        return;
+      }
+      // Redirect QS to chat
+      if (user.type === 'qs') {
+        router.push('/chat');
+        return;
+      }
+      // All other users (customers, companies, service providers) can stay on home page
       // They can see Products/Services tabs and browse the shop
-      // They can manually navigate to their dashboard via the header navigation if needed
     }
   }, [authLoading, user, router]);
 
