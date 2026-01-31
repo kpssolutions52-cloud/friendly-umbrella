@@ -33,20 +33,22 @@ export default function SupplierProductsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect if not authenticated or not supplier
+  // Check both new schema (type) and old schema (tenant.type) for compatibility
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
     }
-    if (user?.type !== 'supplier') {
+    if (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier') {
       router.push('/');
       return;
     }
   }, [isAuthenticated, user, router]);
 
   // Load products
+  // Check both new schema (type) and old schema (tenant.type) for compatibility
   useEffect(() => {
-    if (isAuthenticated && user?.type === 'supplier') {
+    if (isAuthenticated && (user?.type === 'supplier' || user?.tenant?.type === 'supplier')) {
       loadProducts();
     }
   }, [isAuthenticated, user]);
@@ -134,7 +136,8 @@ export default function SupplierProductsPage() {
     }
   };
 
-  if (!isAuthenticated || user?.type !== 'supplier') {
+  // Check both new schema (type) and old schema (tenant.type) for compatibility
+  if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
   }
 
