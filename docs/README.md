@@ -58,6 +58,13 @@
    - Timeline and milestones
    - Feature priorities
 
+10. **[General User Role](./GENERAL_USER_ROLE.md)** 🏠 ⭐
+    - General User (homeowners/individuals) design
+    - End-to-end project guidance
+    - Simplified interface
+    - Market expansion strategy
+    - B2C features
+
 ### Technical
 
 4. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧

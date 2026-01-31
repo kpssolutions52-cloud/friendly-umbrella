@@ -2,7 +2,12 @@
 
 ## 🎯 Vision
 
-**Build the most intelligent, user-friendly AI platform for Quantity Surveyors and Suppliers - eliminating phone calls and manual work through natural language AI, real-time data, and complete workflow automation.**
+**Build the most intelligent, user-friendly AI platform for Quantity Surveyors, Suppliers, and General Users (homeowners/individuals) - eliminating phone calls and manual work through natural language AI, real-time data, and complete workflow automation.**
+
+**Three user types:**
+- **QS Professionals** - Fast pricing, quotes, project management
+- **Suppliers** - Inventory, prices, order management
+- **General Users** ⭐ - End-to-end guidance for construction projects
 
 ---
 
@@ -43,20 +48,32 @@ MVP 1 (4 weeks) → MVP 2 (4 weeks) → MVP 3 (4 weeks) → Release V1 (2 weeks)
   - Confirmation dialogs
 - ✅ Real-time price sync
 
+#### For General Users ⭐ NEW
+- ✅ Sign up / Login (as General User)
+- ✅ Simplified AI Chat Interface
+- ✅ "I want to build X" → AI guides through process
+- ✅ Real-time price queries (simplified)
+- ✅ Basic project creation
+- ✅ Simple dashboard
+- ✅ Step-by-step guidance
+
 #### Core Infrastructure
-- ✅ Authentication (JWT)
+- ✅ Authentication (JWT) - Support 3 user types
 - ✅ Database (Organizations, Users, Products)
+  - Add `general_user` to UserType enum
+  - Add `individual` to OrgType enum
 - ✅ OpenAI Integration (GPT-4o-mini)
 - ✅ Basic caching (Redis)
 - ✅ Real-time updates (WebSocket)
-- ✅ Mobile responsive UI
+- ✅ Mobile responsive UI (especially for General Users)
 
 ### Success Metrics
 - [ ] Response time < 2 seconds
 - [ ] 95%+ accuracy on price queries
 - [ ] 100% price update confirmations
 - [ ] Zero critical bugs
-- [ ] 10+ test users happy
+- [ ] 10+ test users per role (QS, Supplier, General User)
+- [ ] General Users can complete project setup in < 5 minutes
 
 ### Deliverables
 - Working AI chat
@@ -102,6 +119,17 @@ MVP 1 (4 weeks) → MVP 2 (4 weeks) → MVP 3 (4 weeks) → Release V1 (2 weeks)
 - ✅ Cost calculations
 - ✅ Save quotes to projects
 
+#### General User Features ⭐ NEW
+- ✅ Project Wizard (step-by-step guide)
+  - "I want to build X" → AI guides
+  - Budget planning
+  - Style selection
+  - Material selection
+- ✅ Simplified quote generation
+- ✅ Basic budget planning
+- ✅ Timeline estimates
+- ✅ Educational content (basic)
+
 #### Enhanced AI
 - ✅ Better intent recognition
 - ✅ Context awareness (remembers project)
@@ -113,6 +141,8 @@ MVP 1 (4 weeks) → MVP 2 (4 weeks) → MVP 3 (4 weeks) → Release V1 (2 weeks)
 - [ ] Company-specific pricing used by 50% suppliers
 - [ ] Projects created by 70% QS users
 - [ ] Quote generation accuracy 95%+
+- [ ] 50%+ General Users complete project setup
+- [ ] General User satisfaction 80%+
 
 ### Deliverables
 - Complete rating system
@@ -166,7 +196,15 @@ MVP 1 (4 weeks) → MVP 2 (4 weeks) → MVP 3 (4 weeks) → Release V1 (2 weeks)
 - ✅ Smooth animations
 - ✅ Loading states
 - ✅ Error recovery
-- ✅ Onboarding flow
+- ✅ Onboarding flow (for all 3 user types)
+
+#### General User Complete Features ⭐ NEW
+- ✅ Full project management
+- ✅ Budget tracking with alerts
+- ✅ Timeline tracking with milestones
+- ✅ Progress updates
+- ✅ Order tracking (simplified)
+- ✅ Educational content library
 
 ### Success Metrics
 - [ ] Complete workflow used by 60% users
@@ -422,18 +460,23 @@ Week 29+:   Future Releases
 ## 🎯 Feature Priority Matrix
 
 ### Must-Have (P0)
-1. AI chat for price queries
-2. AI chat for price updates
+1. AI chat for price queries (QS + General Users)
+2. AI chat for price updates (Suppliers)
 3. Real-time price sync
 4. Supplier ratings
-5. Basic authentication
+5. Basic authentication (3 user types)
+6. General User project wizard ⭐
+7. General User simplified interface ⭐
 
 ### Should-Have (P1)
-6. Company-specific pricing
-7. Project management
-8. Quote generation
-9. Complete workflows
-10. Notifications
+8. Company-specific pricing
+9. Project management (QS + General Users)
+10. Quote generation
+11. Complete workflows
+12. Notifications
+13. General User budget planning ⭐
+14. General User timeline tracking ⭐
+15. Educational content for General Users ⭐
 
 ### Nice-to-Have (P2)
 11. Photo-to-quote
@@ -514,25 +557,32 @@ Week 29+:   Future Releases
 - ✅ Users say "I can't work without this"
 
 ### Release V1 Success
-- ✅ 500+ users
+- ✅ 500+ users (QS + Suppliers + General Users)
 - ✅ 95% uptime
 - ✅ Positive reviews
 - ✅ Growing user base
 - ✅ Revenue (if applicable)
+- ✅ General Users: 200+ active projects
+- ✅ Viral potential (social shares)
 
 ### Release V2 Success
-- ✅ 2000+ users
-- ✅ Photo-to-quote viral
+- ✅ 2000+ users (across all roles)
+- ✅ Photo-to-quote viral (especially General Users)
 - ✅ Voice interface adopted
 - ✅ Price predictions accurate
 - ✅ Media coverage
+- ✅ General Users: 1000+ active projects
+- ✅ Social media buzz (homeowner stories)
 
 ### Release V3 Success
-- ✅ 10,000+ users
+- ✅ 10,000+ users (across all roles)
 - ✅ AI advisor indispensable
 - ✅ Market leader
 - ✅ Profitable
 - ✅ Industry standard
+- ✅ General Users: 5,000+ active projects
+- ✅ B2C market penetration
+- ✅ Network effects visible
 
 ---
 
@@ -558,16 +608,18 @@ Week 29+:   Future Releases
 ## 📋 Implementation Checklist
 
 ### MVP 1 Checklist
-- [ ] Database schema
-- [ ] Authentication system
+- [ ] Database schema (3 user types)
+- [ ] Authentication system (QS, Supplier, General User)
 - [ ] AI service integration
 - [ ] QS chat interface
 - [ ] Supplier chat interface
+- [ ] General User chat interface ⭐
 - [ ] Product management UI
+- [ ] General User project wizard ⭐
 - [ ] Real-time updates
-- [ ] Mobile responsive
+- [ ] Mobile responsive (especially General Users)
 - [ ] Error handling
-- [ ] Basic testing
+- [ ] Basic testing (all 3 roles)
 
 ### MVP 2 Checklist
 - [ ] Rating system
@@ -650,24 +702,28 @@ Week 29+:   Future Releases
 ## 📈 Growth Strategy
 
 ### Phase 1: MVP (Weeks 1-12)
-- Focus: Build core product
-- Users: 10-100 test users
-- Goal: Prove value
+- Focus: Build core product (3 user types)
+- Users: 10-100 test users per role
+- Goal: Prove value for all user types
+- General Users: Focus on simplicity and guidance
 
 ### Phase 2: Launch (Weeks 13-20)
-- Focus: Acquire users
-- Users: 100-2000
+- Focus: Acquire users (all 3 roles)
+- Users: 100-2000 (QS + Suppliers + General Users)
 - Goal: Product-market fit
+- General Users: Marketing push, social media, viral features
 
 ### Phase 3: Scale (Weeks 21-28)
 - Focus: Growth & features
-- Users: 2000-10,000
+- Users: 2000-10,000 (across all roles)
 - Goal: Market leadership
+- General Users: Viral growth, network effects, B2C dominance
 
 ### Phase 4: Dominate (Week 29+)
 - Focus: Ecosystem & expansion
-- Users: 10,000+
+- Users: 10,000+ (across all roles)
 - Goal: Industry standard
+- General Users: Market penetration, brand recognition, platform dominance
 
 ---
 
