@@ -7,6 +7,7 @@ import { apiPost } from '@/lib/api';
 import { Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Header } from '@/components/Header';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -99,7 +100,8 @@ export default function SupplierChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
+      <Header />
+      {/* Page Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sm:px-6">
         <h1 className="text-xl font-bold text-gray-900">Supplier AI Assistant</h1>
         <p className="text-sm text-gray-500 mt-1">

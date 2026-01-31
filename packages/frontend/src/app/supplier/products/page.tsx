@@ -8,6 +8,7 @@ import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Header } from '@/components/Header';
 
 interface Product {
   id: string;
@@ -142,10 +143,12 @@ export default function SupplierProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 px-3 sm:px-4 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-4 sm:mb-6">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="py-4 sm:py-6 px-3 sm:px-4 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Product Management</h1>
@@ -385,6 +388,7 @@ export default function SupplierProductsPage() {
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
