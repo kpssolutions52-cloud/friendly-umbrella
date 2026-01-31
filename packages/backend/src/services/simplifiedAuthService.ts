@@ -152,11 +152,11 @@ export class SimplifiedAuthService {
   async login(input: SimplifiedLoginInput) {
     try {
       // Try to find user - check if we have new schema (organization) or old schema (tenant)
-      let user: any;
-      let organization: any;
-      let userType: 'qs' | 'supplier';
-      let organizationId: string;
-      let organizationType: 'company' | 'supplier';
+      let user: any = null;
+      let organization: any = null;
+      let userType: 'qs' | 'supplier' | null = null;
+      let organizationId: string | null = null;
+      let organizationType: 'company' | 'supplier' | null = null;
 
       try {
         // Try new schema first (with organization relation)
@@ -261,7 +261,7 @@ export class SimplifiedAuthService {
         }
       }
 
-      if (!user) {
+      if (!user || !userType || !organizationId || !organizationType || !organization) {
         throw createError(401, 'Invalid email or password');
       }
 
