@@ -96,8 +96,19 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<'ai-quote' | 'shop' | 'rfq'>('shop');
   const productsPerPage = 20;
 
-  // Removed auto-redirect - allow ALL logged-in users to browse the Shop page with Products/Services tabs
-  // Only super admins are redirected (they have special admin dashboards)
+  // Redirect suppliers to their products page, QS to chat, others can browse
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.type === 'supplier' || user.tenant?.type === 'supplier') {
+        router.push('/supplier/products');
+        return;
+      }
+      if (user.type === 'qs' && window.location.pathname === '/') {
+        router.push('/chat');
+        return;
+      }
+    }
+  }, [authLoading, user, router]);
   // All other users (customers, suppliers, companies, service providers) can stay on home page
   useEffect(() => {
     if (!authLoading && user) {

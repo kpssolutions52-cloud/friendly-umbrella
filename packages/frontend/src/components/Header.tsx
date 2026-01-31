@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
-import { MessageSquare, Package, LayoutDashboard } from 'lucide-react';
+import { MessageSquare, Package, LayoutDashboard, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -86,37 +86,17 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     </>
                   )}
                   
-                  {user.role === 'customer' ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={logout} 
-                      className="text-xs sm:text-sm"
-                    >
-                      Logout
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        if (user.role === 'super_admin') {
-                          router.push('/admin/dashboard');
-                        } else if (user.tenant?.type === 'supplier') {
-                          router.push('/supplier/dashboard');
-                        } else if (user.tenant?.type === 'service_provider') {
-                          router.push('/service-provider/dashboard');
-                        } else {
-                          router.push('/company/dashboard');
-                        }
-                      }} 
-                      className="text-xs sm:text-sm"
-                    >
-                      <LayoutDashboard className="h-4 w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Dashboard</span>
-                      <span className="sm:hidden">Dash</span>
-                    </Button>
-                  )}
+                  {/* Always show logout button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={logout} 
+                    className="text-xs sm:text-sm"
+                  >
+                    <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Logout</span>
+                    <span className="sm:hidden">Out</span>
+                  </Button>
                 </>
               ) : (
                 <>
