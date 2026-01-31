@@ -29,12 +29,18 @@
    - AI chat for both user types
    - Price updates via chat
 
-5. **[Multi-Company Architecture](./MULTI_COMPANY_ARCHITECTURE.md)** 🏢
+5. **[Supplier Guide](./SUPPLIER_GUIDE.md)** 🏭 **NEW**
+   - Complete supplier operations manual
+   - All AI chat commands
+   - Workflow examples
+   - Best practices
+
+6. **[Multi-Company Architecture](./MULTI_COMPANY_ARCHITECTURE.md)** 🏢
    - Multiple companies
    - Independent projects
    - Company-specific pricing
 
-6. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
+7. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
    - Complete quote-to-order workflow
    - How to use the workflow
    - Step-by-step guide

@@ -102,39 +102,73 @@ AI Agent: "📋 Quote generated for Office Building:
 
 ### For Suppliers
 
-#### 1. Simple Product Entry
+#### 1. Natural Language AI Chat (Primary Interface)
 
-**Add products in 1 minute:**
-
-```
-Product Name: Cement
-Price: 50.00
-Unit: bag
-[Save]
-
-✅ Done! Your product now appears in AI answers
-```
-
-#### 2. Real-Time Updates
-
-**Update prices instantly:**
+**Manage everything through natural language:**
 
 ```
-Change price: $50 → $48
-[Save]
+You: "Update cement price to $48 per bag"
+AI Agent: "✅ Updated cement base price to $48/bag.
+          All companies will see this price immediately."
 
-✅ AI Agent uses new price immediately
-✅ All QS professionals see updated price
+You: "Set cement price for Company A to $45 per bag"
+AI Agent: "✅ Set special price for Company A:
+          Cement: $45/bag
+          Company A will see this price immediately."
+
+You: "Show me my inventory"
+AI Agent: "📦 Your Inventory:
+          - Cement: $48/bag
+          - Steel: $200/unit
+          - Sand: $2/kg"
+
+You: "What quote requests do I have?"
+AI Agent: "📋 You have 3 pending quote requests:
+          1. Office Building - Due: Jan 25
+          2. Warehouse - Due: Jan 30
+          3. Residential - Due: Feb 1"
+
+You: "Submit quote for Office Building: cement $45, steel $195"
+AI Agent: "✅ Quote submitted! Total: $14,500
+          QS will be notified immediately."
 ```
 
-#### 3. Automatic Visibility
+#### 2. Dynamic UI Dashboard (Secondary Interface)
 
-**Your products appear automatically:**
+**Manage inventory and prices visually:**
 
-- No manual quote requests
-- No phone calls needed
-- AI Agent queries your data
-- Instant visibility to all QS professionals
+- **Inventory Dashboard** - All products, prices, stock levels
+- **Quote Requests** - View and respond to quote requests
+- **Orders Dashboard** - Track all orders and status
+- **Price Management** - Base prices + company-specific prices
+- **Certificate Management** - Upload and manage certificates
+
+**Auto-Updates:**
+- New quote requests appear instantly
+- Order status changes in real-time
+- Price updates reflect immediately
+- QS responses notify you automatically
+
+#### 3. Complete Workflow Management
+
+**End-to-end operations:**
+
+- **Price Management** - Update base prices, set company-specific prices
+- **Quote Responses** - Submit quotes via AI chat or UI
+- **Order Management** - Track orders, update status
+- **Delivery Tracking** - Update delivery status
+- **Certificate Upload** - Submit certificates on request
+- **Negotiations** - Handle price negotiations via AI chat
+
+#### 4. Real-Time Visibility
+
+**Your data is always current:**
+
+- Update prices → All QS see instantly
+- Submit quotes → QS notified immediately
+- Update orders → Status changes in real-time
+- Upload certificates → QS sees immediately
+- No phone calls needed → Everything automated
 
 ---
 
@@ -234,11 +268,14 @@ AI Agent: [Shows comparison with best price highlighted]
 
 ### For Suppliers
 
-- 🚀 **Instant Visibility** - Products appear in AI answers immediately
-- 📝 **Easy Management** - Simple product entry
-- 💼 **More Opportunities** - Reach all QS professionals
-- ⏱️ **Less Admin** - No manual quote requests
-- 📊 **Real-Time Updates** - Prices update instantly
+- 🚀 **Natural Language Management** - Update prices via AI chat (like ChatGPT)
+- ⚡ **Instant Visibility** - Products appear in AI answers immediately
+- 💼 **More Opportunities** - Reach all QS professionals automatically
+- ⏱️ **Time Savings** - No phone calls, no manual quotes, no follow-ups
+- 📊 **Real-Time Updates** - Prices update instantly, QS see immediately
+- 🎯 **Company-Specific Pricing** - Set special prices for key clients
+- 📋 **Complete Workflow** - Manage quotes, orders, certificates all in one place
+- 🔔 **Real-Time Notifications** - Get notified of quote requests, orders, negotiations
 
 ### For the Industry
 
@@ -362,12 +399,20 @@ AI Agent: "📊 Project: Office Building
    - Instant access
 
 2. **Add Products** (1 minute per product)
-   - Product name, price, unit
+   - Via AI Chat: "Add product: cement, $50 per bag"
+   - Or via UI: Product name, price, unit
    - Products appear in AI answers immediately
 
-3. **Update Prices** (30 seconds)
-   - Change price
+3. **Start Using AI Chat** (10 seconds)
+   - "What products do I have?"
+   - "Update cement price to $48"
+   - "Show me quote requests"
+
+4. **Update Prices** (30 seconds)
+   - Via AI Chat: "Update cement price to $48"
+   - Or via UI: Change price, save
    - AI Agent uses new price immediately
+   - All QS see updated price instantly
 
 **Total time to value: < 2 minutes**
 
