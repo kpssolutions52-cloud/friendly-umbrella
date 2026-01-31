@@ -34,11 +34,15 @@ export async function getSupplierPrices(
   }
 
   // Query database - NEW SCHEMA ONLY
+  // Filter out products with null prices
   const products = await prisma.product.findMany({
     where: {
       name: {
         contains: productName,
         mode: 'insensitive',
+      },
+      price: {
+        not: null, // Exclude products with null prices
       },
     },
     include: {
