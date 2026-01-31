@@ -1,10 +1,14 @@
-# QS AI Agent - Product Overview
+# ConstructionGuru - Product Overview
 
-## 🎯 What Is This?
+## 🎯 What Is ConstructionGuru?
 
-**QS AI Agent** is a complete AI-powered assistant for Quantity Surveyors that eliminates the need for phone calls and manual follow-ups.
+**ConstructionGuru: The Ultimate AI Platform for Construction**
 
-Think of it as **"ChatGPT for Quantity Surveyors"** - but with:
+**One platform. Three user types. Infinite possibilities.**
+
+ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform that eliminates phone calls and manual work for Quantity Surveyors, Suppliers, and Homeowners through natural language AI and real-time supplier data.
+
+Think of it as **"ChatGPT for Construction"** - but with:
 - ✅ Real-time supplier prices (always up-to-date)
 - ✅ Self-learning AI (gets smarter over time)
 - ✅ Project management (organize your work)
@@ -434,9 +438,13 @@ AI Agent: "📊 Project: Office Building
 
 ## 🎯 Vision
 
-**"Every Quantity Surveyor should have an AI Agent that handles all pricing, quoting, and project management tasks - powered by real-time supplier data and self-learning AI."**
+**"Every QS professional, every supplier, and every homeowner should have access to instant, accurate construction pricing and guidance through AI - eliminating phone calls and manual work forever."**
 
-We're building the future of construction cost estimation - intelligent, automated, and AI-powered.
+We're building the future of construction - intelligent, automated, and AI-powered.
+
+**ConstructionGuru: The Ultimate AI Platform for Construction**
+
+**One platform. Three user types. Infinite possibilities. 🚀**
 
 ---
 
