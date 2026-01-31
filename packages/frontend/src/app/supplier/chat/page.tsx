@@ -49,6 +49,12 @@ export default function SupplierChatPage() {
       router.push('/auth/login');
       return;
     }
+    // If user is QS, redirect to QS chat
+    if (user?.type === 'qs') {
+      router.push('/chat');
+      return;
+    }
+    // If user is not supplier, redirect to home
     if (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier') {
       router.push('/');
       return;
