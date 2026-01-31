@@ -41,15 +41,17 @@ function getDocsPath(relativePath: string): string {
   // Try multiple possible paths for different environments
   const possiblePaths = [
     // First try: docs copied to frontend package during build (Vercel/serverless)
-    // This is where copy-docs.js puts them
+    // This is where copy-docs.js puts them - MOST LIKELY on Vercel
     join(process.cwd(), 'docs', filename),
-    // Second try: from frontend package, go up to project root (local dev)
+    // Second try: same but with full path
+    join(process.cwd(), 'docs', relativePath.replace('docs/', '')),
+    // Third try: from frontend package, go up to project root (local dev)
     join(process.cwd(), '../../', relativePath),
-    // Third try: alternative path format
+    // Fourth try: alternative path format
     join(process.cwd(), '../..', relativePath),
-    // Fourth try: Vercel/serverless at project root
+    // Fifth try: Vercel/serverless at project root
     join(process.cwd(), relativePath),
-    // Fifth try: absolute path from project root (if cwd is packages/frontend)
+    // Sixth try: absolute path from project root (if cwd is packages/frontend)
     join(process.cwd(), '..', '..', relativePath),
   ];
 
