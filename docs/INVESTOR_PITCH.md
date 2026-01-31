@@ -143,28 +143,34 @@ We're building the **ChatGPT for Construction** - an AI-powered platform that el
 
 ### Revenue Projections (Year 1-3)
 
-**Year 1:**
-- 1,000 QS users × $199/month = $2.4M ARR
-- 500 Suppliers × $299/month = $1.8M ARR
-- 5,000 General Users × $49/month = $2.9M ARR
-- Transaction fees: $500K
-- **Total Year 1: ~$7.6M ARR**
+> **📊 For detailed financial model with all assumptions, calculations, and breakdowns, see [Financial Model](./FINANCIAL_MODEL.md)**
+
+**Year 1 (B2B Focus):**
+- 1,000 QS users (mix: 30% Starter, 60% Pro, 10% Enterprise) = $2.148M ARR
+- 500 Suppliers (mix: 40% Basic, 50% Pro, 10% Enterprise) = $1.674M ARR
+- Transaction fees (10% of QS users, 2 orders/month, $10K avg, 3% commission) = $720K
+- **Total Year 1: $4.542M ARR**
 
 **Year 2:**
-- 10,000 QS users = $24M ARR
-- 5,000 Suppliers = $18M ARR
-- 50,000 General Users = $29M ARR
-- Transaction fees: $5M
-- **Total Year 2: ~$76M ARR**
+- 10,000 QS users = $22.08M ARR
+- 5,000 Suppliers = $17.04M ARR
+- Transaction fees (20% adoption, 3% commission) = $14.4M
+- **Total Year 2: $53.52M ARR**
 
 **Year 3:**
-- 50,000 QS users = $120M ARR
-- 25,000 Suppliers = $90M ARR
-- 500,000 General Users = $290M ARR
-- Transaction fees: $50M
-- **Total Year 3: ~$550M ARR**
+- 50,000 QS users = $113.4M ARR
+- 25,000 Suppliers = $86.7M ARR
+- Transaction fees (30% adoption, 3% commission) = $108M
+- **Total Year 3: $308.1M ARR**
 
-**Path to $100M+ ARR in 3 years**
+**Key Assumptions:**
+- **CAC:** $750 (QS), $1,500 (Suppliers)
+- **LTV:** $4,975 (QS), $7,475 (Suppliers)
+- **LTV:CAC:** 6.6:1 (QS), 5:1 (Suppliers)
+- **Churn:** 4% monthly (better than 5-7% industry average)
+- **Payback:** 4.7 months (QS), 6.3 months (Suppliers)
+
+**Path to $100M+ ARR in 3 years (validated by detailed financial model)**
 
 ---
 

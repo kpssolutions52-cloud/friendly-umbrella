@@ -32,6 +32,15 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
    - Competitive advantage
    - Technical feasibility
 
+3. **[Financial Model](./FINANCIAL_MODEL.md)** 💰 **NEW**
+   - Comprehensive revenue breakdown
+   - Detailed assumptions & calculations
+   - CAC, LTV, churn analysis
+   - Unit economics
+   - Sensitivity analysis
+   - Industry benchmarks
+   - **Every number explained - no "magic numbers"**
+
 ### 👥 User Guides
 
 3. **[Product Overview](./PRODUCT_OVERVIEW.md)** 📖
@@ -153,8 +162,9 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
 ### Revenue Model
 - **B2B Subscriptions:** $99-499/month (QS + Suppliers)
 - **Transaction Fees:** 2-5% on orders
-- **Phase 1 Projections:** $4.8M Year 1 → $210M Year 3 (B2B)
+- **Phase 1 Projections:** $4.5M Year 1 → $308M Year 3 (B2B)
 - **Phase 2 (Future):** B2C subscriptions, expand to $550M+ ARR
+- **📊 See [Financial Model](./FINANCIAL_MODEL.md) for detailed breakdown with all assumptions**
 
 ---
 
@@ -163,6 +173,7 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
 ### For Investors
 - [Executive Summary](./EXECUTIVE_SUMMARY.md) - Start here
 - [Investor Pitch](./INVESTOR_PITCH.md) - Complete presentation
+- [Financial Model](./FINANCIAL_MODEL.md) - Detailed revenue breakdown & assumptions
 
 ### For Users
 - [Product Overview](./PRODUCT_OVERVIEW.md) - What it does

@@ -45,22 +45,25 @@
 
 ### Revenue Projections
 
+> **📊 For comprehensive financial model with detailed assumptions, see [Financial Model](./FINANCIAL_MODEL.md)**
+
 **Phase 1: B2B Focus**
 
-| Year | QS Users | Suppliers | ARR |
-|------|----------|-----------|-----|
-| **Year 1** | 1,000 | 500 | **$4.8M** |
-| **Year 2** | 10,000 | 5,000 | **$42M** |
-| **Year 3** | 50,000 | 25,000 | **$210M** |
+| Year | QS Users | Suppliers | Transaction Fees | Total ARR |
+|------|----------|-----------|------------------|-----------|
+| **Year 1** | 1,000 ($2.148M) | 500 ($1.674M) | $720K | **$4.542M** |
+| **Year 2** | 10,000 ($22.08M) | 5,000 ($17.04M) | $14.4M | **$53.52M** |
+| **Year 3** | 50,000 ($113.4M) | 25,000 ($86.7M) | $108M | **$308.1M** |
 
-**Phase 2: B2C Expansion (Future)**
+**Key Metrics:**
+- **CAC:** $750 (QS), $1,500 (Suppliers)
+- **LTV:CAC:** 6.6:1 (QS), 5:1 (Suppliers)
+- **Churn:** 4% monthly (vs 5-7% industry avg)
+- **Payback:** 4.7-6.3 months
 
-| Year | General Users | Total ARR |
-|------|---------------|-----------|
-| **Year 4** | 100,000 | **$550M** |
-| **Year 5** | 500,000 | **$1B+** |
+**Phase 2: B2C Expansion (Future - Not in Year 1-3 projections)**
 
-> **📈 Path to $100M+ ARR in 3 years (B2B), $1B+ in 5 years (complete platform)**
+> **📈 Path to $100M+ ARR in 3 years (B2B), validated by detailed financial model**
 
 ---
 
