@@ -162,16 +162,16 @@ export async function processSupplierCommand(
         console.log('[SupplierAIService] Trying old schema with raw SQL for product update');
         try {
           const { Prisma } = await import('@prisma/client');
-          const updateData: any[] = [intent.price, product.id];
-          let updateQuery = Prisma.sql`UPDATE products SET price = ${intent.price}, updated_at = NOW()`;
           
           if (intent.unit) {
-            updateQuery = Prisma.sql`UPDATE products SET price = ${intent.price}, unit = ${intent.unit}, updated_at = NOW()`;
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET price = ${intent.price}, unit = ${intent.unit}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET price = ${intent.price}, updated_at = NOW() WHERE id = ${product.id}`
+            );
           }
-          
-          await prisma.$executeRaw(
-            Prisma.sql`${updateQuery} WHERE id = ${product.id}`
-          );
 
           // Fetch updated product
           const result = await prisma.$queryRaw<any[]>(
