@@ -34,34 +34,44 @@ export async function getSupplierPrices(
   }
 
   // Query database - NEW SCHEMA ONLY
-  // Note: price and supplierId are required in schema, but we filter in app layer for safety
-  const products = await prisma.product.findMany({
-    where: {
-      name: {
-        contains: productName,
-        mode: 'insensitive',
-      },
-    },
-    include: {
-      supplier: true,
-    },
-    orderBy: {
-      price: 'asc', // Best price first
-    },
-    take: 10, // Top 10 suppliers
-  });
+  // Filter at database level to ensure supplierId is not null and supplier exists
+  // Use raw query to handle cases where supplierId might be null in database but required in schema
+  const searchPattern = `%${productName}%`;
+  const products = await prisma.$queryRaw<Array<{
+    id: string;
+    supplier_id: string;
+    name: string;
+    price: any; // Decimal from DB
+    unit: string;
+    supplier_name: string;
+  }>>`
+    SELECT 
+      p.id,
+      p.supplier_id,
+      p.name,
+      p.price,
+      p.unit,
+      o.name as supplier_name
+    FROM products p
+    INNER JOIN organizations o ON p.supplier_id = o.id
+    WHERE 
+      p.name ILIKE ${searchPattern}
+      AND p.price IS NOT NULL
+      AND p.supplier_id IS NOT NULL
+      AND o.type = 'supplier'
+    ORDER BY p.price ASC
+    LIMIT 10
+  `;
 
-  // Filter out products with null prices, null supplierId, or null supplier relation
-  const result = products
-    .filter((p) => p.price !== null && p.supplierId !== null && p.supplier !== null)
-    .map((p) => ({
-      supplier: p.supplier!.name,
-      product: p.name,
-      price: Number(p.price),
-      unit: p.unit,
-      supplierId: p.supplierId,
-      productId: p.id,
-    }));
+  // Map to result format
+  const result = products.map((p) => ({
+    supplier: p.supplier_name,
+    product: p.name,
+    price: Number(p.price),
+    unit: p.unit,
+    supplierId: p.supplier_id,
+    productId: p.id,
+  }));
 
   // Cache the result
   await setCachedSupplierData(productName, result, 30); // 30 seconds cache
@@ -73,53 +83,74 @@ export async function getSupplierPrices(
  * Search products by name (fuzzy search)
  */
 export async function searchProducts(query: string): Promise<SupplierPriceData[]> {
-  const products = await prisma.product.findMany({
-    where: {
-      name: {
-        contains: query,
-        mode: 'insensitive',
-      },
-    },
-    include: {
-      supplier: true,
-    },
-    orderBy: {
-      price: 'asc',
-    },
-    take: 20,
-  });
+  // Use raw query to filter at database level
+  const searchPattern = `%${query}%`;
+  const products = await prisma.$queryRaw<Array<{
+    id: string;
+    supplier_id: string;
+    name: string;
+    price: any; // Decimal from DB
+    unit: string;
+    supplier_name: string;
+  }>>`
+    SELECT 
+      p.id,
+      p.supplier_id,
+      p.name,
+      p.price,
+      p.unit,
+      o.name as supplier_name
+    FROM products p
+    INNER JOIN organizations o ON p.supplier_id = o.id
+    WHERE 
+      p.name ILIKE ${searchPattern}
+      AND p.price IS NOT NULL
+      AND p.supplier_id IS NOT NULL
+      AND o.type = 'supplier'
+    ORDER BY p.price ASC
+    LIMIT 20
+  `;
 
-  // Filter out products with null prices, null supplierId, or null supplier relation
-  return products
-    .filter((p) => p.price !== null && p.supplierId !== null && p.supplier !== null)
-    .map((p) => ({
-      supplier: p.supplier!.name,
-      product: p.name,
-      price: Number(p.price),
-      unit: p.unit,
-      supplierId: p.supplierId,
-      productId: p.id,
-    }));
+  return products.map((p) => ({
+    supplier: p.supplier_name,
+    product: p.name,
+    price: Number(p.price),
+    unit: p.unit,
+    supplierId: p.supplier_id,
+    productId: p.id,
+  }));
 }
 
 /**
  * Get all products from a specific supplier
  */
 export async function getSupplierProducts(supplierId: string) {
-  const products = await prisma.product.findMany({
-    where: {
-      supplierId,
-    },
-    include: {
-      supplier: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
+  // Use raw query to ensure supplier exists and filter null prices
+  const products = await prisma.$queryRaw<Array<{
+    id: string;
+    supplier_id: string;
+    name: string;
+    price: any; // Decimal from DB
+    unit: string;
+    supplier_name: string;
+  }>>`
+    SELECT 
+      p.id,
+      p.supplier_id,
+      p.name,
+      p.price,
+      p.unit,
+      o.name as supplier_name
+    FROM products p
+    INNER JOIN organizations o ON p.supplier_id = o.id
+    WHERE 
+      p.supplier_id = ${supplierId}::uuid
+      AND p.price IS NOT NULL
+      AND o.type = 'supplier'
+    ORDER BY p.name ASC
+  `;
 
-  // Filter out products with null prices or null supplier relation (safety check)
-  return products.filter((p) => p.price !== null && p.supplier !== null);
+  return products;
 }
 
 /**
