@@ -150,6 +150,15 @@ export default function DocsLayout({
                 </li>
                 <li>
                   <Link
+                    href="/docs/complete-vision"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target font-semibold"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    Complete Vision ⭐
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/docs/product-overview"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}

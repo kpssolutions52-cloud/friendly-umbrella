@@ -10,25 +10,31 @@
 
 ### Non-Technical
 
-1. **[What is QS AI Agent?](./PRODUCT_OVERVIEW.md)** ⭐
+1. **[Complete Vision](./COMPLETE_VISION.md)** ⭐ **START HERE**
+   - Full product vision
+   - Dual AI interface
+   - Dynamic UI dashboards
+   - Notification system
+
+2. **[What is QS AI Agent?](./PRODUCT_OVERVIEW.md)** 📖
    - What it does
    - How it works
    - Benefits
 
-2. **[Quick Start](./QUICK_START.md)** 🚀
+3. **[Quick Start](./QUICK_START.md)** 🚀
    - Get started in 3 steps
-
-3. **[Multi-Company Architecture](./MULTI_COMPANY_ARCHITECTURE.md)** 🏢
-   - Multiple companies
-   - Independent projects
-   - Company-specific pricing
 
 4. **[Dual AI Interface](./DUAL_AI_INTERFACE.md)** 💬
    - QS & Supplier natural language
    - AI chat for both user types
    - Price updates via chat
 
-5. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
+5. **[Multi-Company Architecture](./MULTI_COMPANY_ARCHITECTURE.md)** 🏢
+   - Multiple companies
+   - Independent projects
+   - Company-specific pricing
+
+6. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
    - Complete quote-to-order workflow
    - How to use the workflow
    - Step-by-step guide
@@ -57,12 +63,24 @@
 
 ## 🎯 What is QS AI Agent?
 
-An AI assistant that:
-- Understands natural language (like ChatGPT)
-- Gets real-time supplier prices
-- Learns from interactions
-- Manages projects
-- Generates quotes automatically
+**A complete AI-first platform** with:
+
+**For QS Professionals:**
+- Natural language AI chat (ChatGPT-like) - Primary interface
+- Dynamic UI dashboard for project flow - Secondary interface
+- Real-time notifications
+
+**For Suppliers:**
+- Natural language AI chat (ChatGPT-like) - Primary interface
+- Dynamic UI dashboard for inventory/prices - Secondary interface
+- Real-time notifications
+
+**Key Features:**
+- Natural language interaction (primary)
+- Dynamic UI dashboards (secondary)
+- Real-time updates
+- In-app notifications
+- Complete workflow management
 
 **No phone calls needed!**
 
