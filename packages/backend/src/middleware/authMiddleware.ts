@@ -44,85 +44,24 @@ export async function requireAuth(
       tenantType: string;
     };
 
-    // Verify user still exists - handle both old and new schemas
-    let user: any;
-    let organization: any;
-    let userType: 'qs' | 'supplier' | null = null;
-    let organizationId: string | null = null;
-    let organizationType: 'company' | 'supplier' | null = null;
+    // Verify user still exists - NEW SCHEMA ONLY
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: { organization: true },
+    });
 
-    try {
-      // Try new schema first
-      user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        include: { organization: true },
-      });
-
-      if (user && user.organization) {
-        // New schema
-        organization = user.organization;
-        userType = user.type;
-        organizationId = user.organizationId;
-        organizationType = user.organization.type;
-      } else if (user) {
-        // User exists but no organization - try old schema
-        throw new Error('No organization found - checking old schema');
-      }
-    } catch (error: any) {
-      // Try old schema using raw SQL
-      console.log('[AuthMiddleware] Trying old schema with raw SQL...');
-      try {
-        const result = await prisma.$queryRaw<any[]>`
-          SELECT 
-            u.id,
-            u.email,
-            u.role,
-            u.tenant_id as "tenantId",
-            t.id as "tenantId",
-            t.name as "tenantName",
-            t.type as "tenantType"
-          FROM users u
-          LEFT JOIN tenants t ON u.tenant_id = t.id
-          WHERE u.id = ${decoded.userId}
-          LIMIT 1
-        `;
-
-        if (result && result.length > 0) {
-          const row = result[0];
-          user = {
-            id: row.id,
-            email: row.email,
-            role: row.role,
-            tenantId: row.tenantId,
-          };
-          
-          organization = {
-            id: row.tenantId,
-            name: row.tenantName,
-            type: row.tenantType,
-          };
-          
-          // Map role to type
-          if (user.role === 'company_staff' || user.role === 'company_admin') {
-            userType = 'qs';
-          } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
-            userType = 'supplier';
-          }
-          
-          organizationId = row.tenantId;
-          organizationType = row.tenantType;
-        } else {
-          throw createError(401, 'User not found');
-        }
-      } catch (oldSchemaError: any) {
-        console.error('[AuthMiddleware] Old schema query failed:', oldSchemaError);
-        throw createError(401, 'User not found');
-      }
-    }
-
-    if (!user || !userType || !organizationId || !organizationType || !organization) {
+    if (!user) {
       throw createError(401, 'User not found');
     }
+
+    if (!user.organization) {
+      throw createError(403, 'User organization not found');
+    }
+
+    const userType = user.type;
+    const organizationId = user.organizationId;
+    const organizationType = user.organization.type;
+    const organization = user.organization;
 
     // Attach user info to request
     req.userId = decoded.userId;

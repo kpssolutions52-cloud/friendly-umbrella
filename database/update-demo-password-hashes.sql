@@ -8,7 +8,6 @@
 -- To generate new hashes, use: node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('password', 10).then(h => console.log(h));"
 
 -- Update QS Demo User Password (DemoQS123!)
--- Hash: $2a$10$CY0uahKHmqnV5k8c4sfSAOhXjrNHT0CEx8.dcTqs2m0GA/kj6.qp6
 UPDATE users
 SET password_hash = '$2a$10$CY0uahKHmqnV5k8c4sfSAOhXjrNHT0CEx8.dcTqs2m0GA/kj6.qp6'
 WHERE email = 'demo.qs@constructionguru.com';
