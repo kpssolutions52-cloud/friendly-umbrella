@@ -1,0 +1,4 @@
+// BACKUP: Original complex schema before AI QS Assistant transformation
+// This file is kept for reference
+// The new simplified schema is in schema.prisma
+// Date: $(date)
