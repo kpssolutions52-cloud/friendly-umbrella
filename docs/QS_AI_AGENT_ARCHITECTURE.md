@@ -2,12 +2,13 @@
 
 ## 🎯 System Overview
 
-A self-learning AI Agent system for Quantity Surveyors that combines:
-- **Natural Language Processing** (GPT-4)
+A complete AI-first platform for Quantity Surveyors and Suppliers that combines:
+- **Dual Natural Language AI** (ChatGPT-like for QS & Suppliers)
+- **Dynamic UI Dashboards** (Auto-updating based on changes)
+- **Real-Time Notifications** (WebSocket-based in-app notifications)
 - **Real-Time Data Integration** (Supplier prices)
 - **Self-Learning Engine** (Improves over time)
-- **Project Management** (Project-based quotes)
-- **Quote Generation** (Automatic quote creation)
+- **Complete Workflow Management** (Quote-to-order-to-delivery)
 
 ---
 
@@ -27,13 +28,43 @@ A self-learning AI Agent system for Quantity Surveyors that combines:
 │  │  QS Interface     │              │ Supplier Interface│       │
 │  │  (Next.js)        │              │ (Next.js)         │       │
 │  │                   │              │                   │       │
-│  │  - AI Chat UI     │              │  - Product Form   │       │
-│  │  - Project View   │              │  - Price Updates  │       │
-│  │  - Quote View     │              │  - Analytics      │       │
-│  │  - Dashboard      │              │                   │       │
+│  │  PRIMARY:         │              │  PRIMARY:         │       │
+│  │  - AI Chat UI     │              │  - AI Chat UI     │       │
+│  │    (Natural Lang) │              │    (Natural Lang) │       │
+│  │                   │              │                   │       │
+│  │  SECONDARY:       │              │  SECONDARY:       │       │
+│  │  - Project        │              │  - Inventory      │       │
+│  │    Dashboard      │              │    Dashboard      │       │
+│  │  - Quote View     │              │  - Price Mgmt     │       │
+│  │  - Order Tracking │              │  - Order Mgmt     │       │
+│  │                   │              │                   │       │
+│  │  DYNAMIC UPDATES: │              │  DYNAMIC UPDATES: │       │
+│  │  - Auto-refresh   │              │  - Auto-refresh   │       │
+│  │  - Real-time data │              │  - Real-time data │       │
+│  │  - Live status    │              │  - Live status    │       │
+│  │                   │              │                   │       │
+│  │  NOTIFICATIONS:   │              │  NOTIFICATIONS:   │       │
+│  │  - In-app alerts  │              │  - In-app alerts  │       │
+│  │  - Badge counts   │              │  - Badge counts   │       │
+│  │  - Real-time      │              │  - Real-time      │       │
 │  └──────────────────┘              └──────────────────┘        │
 └────────────────────────┬────────────────────────────────────────┘
                          │ HTTP/WebSocket
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Real-Time Notification Layer                 │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  WebSocket Server (Socket.IO)                            │  │
+│  │  - Real-time notifications                               │  │
+│  │  - Price update broadcasts                               │  │
+│  │  - Order status updates                                  │  │
+│  │  - Quote request notifications                           │  │
+│  │  - Certificate requests                                  │  │
+│  │  - User-specific rooms                                   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    API Gateway Layer                            │
