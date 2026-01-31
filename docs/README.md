@@ -45,6 +45,12 @@
    - How to use the workflow
    - Step-by-step guide
 
+8. **[Supplier Ratings Design](./SUPPLIER_RATINGS_DESIGN.md)** ⭐
+   - Rating system design
+   - How QS rate suppliers
+   - AI integration with ratings
+   - Implementation guide
+
 ### Technical
 
 4. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
