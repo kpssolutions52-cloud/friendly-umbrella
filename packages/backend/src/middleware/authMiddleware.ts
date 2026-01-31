@@ -39,9 +39,9 @@ export async function requireAuth(
 
     const decoded = jwt.verify(token, jwtSecret) as {
       userId: string;
-      organizationId: string;
-      type: 'qs' | 'supplier';
-      organizationType: 'company' | 'supplier';
+      tenantId: string; // JWT uses tenantId (for compatibility)
+      role: string;
+      tenantType: string;
     };
 
     // Verify user still exists
@@ -61,9 +61,17 @@ export async function requireAuth(
 
     // Attach user info to request
     req.userId = decoded.userId;
-    req.organizationId = user.organizationId;
+    req.organizationId = decoded.tenantId; // Map tenantId to organizationId
     req.userType = user.type;
     req.organizationType = user.organization.type;
+    
+    // Also attach to req.user for compatibility
+    (req as any).user = {
+      id: user.id,
+      email: user.email,
+      type: user.type,
+      organizationId: user.organizationId,
+    };
 
     next();
   } catch (error: any) {

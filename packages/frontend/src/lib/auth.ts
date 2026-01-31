@@ -32,9 +32,17 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string;
-  tenant?: Tenant; // Optional for super admins
+  name?: string; // Full name (for new schema)
+  role: string; // For compatibility with old schema
+  type?: 'qs' | 'supplier'; // New schema user type
+  tenant?: Tenant; // Optional for super admins (old schema)
+  organization?: { // New schema organization
+    id: string;
+    name: string;
+    type: 'company' | 'supplier';
+  };
   tenantId?: string | null; // Optional for super admins
+  organizationId?: string | null; // New schema organization ID
 }
 
 export interface AuthResponse {

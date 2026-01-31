@@ -102,17 +102,19 @@ export class SimplifiedAuthService {
       },
     });
 
-    // Generate tokens
+    // Generate tokens (compatible with JWT utility)
     const accessToken = generateAccessToken({
       userId: user.id,
-      email: user.email,
-      type: user.type,
-      organizationId: user.organizationId,
+      tenantId: user.organizationId, // Map organizationId to tenantId for compatibility
+      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff', // Map type to role
+      tenantType: user.organization.type, // Map organization type
     });
 
     const refreshToken = generateRefreshToken({
       userId: user.id,
-      email: user.email,
+      tenantId: user.organizationId,
+      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff',
+      tenantType: user.organization.type,
     });
 
     return {
@@ -162,17 +164,19 @@ export class SimplifiedAuthService {
       data: { updatedAt: new Date() },
     });
 
-    // Generate tokens
+    // Generate tokens (compatible with JWT utility)
     const accessToken = generateAccessToken({
       userId: user.id,
-      email: user.email,
-      type: user.type,
-      organizationId: user.organizationId,
+      tenantId: user.organizationId, // Map organizationId to tenantId for compatibility
+      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff', // Map type to role
+      tenantType: user.organization.type, // Map organization type
     });
 
     const refreshToken = generateRefreshToken({
       userId: user.id,
-      email: user.email,
+      tenantId: user.organizationId,
+      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff',
+      tenantType: user.organization.type,
     });
 
     return {

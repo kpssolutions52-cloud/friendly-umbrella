@@ -79,6 +79,7 @@ model Product {
   supplier      Organization @relation("SupplierProducts", fields: [supplierId], references: [id], onDelete: Cascade)
   companyPrices CompanyPrice[] // Company-specific prices
   quoteResponseItems QuoteResponseItem[]
+  quoteItems    QuoteItem[]    // Items in quotes that reference this product
   orderItems    OrderItem[]    @relation("OrderProduct")
   
   @@index([name])

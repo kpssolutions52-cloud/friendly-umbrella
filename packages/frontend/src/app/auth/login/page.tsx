@@ -88,7 +88,7 @@ function LoginForm() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link
-              href={returnUrl ? `/auth/register?returnUrl=${encodeURIComponent(returnUrl)}` : '/auth/register'}
+              href={returnUrl ? `/auth/register-simple?returnUrl=${encodeURIComponent(returnUrl)}` : '/auth/register-simple'}
               className="font-medium text-primary hover:text-primary/80 touch-target"
             >
               create a new account

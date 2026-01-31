@@ -101,7 +101,14 @@ router.post(
       const input = loginSchema.parse(req.body);
       const result = await simplifiedAuthService.login(input);
 
-      res.json(result);
+      res.json({
+        message: result.message,
+        user: result.user,
+        tokens: {
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+      });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
@@ -112,6 +119,77 @@ router.post(
         return res.status(401).json({ error: error.message });
       }
 
+      next(error);
+    }
+  }
+);
+
+// GET /api/v1/auth/me - Get current user
+router.get(
+  '/auth/me',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      const token = authHeader.substring(7);
+      const jwtSecret = process.env.JWT_SECRET;
+
+      if (!jwtSecret) {
+        return res.status(500).json({ error: 'JWT_SECRET not configured' });
+      }
+
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, jwtSecret) as {
+        userId: string;
+        tenantId: string; // JWT uses tenantId (for compatibility)
+        role: string;
+        tenantType: string;
+      };
+
+      // Get user with organization
+      const { prisma } = await import('../utils/prisma');
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: { organization: true },
+      });
+
+      if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+
+      // Return user in format expected by frontend (compatible with both old and new schema)
+      res.json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        firstName: user.name?.split(' ')[0] || null,
+        lastName: user.name?.split(' ').slice(1).join(' ') || null,
+        type: user.type, // New schema: 'qs' | 'supplier'
+        role: user.type === 'qs' ? 'company_staff' : 'supplier_staff', // For compatibility with old schema
+        organization: {
+          id: user.organization.id,
+          name: user.organization.name,
+          type: user.organization.type,
+        },
+        organizationId: user.organizationId, // New schema
+        tenant: {
+          id: user.organization.id,
+          name: user.organization.name,
+          type: user.organization.type,
+        },
+        tenantId: user.organizationId, // For compatibility with old schema
+      });
+    } catch (error: any) {
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired' });
+      }
       next(error);
     }
   }
