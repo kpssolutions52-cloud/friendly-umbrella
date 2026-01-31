@@ -48,13 +48,13 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
           </div>
           
           {showAuthButtons && (
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-4 flex-shrink-0">
-              <div className="hidden sm:block">
+            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-4 flex-shrink-0 overflow-x-auto">
+              <div className="hidden sm:block flex-shrink-0">
                 <PWAInstallButton />
               </div>
               {user ? (
                 <>
-                  <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 truncate max-w-[120px]">
+                  <span className="hidden lg:inline text-xs sm:text-sm text-gray-600 truncate max-w-[120px] flex-shrink-0">
                     {user.firstName} {user.lastName}
                   </span>
                   
@@ -64,7 +64,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                        className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
                       >
                         <MessageSquare className="h-4 w-4 sm:mr-1.5" />
                         <span className="hidden sm:inline">AI Chat</span>
@@ -79,7 +79,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
                         >
                           <MessageSquare className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">AI Chat</span>
@@ -90,7 +90,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
                         >
                           <Package className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">Products</span>
@@ -100,12 +100,12 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     </>
                   )}
                   
-                  {/* Always show logout button - ensure it's visible */}
+                  {/* Always show logout button - CRITICAL: Must be visible */}
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={logout} 
-                    className="text-xs sm:text-sm touch-target px-2 sm:px-3 flex-shrink-0"
+                    className="text-xs sm:text-sm touch-target px-2 sm:px-3 flex-shrink-0 whitespace-nowrap bg-red-50 hover:bg-red-100 border-red-200 text-red-700"
                     title="Logout"
                   >
                     <LogOut className="h-4 w-4" />
