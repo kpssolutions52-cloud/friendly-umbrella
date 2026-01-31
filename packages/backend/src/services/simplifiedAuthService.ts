@@ -93,17 +93,38 @@ export class SimplifiedAuthService {
       );
     }
 
-    // Step 2: Create user
+    // Step 2: Create user - use select to avoid selecting 'name' if it doesn't exist
+    const userData: any = {
+      organizationId: organization.id,
+      email: input.email,
+      passwordHash,
+      type: input.userType,
+    };
+    
+    // Only add name if provided (column may not exist in DB yet)
+    if (input.name) {
+      userData.name = input.name;
+    }
+    
     const user = await prisma.user.create({
-      data: {
-        organizationId: organization.id,
-        email: input.email,
-        passwordHash,
-        name: input.name || null,
-        type: input.userType,
-      },
-      include: {
-        organization: true,
+      data: userData,
+      select: {
+        id: true,
+        email: true,
+        type: true,
+        organizationId: true,
+        createdAt: true,
+        updatedAt: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 
