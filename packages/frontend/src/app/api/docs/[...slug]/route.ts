@@ -69,14 +69,23 @@ export async function GET(
   
   // Check for redirects first
   if (redirects[slug]) {
-    return NextResponse.redirect(new URL(`/docs/${redirects[slug]}`, request.url), 301);
+    const url = new URL(request.url);
+    url.pathname = `/docs/${redirects[slug]}`;
+    return NextResponse.redirect(url, 301);
   }
   
   const filePath = docPaths[slug];
 
   if (!filePath) {
-    // Redirect unknown paths to main docs page
-    return NextResponse.redirect(new URL('/docs', request.url), 301);
+    // For unknown paths, return main docs content instead of redirect
+    // (to avoid redirect loops and provide better UX)
+    try {
+      const resolvedPath = getDocsPath('docs/README.md');
+      const content = readFileSync(resolvedPath, 'utf-8');
+      return NextResponse.json({ content });
+    } catch (error) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 
   try {
@@ -85,7 +94,13 @@ export async function GET(
     return NextResponse.json({ content });
   } catch (error) {
     console.error('Failed to read docs file:', filePath, error);
-    // Redirect to main docs page on error
-    return NextResponse.redirect(new URL('/docs', request.url), 301);
+    // Return main docs on error
+    try {
+      const resolvedPath = getDocsPath('docs/README.md');
+      const content = readFileSync(resolvedPath, 'utf-8');
+      return NextResponse.json({ content });
+    } catch {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
   }
 }
