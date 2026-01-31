@@ -160,9 +160,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    // All other users (customers, suppliers, companies, service providers) go to home page
-    // They can see Products/Services tabs and browse the shop
-    router.push(returnUrl || '/');
+    // If returnUrl is provided, use it (e.g., from demo login)
+    if (returnUrl) {
+      router.push(returnUrl);
+      return;
+    }
+    
+    // Otherwise, redirect based on user type
+    const userType = updatedUser?.type || response.user.type;
+    const tenantType = updatedUser?.tenant?.type;
+    
+    // Redirect suppliers to their chat page
+    if (userType === 'supplier' || tenantType === 'supplier') {
+      router.push('/supplier/chat');
+      return;
+    }
+    
+    // Redirect QS to chat
+    if (userType === 'qs') {
+      router.push('/chat');
+      return;
+    }
+    
+    // All other users (customers, companies, service providers) go to home page
+    router.push('/');
   };
 
   const register = async (input: RegisterInput, returnUrl?: string) => {
