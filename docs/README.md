@@ -51,6 +51,13 @@
    - AI integration with ratings
    - Implementation guide
 
+9. **[Complete Roadmap](./COMPLETE_ROADMAP.md)** 🗺️
+   - Full product roadmap
+   - MVP 1, 2, 3 phases
+   - Release V1, V2, V3 plans
+   - Timeline and milestones
+   - Feature priorities
+
 ### Technical
 
 4. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
