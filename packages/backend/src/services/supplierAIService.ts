@@ -12,11 +12,13 @@ const openai = new OpenAI({
 });
 
 interface PriceUpdateIntent {
-  intent: 'update_price' | 'add_product' | 'view_products' | 'general';
+  intent: 'update_price' | 'add_product' | 'view_products' | 'delete_product' | 'update_product' | 'general';
   productName?: string;
+  newProductName?: string; // For renaming products
   price?: number;
   unit?: string;
   companyId?: string; // For company-specific pricing
+  productId?: string; // For delete/update operations
 }
 
 /**
@@ -32,12 +34,15 @@ Possible intents:
 - update_price: Update price of an existing product
 - add_product: Add a new product
 - view_products: View list of products
+- delete_product: Delete/remove a product
+- update_product: Update product name or other details (not just price)
 - general: General question or command
 
 Return JSON with this structure:
 {
-  "intent": "update_price" | "add_product" | "view_products" | "general",
-  "productName": "cement" (if product mentioned),
+  "intent": "update_price" | "add_product" | "view_products" | "delete_product" | "update_product" | "general",
+  "productName": "cement" (if product mentioned for search),
+  "newProductName": "Portland Cement" (if renaming product),
   "price": 48.50 (if price mentioned),
   "unit": "bag" (if unit mentioned),
   "companyId": "uuid" (if company-specific price mentioned)
@@ -48,6 +53,10 @@ Examples:
 - "Set steel price to $500 per ton" → {"intent": "update_price", "productName": "steel", "price": 500, "unit": "ton"}
 - "Add new product: paint at $25 per gallon" → {"intent": "add_product", "productName": "paint", "price": 25, "unit": "gallon"}
 - "Show my products" → {"intent": "view_products"}
+- "Delete cement product" → {"intent": "delete_product", "productName": "cement"}
+- "Remove steel from my inventory" → {"intent": "delete_product", "productName": "steel"}
+- "Rename cement to Portland Cement" → {"intent": "update_product", "productName": "cement", "newProductName": "Portland Cement"}
+- "Change cement unit to kg" → {"intent": "update_product", "productName": "cement", "unit": "kg"}
 - "What's my current cement price?" → {"intent": "general"}
 
 Return only valid JSON, no other text.`;
@@ -85,7 +94,7 @@ export async function processSupplierCommand(
 ): Promise<{
   answer: string;
   action?: {
-    type: 'price_updated' | 'product_added' | 'products_listed';
+    type: 'price_updated' | 'product_added' | 'products_listed' | 'product_deleted' | 'product_updated';
     data?: any;
   };
 }> {
