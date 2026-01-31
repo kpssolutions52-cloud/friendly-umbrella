@@ -2,19 +2,21 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 
+// Only new QS AI Agent documentation
 const docPaths: Record<string, string> = {
-  'user-guide/getting-started': 'docs/user-guide/getting-started.md',
-  'user-guide/rfq-guide': 'docs/user-guide/rfq-guide.md',
-  'user-guide/supplier-guide': 'docs/user-guide/supplier-guide.md',
-  'user-guide/company-guide': 'docs/user-guide/company-guide.md',
-  'user-guide/api-testing': 'docs/user-guide/api-testing.md',
-  'technical/architecture': 'docs/technical/architecture.md',
-  'technical/api-reference': 'docs/technical/api-reference.md',
-  'technical/rfq-system': 'docs/technical/rfq-system.md',
-  'technical/price-management-flow': 'docs/technical/price-management-flow.md',
-  'technical/setup': 'docs/technical/setup.md',
-  'technical/deployment': 'docs/technical/deployment.md',
+  // Main index
   '': 'docs/README.md',
+  
+  // Non-Technical
+  'product-overview': 'docs/PRODUCT_OVERVIEW.md',
+  'quick-start': 'docs/QUICK_START.md',
+  'multi-company': 'docs/MULTI_COMPANY_ARCHITECTURE.md',
+  
+  // Technical
+  'architecture': 'docs/QS_AI_AGENT_ARCHITECTURE.md',
+  'database': 'docs/DATABASE_SCHEMA.md',
+  'implementation': 'docs/IMPLEMENTATION_GUIDE.md',
+  'code-migration': 'docs/CODE_MIGRATION_GUIDE.md',
 };
 
 function getDocsPath(relativePath: string): string {
@@ -64,4 +66,3 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 }
-

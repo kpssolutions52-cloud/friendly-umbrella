@@ -68,7 +68,7 @@ export default function DocsLayout({
                 <div className="relative h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                   <Logo
                     src="/images/logo.jpg"
-                    alt="ConstructionGuru"
+                    alt="QS AI Agent"
                     width={32}
                     height={32}
                     priority
@@ -78,10 +78,10 @@ export default function DocsLayout({
                 {/* Company Name */}
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                    ConstructionGuru
+                    QS AI Agent
                   </div>
                   <div className="hidden xs:block text-xs font-semibold text-gray-700 -mt-0.5 truncate">
-                    Real-Time Pricing
+                    Documentation
                   </div>
                 </div>
               </Link>
@@ -133,55 +133,46 @@ export default function DocsLayout({
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <nav className="p-4 sm:p-6 space-y-1">
-            {/* User Guide Section */}
+            {/* Non-Technical Section */}
             <div className="mb-4 sm:mb-6">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
-                User Guide
+                Non-Technical
               </h3>
               <ul className="mt-2 space-y-1">
                 <li>
                   <Link
-                    href="/docs/user-guide/getting-started"
+                    href="/docs"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Getting Started
+                    Overview
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/docs/user-guide/rfq-guide"
+                    href="/docs/product-overview"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    RFQ Guide 🆕
+                    What is QS AI Agent?
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/docs/user-guide/supplier-guide"
+                    href="/docs/quick-start"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Supplier Guide
+                    Quick Start
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/docs/user-guide/company-guide"
+                    href="/docs/multi-company"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Company Guide
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/user-guide/api-testing"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    API Testing
+                    Multi-Company Architecture
                   </Link>
                 </li>
               </ul>
@@ -195,7 +186,7 @@ export default function DocsLayout({
               <ul className="mt-2 space-y-1">
                 <li>
                   <Link
-                    href="/docs/technical/architecture"
+                    href="/docs/architecture"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -204,47 +195,29 @@ export default function DocsLayout({
                 </li>
                 <li>
                   <Link
-                    href="/docs/technical/api-reference"
+                    href="/docs/database"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    API Reference
+                    Database Schema
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/docs/technical/rfq-system"
+                    href="/docs/implementation"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    RFQ System 🆕
+                    Implementation Guide
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/docs/technical/price-management-flow"
+                    href="/docs/code-migration"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Price Management Flow
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/technical/setup"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    Setup & Installation
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/technical/deployment"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    Deployment
+                    Code Migration Guide
                   </Link>
                 </li>
               </ul>
