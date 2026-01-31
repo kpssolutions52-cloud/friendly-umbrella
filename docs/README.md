@@ -79,9 +79,18 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
    - End-to-end quote management
    - Request to delivery workflow
 
+### 🎨 Design & UX
+
+10. **[Landing Page & UI Design](./LANDING_PAGE_DESIGN.md)** 🎨 **NEW**
+    - Landing page structure
+    - Design system
+    - UI/UX principles
+    - Mobile-first approach
+    - Conversion optimization
+
 ### 🏗️ Technical Documentation
 
-10. **[Complete Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
+11. **[Complete Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
     - System design
     - Technology stack
     - AI integration
