@@ -207,16 +207,24 @@ export class SimplifiedAuthService {
 
           if (result && result.length > 0) {
             const row = result[0];
+            console.log('[SimplifiedAuthService] Found user in old schema:', {
+              email: row.email,
+              role: row.role,
+              hasTenant: !!row.tenantId,
+              tenantType: row.tenantType,
+              passwordHashLength: row.passwordHash?.length,
+            });
+            
             user = {
               id: row.id,
               email: row.email,
-              passwordHash: row.passwordHash,
+              passwordHash: row.passwordHash?.trim(), // Trim any whitespace
               firstName: row.firstName,
               lastName: row.lastName,
               role: row.role,
               status: row.status,
               isActive: row.isActive,
-              tenantId: row.tenantId,
+              tenantId: row.userTenantId || row.tenantId,
             };
 
             if (row.tenantId && row.tenantType) {
@@ -244,6 +252,7 @@ export class SimplifiedAuthService {
               throw createError(401, 'Invalid email or password - no tenant found');
             }
           } else {
+            console.log('[SimplifiedAuthService] No user found in old schema for:', input.email);
             throw createError(401, 'Invalid email or password');
           }
         } catch (oldSchemaError: any) {
