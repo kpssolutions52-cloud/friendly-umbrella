@@ -1,40 +1,26 @@
 /**
- * Permission Middleware - Type-based access control
+ * Permissions Middleware
+ * Simplified for QS AI Agent - type-based permissions (qs | supplier)
  */
 
-import { Request, Response, NextFunction } from 'express';
-
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        type: 'qs' | 'supplier';
-        organizationId: string;
-      };
-    }
-  }
-}
+import { Response, NextFunction } from 'express';
+import createError from 'http-errors';
+import { AuthRequest } from './authMiddleware';
 
 /**
  * Require QS user type
  */
 export function requireQS(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
-): void {
-  if (!req.user) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+) {
+  if (!req.userId) {
+    return next(createError(401, 'Authentication required'));
   }
 
-  if (req.user.type !== 'qs') {
-    res.status(403).json({
-      error: 'QS access required. This feature is only available for Quantity Surveyor professionals.',
-    });
-    return;
+  if (req.userType !== 'qs') {
+    return next(createError(403, 'QS user type required'));
   }
 
   next();
@@ -44,20 +30,16 @@ export function requireQS(
  * Require Supplier user type
  */
 export function requireSupplier(
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
-): void {
-  if (!req.user) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+) {
+  if (!req.userId) {
+    return next(createError(401, 'Authentication required'));
   }
 
-  if (req.user.type !== 'supplier') {
-    res.status(403).json({
-      error: 'Supplier access required. This feature is only available for suppliers.',
-    });
-    return;
+  if (req.userType !== 'supplier') {
+    return next(createError(403, 'Supplier user type required'));
   }
 
   next();

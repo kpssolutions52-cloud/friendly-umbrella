@@ -3,13 +3,16 @@
  * Uses Redis for fast caching
  */
 
-import { createClient, RedisClientType } from 'redis';
 import crypto from 'crypto';
 
-let redisClient: RedisClientType | null = null;
+// Redis client type - optional
+type RedisClient = any;
+
+let redisClient: RedisClient | null = null;
 
 /**
  * Initialize Redis client
+ * Optional - continues without Redis if not available
  */
 export async function initRedis(): Promise<void> {
   if (redisClient) {
@@ -17,18 +20,22 @@ export async function initRedis(): Promise<void> {
   }
 
   try {
+    // Try to import redis dynamically
+    const redis = await import('redis');
+    const { createClient } = redis;
+
     redisClient = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: any) => {
       console.error('Redis Client Error:', err);
     });
 
     await redisClient.connect();
     console.log('Redis connected successfully');
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    console.warn('Redis not available, continuing without cache:', error);
     // Continue without Redis if connection fails
     redisClient = null;
   }

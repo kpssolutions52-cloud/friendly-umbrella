@@ -150,7 +150,7 @@ Format prices clearly with currency symbols. For calculations, show your work st
         { role: 'user', content: question },
       ],
       temperature: 0.7,
-      max_tokens: 1500,
+      maxTokens: 1500,
     });
 
     return response.choices[0].message.content || 'I apologize, I could not generate a response.';
