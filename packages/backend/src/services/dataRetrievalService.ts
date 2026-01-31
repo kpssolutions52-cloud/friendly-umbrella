@@ -46,7 +46,6 @@ export async function getSupplierPrices(
       supplierId: { not: null },
       supplier: {
         type: 'supplier',
-        isActive: true,
       },
     },
     include: {
@@ -97,7 +96,6 @@ export async function searchProducts(query: string): Promise<SupplierPriceData[]
       supplierId: { not: null },
       supplier: {
         type: 'supplier',
-        isActive: true,
       },
     },
     include: {
@@ -138,7 +136,6 @@ export async function getSupplierProducts(supplierId: string) {
       price: { not: null },
       supplier: {
         type: 'supplier',
-        isActive: true,
       },
     },
     include: {
