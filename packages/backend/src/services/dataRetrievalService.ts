@@ -34,18 +34,12 @@ export async function getSupplierPrices(
   }
 
   // Query database - NEW SCHEMA ONLY
-  // Filter out products with null prices or null supplierId
+  // Note: price and supplierId are required in schema, but we filter in app layer for safety
   const products = await prisma.product.findMany({
     where: {
       name: {
         contains: productName,
         mode: 'insensitive',
-      },
-      price: {
-        not: null, // Exclude products with null prices
-      },
-      supplierId: {
-        not: null, // Exclude products with null supplierId
       },
     },
     include: {
@@ -57,11 +51,11 @@ export async function getSupplierPrices(
     take: 10, // Top 10 suppliers
   });
 
-  // Filter out products where supplier relation is null (shouldn't happen but safety check)
+  // Filter out products with null prices, null supplierId, or null supplier relation
   const result = products
-    .filter((p) => p.supplier !== null)
+    .filter((p) => p.price !== null && p.supplierId !== null && p.supplier !== null)
     .map((p) => ({
-      supplier: p.supplier.name,
+      supplier: p.supplier!.name,
       product: p.name,
       price: Number(p.price),
       unit: p.unit,
@@ -85,12 +79,6 @@ export async function searchProducts(query: string): Promise<SupplierPriceData[]
         contains: query,
         mode: 'insensitive',
       },
-      price: {
-        not: null, // Exclude products with null prices
-      },
-      supplierId: {
-        not: null, // Exclude products with null supplierId
-      },
     },
     include: {
       supplier: true,
@@ -101,11 +89,11 @@ export async function searchProducts(query: string): Promise<SupplierPriceData[]
     take: 20,
   });
 
-  // Filter out products where supplier relation is null (shouldn't happen but safety check)
+  // Filter out products with null prices, null supplierId, or null supplier relation
   return products
-    .filter((p) => p.supplier !== null)
+    .filter((p) => p.price !== null && p.supplierId !== null && p.supplier !== null)
     .map((p) => ({
-      supplier: p.supplier.name,
+      supplier: p.supplier!.name,
       product: p.name,
       price: Number(p.price),
       unit: p.unit,
@@ -118,15 +106,9 @@ export async function searchProducts(query: string): Promise<SupplierPriceData[]
  * Get all products from a specific supplier
  */
 export async function getSupplierProducts(supplierId: string) {
-  return await prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where: {
       supplierId,
-      price: {
-        not: null, // Exclude products with null prices
-      },
-      supplierId: {
-        not: null, // Exclude products with null supplierId (redundant but safe)
-      },
     },
     include: {
       supplier: true,
@@ -135,6 +117,9 @@ export async function getSupplierProducts(supplierId: string) {
       name: 'asc',
     },
   });
+
+  // Filter out products with null prices or null supplier relation (safety check)
+  return products.filter((p) => p.price !== null && p.supplier !== null);
 }
 
 /**
