@@ -71,11 +71,17 @@ router.post(
         return res.status(400).json({ error: 'Organization ID not found' });
       }
 
+      // Generate SKU automatically if not provided
+      // Format: first 3 letters of product name (uppercase) + timestamp
+      const productNamePrefix = input.name.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
+      const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
+
       // Create product - NEW SCHEMA ONLY
       const product = await prisma.product.create({
         data: {
           supplierId: organizationId,
           name: input.name,
+          sku,
           price: input.price,
           unit: input.unit,
         },
