@@ -34,41 +34,99 @@ SET name = EXCLUDED.name,
 
 -- Demo QS User (password: DemoQS123!)
 -- Password hash generated using bcrypt with 10 rounds
-INSERT INTO users (id, organization_id, email, password_hash, name, type, created_at, updated_at)
-VALUES (
-  '00000000-0000-0000-0000-000000000011',
-  '00000000-0000-0000-0000-000000000001',
-  'demo.qs@constructionguru.com',
-  '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
-  'Demo QS Professional',
-  'qs',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (email) DO UPDATE
-SET organization_id = EXCLUDED.organization_id,
-    name = EXCLUDED.name,
-    type = EXCLUDED.type,
-    updated_at = NOW();
+-- Note: If you get an error about "name" column, make sure you've run the database migration first
+-- Or use the Node.js script: node database/seed-demo-accounts.js
+
+-- Check if name column exists, if not, insert without it
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'name'
+    ) THEN
+        -- Insert with name column
+        INSERT INTO users (id, organization_id, email, password_hash, name, type, created_at, updated_at)
+        VALUES (
+          '00000000-0000-0000-0000-000000000011',
+          '00000000-0000-0000-0000-000000000001',
+          'demo.qs@constructionguru.com',
+          '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
+          'Demo QS Professional',
+          'qs',
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (email) DO UPDATE
+        SET organization_id = EXCLUDED.organization_id,
+            name = EXCLUDED.name,
+            type = EXCLUDED.type,
+            updated_at = NOW();
+    ELSE
+        -- Insert without name column (old schema)
+        INSERT INTO users (id, organization_id, email, password_hash, type, created_at, updated_at)
+        VALUES (
+          '00000000-0000-0000-0000-000000000011',
+          '00000000-0000-0000-0000-000000000001',
+          'demo.qs@constructionguru.com',
+          '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
+          'qs',
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (email) DO UPDATE
+        SET organization_id = EXCLUDED.organization_id,
+            type = EXCLUDED.type,
+            updated_at = NOW();
+    END IF;
+END $$;
 
 -- Demo Supplier User (password: DemoSupplier123!)
 -- Password hash generated using bcrypt with 10 rounds
-INSERT INTO users (id, organization_id, email, password_hash, name, type, created_at, updated_at)
-VALUES (
-  '00000000-0000-0000-0000-000000000012',
-  '00000000-0000-0000-0000-000000000002',
-  'demo.supplier@constructionguru.com',
-  '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
-  'Demo Supplier',
-  'supplier',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (email) DO UPDATE
-SET organization_id = EXCLUDED.organization_id,
-    name = EXCLUDED.name,
-    type = EXCLUDED.type,
-    updated_at = NOW();
+-- Note: If you get an error about "name" column, make sure you've run the database migration first
+-- Or use the Node.js script: node database/seed-demo-accounts.js
+
+-- Check if name column exists, if not, insert without it
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'name'
+    ) THEN
+        -- Insert with name column
+        INSERT INTO users (id, organization_id, email, password_hash, name, type, created_at, updated_at)
+        VALUES (
+          '00000000-0000-0000-0000-000000000012',
+          '00000000-0000-0000-0000-000000000002',
+          'demo.supplier@constructionguru.com',
+          '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
+          'Demo Supplier',
+          'supplier',
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (email) DO UPDATE
+        SET organization_id = EXCLUDED.organization_id,
+            name = EXCLUDED.name,
+            type = EXCLUDED.type,
+            updated_at = NOW();
+    ELSE
+        -- Insert without name column (old schema)
+        INSERT INTO users (id, organization_id, email, password_hash, type, created_at, updated_at)
+        VALUES (
+          '00000000-0000-0000-0000-000000000012',
+          '00000000-0000-0000-0000-000000000002',
+          'demo.supplier@constructionguru.com',
+          '$2b$10$rK8X8X8X8X8X8X8X8X8Xe.8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X', -- This will be replaced with actual hash
+          'supplier',
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (email) DO UPDATE
+        SET organization_id = EXCLUDED.organization_id,
+            type = EXCLUDED.type,
+            updated_at = NOW();
+    END IF;
+END $$;
 
 -- Note: The password hashes above are placeholders.
 -- You need to generate actual bcrypt hashes for:
