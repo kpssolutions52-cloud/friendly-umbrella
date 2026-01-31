@@ -178,6 +178,7 @@ export class SimplifiedAuthService {
     try {
       // Find user - NEW SCHEMA ONLY
       // Use select to avoid selecting 'name' column if it doesn't exist in database
+      // Handle null organizationId gracefully
       const user = await prisma.user.findUnique({
         where: { email: input.email },
         select: {
@@ -188,18 +189,26 @@ export class SimplifiedAuthService {
           organizationId: true,
           createdAt: true,
           updatedAt: true,
-          organization: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              email: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
+          // Only include organization if organizationId is not null
+          // Prisma will handle this automatically, but we check for null organizationId
         },
       });
+
+      // If user exists but has null organizationId, we need to fetch organization separately
+      let organization = null;
+      if (user && user.organizationId) {
+        organization = await prisma.organization.findUnique({
+          where: { id: user.organizationId },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      }
 
       if (!user) {
         throw createError(401, 'Invalid email or password');
@@ -210,7 +219,7 @@ export class SimplifiedAuthService {
         throw createError(403, 'User account is missing organization. Please contact support.');
       }
 
-      if (!user.organization) {
+      if (!organization) {
         throw createError(403, 'User organization not found');
       }
 
@@ -221,8 +230,7 @@ export class SimplifiedAuthService {
 
       const userType = user.type;
       const organizationId = user.organizationId;
-      const organizationType = user.organization.type;
-      const organization = user.organization;
+      const organizationType = organization.type;
 
       // Verify password
       const { comparePassword } = await import('../utils/password');
