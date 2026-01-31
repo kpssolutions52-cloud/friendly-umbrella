@@ -127,14 +127,6 @@ function DemoLoginForm() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900">QS Professional</h3>
                 <p className="mt-1 text-sm text-gray-600">{DEMO_ACCOUNTS.qs.description}</p>
-                <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                  <p className="text-xs font-mono text-gray-700">
-                    <span className="font-semibold">Email:</span> {DEMO_ACCOUNTS.qs.email}
-                  </p>
-                  <p className="text-xs font-mono text-gray-700 mt-1">
-                    <span className="font-semibold">Password:</span> {DEMO_ACCOUNTS.qs.password}
-                  </p>
-                </div>
               </div>
               {selectedAccount === 'qs' && (
                 <div className="absolute top-2 right-2">
@@ -168,14 +160,6 @@ function DemoLoginForm() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900">Supplier</h3>
                 <p className="mt-1 text-sm text-gray-600">{DEMO_ACCOUNTS.supplier.description}</p>
-                <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                  <p className="text-xs font-mono text-gray-700">
-                    <span className="font-semibold">Email:</span> {DEMO_ACCOUNTS.supplier.email}
-                  </p>
-                  <p className="text-xs font-mono text-gray-700 mt-1">
-                    <span className="font-semibold">Password:</span> {DEMO_ACCOUNTS.supplier.password}
-                  </p>
-                </div>
               </div>
               {selectedAccount === 'supplier' && (
                 <div className="absolute top-2 right-2">
