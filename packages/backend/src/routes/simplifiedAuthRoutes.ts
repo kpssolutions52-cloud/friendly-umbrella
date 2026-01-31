@@ -105,8 +105,10 @@ router.post(
       }
 
       const input = loginSchema.parse(req.body);
+      console.log('[AuthRoutes] Login attempt for:', input.email);
       const result = await simplifiedAuthService.login(input);
-
+      console.log('[AuthRoutes] Login successful for:', input.email);
+      
       res.json({
         message: result.message,
         user: result.user,
@@ -116,13 +118,27 @@ router.post(
         },
       });
     } catch (error: any) {
+      console.error('[AuthRoutes] Login error:', {
+        email: req.body?.email,
+        error: error.message,
+        status: error.status || error.statusCode,
+        stack: error.stack,
+      });
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
 
       // Handle authentication errors
-      if (error.status === 401) {
-        return res.status(401).json({ error: error.message });
+      if (error.status === 401 || error.statusCode === 401) {
+        return res.status(401).json({ error: error.message || 'Invalid email or password' });
+      }
+
+      // Handle other known errors
+      if (error.status || error.statusCode) {
+        return res.status(error.status || error.statusCode).json({ 
+          error: error.message || 'An error occurred' 
+        });
       }
 
       next(error);
