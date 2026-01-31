@@ -46,11 +46,21 @@ function DemoLoginForm() {
       );
     } catch (err: any) {
       console.error('Demo login error:', err);
-      setError(
+      console.error('Error details:', {
+        error: err,
+        errorMessage: err?.error?.message,
+        message: err?.message,
+        response: err?.response,
+      });
+      
+      // Show more detailed error message
+      const errorMessage = 
         err?.error?.message ||
-          err?.message ||
-          'Demo login failed. Please ensure demo accounts are set up in the database.'
-      );
+        err?.message ||
+        err?.error ||
+        'Demo login failed. Please ensure demo accounts are set up in the database.';
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };

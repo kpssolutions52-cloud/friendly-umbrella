@@ -178,6 +178,7 @@ export class SimplifiedAuthService {
           throw new Error('No organization found - checking old schema');
         }
       } catch (error: any) {
+        console.log('[SimplifiedAuthService] New schema query failed, trying old schema:', error.message);
         // Try old schema using raw SQL (more reliable than Prisma when relation doesn't exist)
         try {
           console.log('[SimplifiedAuthService] Trying old schema with raw SQL...');
