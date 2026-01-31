@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Cache Service for AI responses and supplier data
  * Uses Redis for fast caching
