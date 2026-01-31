@@ -123,7 +123,7 @@ export class SimplifiedAuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: (user as any).name || null, // name field may not exist in database yet
         type: user.type,
         organization: {
           id: user.organization.id,
@@ -152,10 +152,27 @@ export class SimplifiedAuthService {
   async login(input: SimplifiedLoginInput) {
     try {
       // Find user - NEW SCHEMA ONLY
+      // Use select to avoid selecting 'name' column if it doesn't exist in database
       const user = await prisma.user.findUnique({
         where: { email: input.email },
-        include: {
-          organization: true,
+        select: {
+          id: true,
+          email: true,
+          passwordHash: true,
+          type: true,
+          organizationId: true,
+          createdAt: true,
+          updatedAt: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              email: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
         },
       });
 
@@ -227,7 +244,7 @@ export class SimplifiedAuthService {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name || `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || null,
+          name: (user as any).name || null, // name field may not exist in database yet
           type: userType,
           organization: {
             id: organization.id,
