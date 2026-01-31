@@ -48,7 +48,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
           </div>
           
           {showAuthButtons && (
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4">
+            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-4 flex-shrink-0">
               <div className="hidden sm:block">
                 <PWAInstallButton />
               </div>
@@ -60,7 +60,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   
                   {/* MVP 1: Show navigation links based on user type */}
                   {user.type === 'qs' && (
-                    <Link href="/chat">
+                    <Link href="/chat" className="flex-shrink-0">
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -75,7 +75,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   
                   {(user.type === 'supplier' || user.tenant?.type === 'supplier') && (
                     <>
-                      <Link href="/supplier/chat">
+                      <Link href="/supplier/chat" className="flex-shrink-0">
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -86,7 +86,7 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                           <span className="sm:hidden">Chat</span>
                         </Button>
                       </Link>
-                      <Link href="/supplier/products">
+                      <Link href="/supplier/products" className="flex-shrink-0">
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -100,16 +100,16 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     </>
                   )}
                   
-                  {/* Always show logout button */}
+                  {/* Always show logout button - ensure it's visible */}
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={logout} 
-                    className="text-xs sm:text-sm touch-target px-2 sm:px-3"
+                    className="text-xs sm:text-sm touch-target px-2 sm:px-3 flex-shrink-0"
+                    title="Logout"
                   >
-                    <LogOut className="h-4 w-4 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Logout</span>
-                    <span className="sm:hidden">Out</span>
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline sm:ml-1.5">Logout</span>
                   </Button>
                 </>
               ) : (
