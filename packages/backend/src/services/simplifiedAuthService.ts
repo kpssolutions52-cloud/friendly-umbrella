@@ -279,8 +279,12 @@ export class SimplifiedAuthService {
       const isValid = await comparePassword(input.password, user.passwordHash);
 
       if (!isValid) {
+        console.error('[SimplifiedAuthService] Password verification failed for:', input.email);
+        console.error('[SimplifiedAuthService] Hash starts with:', user.passwordHash?.substring(0, 20));
         throw createError(401, 'Invalid email or password');
       }
+      
+      console.log('[SimplifiedAuthService] Password verified successfully for:', input.email);
 
       // Update last login
       await prisma.user.update({
