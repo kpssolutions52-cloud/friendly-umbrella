@@ -265,8 +265,45 @@ Response includes:
 - Check if private pricing applies
 - Confirm currency is correct
 
+## Requesting Quotes (RFQ) 🆕
+
+The platform includes a comprehensive RFQ (Request for Quote) feature that allows you to request quotes from suppliers and manage the entire quote lifecycle.
+
+### Quick Overview
+
+- **Create RFQs**: Submit single or bulk RFQs for products/services you need
+- **Manage Bids**: Review, accept, reject, or counter-negotiate supplier bids
+- **Real-Time Updates**: Receive instant notifications for all RFQ activities
+- **Bulk Upload**: Upload multiple RFQs via CSV file
+
+### Getting Started with RFQs
+
+1. **Create an RFQ**
+   - Navigate to Company Dashboard → Quotes section
+   - Click "Create RFQ" button
+   - Fill in RFQ details (title, description, category, quantity, budget, etc.)
+   - Choose to target a specific supplier or leave open for relevant suppliers
+
+2. **View and Manage Bids**
+   - Click on any RFQ to view details
+   - Review all submitted bids from suppliers
+   - Accept bids with optional comments
+   - Reject bids with optional feedback
+   - Counter-negotiate specific bids or the entire RFQ
+
+3. **Track Status**
+   - Monitor RFQ status: Pending, Responded, Accepted, Rejected, Cancelled
+   - View bid history and responses
+   - Receive real-time notifications for all activities
+
+### Learn More
+
+For complete RFQ documentation including workflows, best practices, and detailed guides, see:
+- **[Complete RFQ Guide](./rfq-guide.md)** - Comprehensive RFQ feature documentation
+
 ## Next Steps
 
+- Learn about [RFQ Feature](./rfq-guide.md) 🆕 - Complete guide for requesting and managing quotes
 - Learn about [API Testing](./api-testing.md) for programmatic access
 - Review [Supplier Guide](./supplier-guide.md) to understand supplier features
 - Check [Technical Documentation](../technical/) for integration details

@@ -32,7 +32,26 @@ function copyRecursive(src, dest) {
 try {
   if (fs.existsSync(sourceDir)) {
     copyRecursive(sourceDir, destDir);
-    console.log('✓ Documentation files copied successfully');
+    
+    // Verify key files were copied
+    const keyFiles = [
+      'QS_AI_AGENT_ARCHITECTURE.md',
+      'PRODUCT_OVERVIEW.md',
+      'QUICK_START.md',
+      'DATABASE_SCHEMA.md',
+      'IMPLEMENTATION_GUIDE.md',
+      'README.md'
+    ];
+    
+    const copied = keyFiles.filter(file => 
+      fs.existsSync(path.join(destDir, file))
+    );
+    
+    console.log(`✓ Documentation files copied successfully (${copied.length}/${keyFiles.length} key files)`);
+    
+    if (copied.length < keyFiles.length) {
+      console.warn('⚠ Some key documentation files may be missing');
+    }
   } else {
     console.warn('⚠ Docs directory not found at:', sourceDir);
   }

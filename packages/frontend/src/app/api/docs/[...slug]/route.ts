@@ -98,15 +98,33 @@ export async function GET(
     const resolvedPath = getDocsPath(filePath);
     const content = readFileSync(resolvedPath, 'utf-8');
     return NextResponse.json({ content });
-  } catch (error) {
-    console.error('Failed to read docs file:', filePath, error);
+  } catch (error: any) {
+    console.error('Failed to read docs file:', {
+      slug,
+      filePath,
+      error: error.message,
+      cwd: process.cwd(),
+      attemptedPaths: [
+        join(process.cwd(), 'docs', filePath.replace('docs/', '').replace(/^.*\//, '')),
+        join(process.cwd(), '../../', filePath),
+        join(process.cwd(), '../..', filePath),
+        join(process.cwd(), filePath),
+      ]
+    });
+    
     // Return main docs on error
     try {
       const resolvedPath = getDocsPath('docs/README.md');
       const content = readFileSync(resolvedPath, 'utf-8');
       return NextResponse.json({ content });
-    } catch {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    } catch (fallbackError) {
+      console.error('Failed to read fallback README:', fallbackError);
+      return NextResponse.json({ 
+        error: 'Not found',
+        message: `Documentation file not found: ${filePath}`,
+        slug,
+        cwd: process.cwd()
+      }, { status: 404 });
     }
   }
 }
