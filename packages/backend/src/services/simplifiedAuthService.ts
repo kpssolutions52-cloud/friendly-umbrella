@@ -193,7 +193,7 @@ export class SimplifiedAuthService {
               u.role,
               u.status,
               u.is_active as "isActive",
-              u.tenant_id as "tenantId",
+              u.tenant_id as "userTenantId",
               t.id as "tenantId",
               t.name as "tenantName",
               t.type as "tenantType",
