@@ -147,65 +147,127 @@ export class SimplifiedAuthService {
 
   /**
    * Login user
+   * Supports both old schema (tenant, role) and new schema (organization, type)
    */
   async login(input: SimplifiedLoginInput) {
     try {
-      const user = await prisma.user.findUnique({
-        where: { email: input.email },
-        include: {
-          organization: true,
-        },
-      });
+      // Try to find user - check if we have new schema (organization) or old schema (tenant)
+      let user: any;
+      let organization: any;
+      let userType: 'qs' | 'supplier';
+      let organizationId: string;
+      let organizationType: 'company' | 'supplier';
+
+      try {
+        // Try new schema first (with organization relation)
+        user = await prisma.user.findUnique({
+          where: { email: input.email },
+          include: {
+            organization: true,
+          },
+        });
+
+        if (user && user.organization) {
+          // New schema
+          organization = user.organization;
+          userType = user.type;
+          organizationId = user.organizationId;
+          organizationType = user.organization.type;
+        } else if (user) {
+          // User exists but no organization - might be old schema
+          throw new Error('No organization found - checking old schema');
+        }
+      } catch (error: any) {
+        // Try old schema (with tenant relation)
+        try {
+          user = await (prisma as any).user.findUnique({
+            where: { email: input.email },
+            include: {
+              tenant: true,
+            },
+          });
+
+          if (user && user.tenant) {
+            // Old schema - map to new schema format
+            organization = user.tenant;
+            // Map role to type
+            if (user.role === 'company_staff' || user.role === 'company_admin') {
+              userType = 'qs';
+            } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
+              userType = 'supplier';
+            } else {
+              throw createError(401, 'Invalid user role for demo login');
+            }
+            organizationId = user.tenantId;
+            organizationType = user.tenant.type;
+          } else {
+            throw createError(401, 'Invalid email or password');
+          }
+        } catch (oldSchemaError: any) {
+          // Neither schema worked
+          throw createError(401, 'Invalid email or password');
+        }
+      }
 
       if (!user) {
         throw createError(401, 'Invalid email or password');
       }
 
-    // Verify password
-    const { comparePassword } = await import('../utils/password');
-    const isValid = await comparePassword(input.password, user.passwordHash);
+      // Check if user is active (old schema has isActive, new schema doesn't need it)
+      if ((user as any).isActive === false) {
+        throw createError(403, 'Account is inactive');
+      }
 
-    if (!isValid) {
-      throw createError(401, 'Invalid email or password');
-    }
+      if ((user as any).status === 'pending') {
+        throw createError(403, 'Account is pending approval');
+      }
 
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { updatedAt: new Date() },
-    });
+      // Verify password
+      const { comparePassword } = await import('../utils/password');
+      const isValid = await comparePassword(input.password, user.passwordHash);
 
-    // Generate tokens (compatible with JWT utility)
-    const accessToken = generateAccessToken({
-      userId: user.id,
-      tenantId: user.organizationId, // Map organizationId to tenantId for compatibility
-      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff', // Map type to role
-      tenantType: user.organization.type, // Map organization type
-    });
+      if (!isValid) {
+        throw createError(401, 'Invalid email or password');
+      }
 
-    const refreshToken = generateRefreshToken({
-      userId: user.id,
-      tenantId: user.organizationId,
-      role: user.type === 'qs' ? 'company_staff' : 'supplier_staff',
-      tenantType: user.organization.type,
-    });
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { updatedAt: new Date() },
+      });
 
-    return {
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        type: user.type,
-        organization: {
-          id: user.organization.id,
-          name: user.organization.name,
-          type: user.organization.type,
+      // Generate tokens (compatible with JWT utility)
+      const role = userType === 'qs' ? 'company_staff' : 'supplier_staff';
+      const accessToken = generateAccessToken({
+        userId: user.id,
+        tenantId: organizationId, // Map organizationId to tenantId for compatibility
+        role,
+        tenantType: organizationType,
+      });
+
+      const refreshToken = generateRefreshToken({
+        userId: user.id,
+        tenantId: organizationId,
+        role,
+        tenantType: organizationType,
+      });
+
+      return {
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name || `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || null,
+          type: userType,
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            type: organizationType,
+          },
         },
-      },
-      accessToken,
-      refreshToken,
-    };
+        accessToken,
+        refreshToken,
+      };
     } catch (error: any) {
       console.error('[SimplifiedAuthService] Login error:', error);
       // Re-throw createError instances as-is
