@@ -122,7 +122,7 @@ function RegisterSimpleForm() {
 
       setSuccess('Registration successful! Redirecting...');
       setTimeout(() => {
-        router.push(userType === 'qs' ? '/chat' : '/supplier/products');
+        router.push(userType === 'qs' ? '/chat' : '/supplier/chat');
       }, 1500);
     } catch (err: any) {
       console.error('Registration error:', err);

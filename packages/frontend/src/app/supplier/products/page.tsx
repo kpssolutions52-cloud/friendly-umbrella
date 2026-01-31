@@ -44,6 +44,18 @@ export default function SupplierProductsPage() {
       router.push('/');
       return;
     }
+    // For MVP 1, redirect suppliers to chat page by default
+    // The Products page is accessible via header button, but default landing should be chat
+    // Check if user came directly to this page (not from navigation)
+    const referrer = document.referrer;
+    const isDirectAccess = !referrer || referrer.includes('/supplier/products') || referrer === window.location.href;
+    if (isDirectAccess && !sessionStorage.getItem('supplier-products-accessed')) {
+      // User came directly to this page, redirect to chat
+      router.push('/supplier/chat');
+      return;
+    }
+    // Mark that user has accessed products page (so they can navigate back)
+    sessionStorage.setItem('supplier-products-accessed', 'true');
   }, [isAuthenticated, user, router]);
 
   // Load products
