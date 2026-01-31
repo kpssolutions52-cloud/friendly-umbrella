@@ -1,4 +1,6 @@
-# QS AI Agent - Complete Vision Document
+# QS AI Agent - Complete Vision
+
+> **Note:** See [Complete Vision](./COMPLETE_VISION.md) for the most up-to-date vision document with dual AI interface and dynamic UI. Document
 
 ## 🎯 What We're Building
 
