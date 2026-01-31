@@ -14,6 +14,7 @@ import { Footer } from '@/components/Footer';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { AIQuoteSection } from '@/components/AIQuoteSection';
 import { RFQSection } from '@/components/RFQSection';
+import { LandingPage } from '@/components/LandingPage';
 import { Filter, X, ChevronDown, Search as SearchIcon, SlidersHorizontal, ArrowUpDown, Zap, ShoppingBag, FileText } from 'lucide-react';
 
 interface PublicProduct {
@@ -434,22 +435,21 @@ export default function Home() {
     );
   }
 
+  // Show landing page for non-logged-in users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <LandingPage />
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-16 sm:pb-0 flex flex-col">
       {/* Modern Header with Logo */}
       <Header />
-
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <div className="text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4">Real-Time Pricing for Construction Professionals</h2>
-            <p className="text-sm sm:text-lg text-blue-100 max-w-2xl mx-auto mb-6">
-              Compare prices from multiple suppliers and service providers
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Section Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
