@@ -312,12 +312,41 @@ export async function processSupplierCommand(
       },
     };
   } else if (intent.intent === 'view_products') {
-    // List all products
-    const products = await prisma.product.findMany({
-      where: { supplierId },
-      orderBy: { name: 'asc' },
-      take: 50,
-    });
+    // List all products - handle both old and new schemas
+    let products: any[] = [];
+
+    try {
+      // Try new schema first
+      products = await prisma.product.findMany({
+        where: { supplierId },
+        orderBy: { name: 'asc' },
+        take: 50,
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product list');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE supplier_id::text = ${supplierId}::text
+              ORDER BY name ASC
+              LIMIT 50
+            `
+          );
+
+          products = result || [];
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product list failed:', oldSchemaError);
+          products = [];
+        }
+      } else {
+        throw error;
+      }
+    }
 
     if (products.length === 0) {
       return {
