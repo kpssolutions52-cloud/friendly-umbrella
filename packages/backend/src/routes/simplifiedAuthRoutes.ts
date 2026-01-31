@@ -172,38 +172,106 @@ router.get(
         tenantType: string;
       };
 
-      // Get user with organization
+      // Get user - handle both old and new schemas
       const { prisma } = await import('../utils/prisma');
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId },
-        include: { organization: true },
-      });
+      let user: any;
+      let organization: any;
+      let userType: 'qs' | 'supplier' | null = null;
+      
+      try {
+        // Try new schema first
+        user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          include: { organization: true },
+        });
 
-      if (!user) {
+        if (user && user.organization) {
+          // New schema
+          organization = user.organization;
+          userType = user.type;
+        } else if (user) {
+          // User exists but no organization - try old schema
+          throw new Error('No organization found - checking old schema');
+        }
+      } catch (error: any) {
+        // Try old schema using raw SQL
+        console.log('[AuthRoutes] /auth/me: Trying old schema with raw SQL...');
+        try {
+          const result = await prisma.$queryRaw<any[]>`
+            SELECT 
+              u.id,
+              u.email,
+              u.first_name as "firstName",
+              u.last_name as "lastName",
+              u.role,
+              u.tenant_id as "tenantId",
+              t.id as "tenantId",
+              t.name as "tenantName",
+              t.type as "tenantType"
+            FROM users u
+            LEFT JOIN tenants t ON u.tenant_id = t.id
+            WHERE u.id = ${decoded.userId}
+            LIMIT 1
+          `;
+
+          if (result && result.length > 0) {
+            const row = result[0];
+            user = {
+              id: row.id,
+              email: row.email,
+              firstName: row.firstName,
+              lastName: row.lastName,
+              role: row.role,
+              tenantId: row.tenantId,
+            };
+            
+            organization = {
+              id: row.tenantId,
+              name: row.tenantName,
+              type: row.tenantType,
+            };
+            
+            // Map role to type
+            if (user.role === 'company_staff' || user.role === 'company_admin') {
+              userType = 'qs';
+            } else if (user.role === 'supplier_staff' || user.role === 'supplier_admin') {
+              userType = 'supplier';
+            }
+          } else {
+            return res.status(401).json({ error: 'User not found' });
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[AuthRoutes] /auth/me: Old schema query failed:', oldSchemaError);
+          return res.status(401).json({ error: 'User not found' });
+        }
+      }
+
+      if (!user || !organization || !userType) {
         return res.status(401).json({ error: 'User not found' });
       }
 
       // Return user in format expected by frontend (compatible with both old and new schema)
+      const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || null;
       res.json({
         id: user.id,
         email: user.email,
-        name: user.name,
-        firstName: user.name?.split(' ')[0] || null,
-        lastName: user.name?.split(' ').slice(1).join(' ') || null,
-        type: user.type, // New schema: 'qs' | 'supplier'
-        role: user.type === 'qs' ? 'company_staff' : 'supplier_staff', // For compatibility with old schema
+        name: userName,
+        firstName: user.firstName || userName?.split(' ')[0] || null,
+        lastName: user.lastName || userName?.split(' ').slice(1).join(' ') || null,
+        type: userType, // 'qs' | 'supplier'
+        role: user.role || (userType === 'qs' ? 'company_staff' : 'supplier_staff'), // For compatibility
         organization: {
-          id: user.organization.id,
-          name: user.organization.name,
-          type: user.organization.type,
+          id: organization.id,
+          name: organization.name,
+          type: organization.type,
         },
-        organizationId: user.organizationId, // New schema
+        organizationId: organization.id, // New schema
         tenant: {
-          id: user.organization.id,
-          name: user.organization.name,
-          type: user.organization.type,
+          id: organization.id,
+          name: organization.name,
+          type: organization.type,
         },
-        tenantId: user.organizationId, // For compatibility with old schema
+        tenantId: organization.id, // For compatibility with old schema
       });
     } catch (error: any) {
       if (error.name === 'JsonWebTokenError') {
