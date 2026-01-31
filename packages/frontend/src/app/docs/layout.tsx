@@ -195,6 +195,15 @@ export default function DocsLayout({
                 </li>
                 <li>
                   <Link
+                    href="/docs/supplier-guide"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    Supplier Guide
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/docs/quote-workflow"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
