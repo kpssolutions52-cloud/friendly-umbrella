@@ -106,6 +106,9 @@ export async function getSupplierProducts(supplierId: string) {
   return await prisma.product.findMany({
     where: {
       supplierId,
+      price: {
+        not: null, // Exclude products with null prices
+      },
     },
     include: {
       supplier: true,
