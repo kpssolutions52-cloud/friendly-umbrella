@@ -17,6 +17,13 @@ export async function GET(
   { params }: { params: { docFile: string } }
 ) {
   const docFile = params.docFile;
+  
+  // Only handle known markdown files
+  if (!docFile.endsWith('.md') && !docFileRedirects[docFile]) {
+    // Not a markdown file we handle, return 404
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  
   const redirectPath = docFileRedirects[docFile];
   
   if (redirectPath) {
