@@ -2,7 +2,7 @@
 
 ## 🎯 One-Sentence Pitch
 
-**ConstructionGuru is the ChatGPT for Construction - an AI-powered platform that eliminates phone calls and manual work for Quantity Surveyors, Suppliers, and Homeowners through natural language AI and real-time supplier data.**
+**ConstructionGuru is the ChatGPT for Construction - an AI-powered platform that eliminates phone calls and manual work for Quantity Surveyors and Suppliers through natural language AI and real-time supplier data. (B2C expansion planned for Phase 2)**
 
 ---
 
@@ -15,15 +15,17 @@
 - **$50+ billion wasted annually** on inefficient processes
 
 ### Solution
-- **AI Chat Interface:** Natural language for all users
+- **AI Chat Interface:** Natural language for QS and Suppliers
 - **Real-Time Data:** Live supplier prices, always current
 - **Complete Workflows:** End-to-end project management
-- **Three User Types:** QS, Suppliers, General Users
+- **Two User Types (Phase 1):** QS, Suppliers
+- **B2C Expansion (Phase 2):** General Users (homeowners)
 
 ### Market
-- **TAM: $500+ billion**
+- **Phase 1 TAM: $10+ billion (B2B)**
 - **B2B:** 100,000+ QS, 500,000+ suppliers
-- **B2C:** 50+ million homeowners annually
+- **Phase 2 TAM: $500+ billion (B2C expansion)**
+- **B2C:** 50+ million homeowners annually (future)
 - **Timing:** Perfect - AI maturity + market readiness
 
 ---
@@ -36,10 +38,14 @@
 3. **Transaction Fees:** 2-5% on orders
 4. **Premium Features:** Advanced analytics, custom integrations
 
-### Projections
-- **Year 1:** $7.6M ARR (1,000 QS, 500 Suppliers, 5,000 Users)
-- **Year 2:** $76M ARR (10x growth)
-- **Year 3:** $550M ARR (market leadership)
+### Projections (Phase 1: B2B Focus)
+- **Year 1:** $4.8M ARR (1,000 QS, 500 Suppliers)
+- **Year 2:** $42M ARR (10,000 QS, 5,000 Suppliers)
+- **Year 3:** $210M ARR (B2B market leadership)
+
+### Projections (Phase 2: B2C Expansion)
+- **Year 4:** $550M ARR (add General Users)
+- **Year 5:** $1B+ ARR (complete platform)
 
 ---
 

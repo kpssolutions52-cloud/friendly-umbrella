@@ -9,7 +9,7 @@
 ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform that eliminates phone calls and manual work for:
 - **QS Professionals** - Fast pricing, quotes, project management
 - **Suppliers** - Inventory, prices, customer management  
-- **General Users** - End-to-end guidance for construction projects
+- **General Users** - End-to-end guidance (Phase 2 - Future)
 
 **No phone calls. No manual work. Just ask the AI and get instant answers with real-time supplier data.**
 
@@ -50,10 +50,11 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
    - Dynamic UI dashboards
    - Notification system
 
-6. **[General User Role](./GENERAL_USER_ROLE.md)** 🏠
+6. **[General User Role](./GENERAL_USER_ROLE.md)** 🏠 ⏸️ **PHASE 2**
    - Homeowners/individuals guide
    - End-to-end project guidance
    - Simplified interface
+   - **Note:** Postponed to Phase 2 - focus on perfecting QS + Supplier first
 
 7. **[Supplier Guide](./SUPPLIER_GUIDE.md)** 🏭
    - Complete supplier operations
@@ -129,28 +130,31 @@ ConstructionGuru is the **ChatGPT for Construction** - an AI-powered platform th
 - ✅ Customer visibility
 - ✅ Real-time updates
 
-### For General Users (Homeowners)
-- ✅ Step-by-step project guidance
-- ✅ "I want to build X" → AI guides you
-- ✅ Real-time quotes
-- ✅ Budget planning
-- ✅ Timeline tracking
-- ✅ Educational content
+### For General Users (Homeowners) ⏸️ **PHASE 2**
+- ⏸️ Step-by-step project guidance - **Future**
+- ⏸️ "I want to build X" → AI guides - **Future**
+- ⏸️ Real-time quotes - **Future**
+- ⏸️ Budget planning - **Future**
+- ⏸️ Timeline tracking - **Future**
+- ⏸️ Educational content - **Future**
+
+**Strategy:** Perfect QS + Supplier experience first, then expand to General Users.
 
 ---
 
 ## 💰 Market Opportunity
 
 ### Market Size
-- **B2B:** 100,000+ QS professionals, 500,000+ suppliers
-- **B2C:** 50+ million homeowners annually
-- **TAM: $500+ billion**
+- **Phase 1 (B2B):** 100,000+ QS professionals, 500,000+ suppliers
+- **Phase 1 TAM: $10+ billion**
+- **Phase 2 (B2C):** 50+ million homeowners annually (future)
+- **Phase 2 TAM: $500+ billion (total)**
 
 ### Revenue Model
-- **B2B Subscriptions:** $99-499/month
-- **B2C Subscriptions:** $29-99/month
+- **B2B Subscriptions:** $99-499/month (QS + Suppliers)
 - **Transaction Fees:** 2-5% on orders
-- **Projections:** $7.6M Year 1 → $550M Year 3
+- **Phase 1 Projections:** $4.8M Year 1 → $210M Year 3 (B2B)
+- **Phase 2 (Future):** B2C subscriptions, expand to $550M+ ARR
 
 ---
 
