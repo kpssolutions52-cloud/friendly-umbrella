@@ -175,6 +175,15 @@ export default function DocsLayout({
                     Multi-Company Architecture
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/docs/quote-workflow"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    Quote Workflow Guide
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -218,6 +227,15 @@ export default function DocsLayout({
                     onClick={() => setSidebarOpen(false)}
                   >
                     Code Migration Guide
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/docs/quote-workflow-architecture"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    Quote Workflow Architecture
                   </Link>
                 </li>
               </ul>

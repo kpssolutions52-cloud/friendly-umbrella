@@ -26,12 +26,14 @@ const docPaths: Record<string, string> = {
   'product-overview': 'docs/PRODUCT_OVERVIEW.md',
   'quick-start': 'docs/QUICK_START.md',
   'multi-company': 'docs/MULTI_COMPANY_ARCHITECTURE.md',
+  'quote-workflow': 'docs/QUOTE_WORKFLOW_GUIDE.md',
   
   // Technical
   'architecture': 'docs/QS_AI_AGENT_ARCHITECTURE.md',
   'database': 'docs/DATABASE_SCHEMA.md',
   'implementation': 'docs/IMPLEMENTATION_GUIDE.md',
   'code-migration': 'docs/CODE_MIGRATION_GUIDE.md',
+  'quote-workflow-architecture': 'docs/QUOTE_WORKFLOW_ARCHITECTURE.md',
 };
 
 function getDocsPath(relativePath: string): string {

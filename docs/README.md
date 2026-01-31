@@ -23,6 +23,11 @@
    - Independent projects
    - Company-specific pricing
 
+4. **[Quote Workflow Guide](./QUOTE_WORKFLOW_GUIDE.md)** 📋
+   - Complete quote-to-order workflow
+   - How to use the workflow
+   - Step-by-step guide
+
 ### Technical
 
 4. **[Architecture](./QS_AI_AGENT_ARCHITECTURE.md)** 🔧
@@ -37,6 +42,11 @@
 6. **[Implementation](./IMPLEMENTATION_GUIDE.md)** 📋
    - How to build
    - Code examples
+
+7. **[Quote Workflow Architecture](./QUOTE_WORKFLOW_ARCHITECTURE.md)** 🔄
+   - Complete workflow system
+   - Database schema
+   - Implementation details
 
 ---
 
