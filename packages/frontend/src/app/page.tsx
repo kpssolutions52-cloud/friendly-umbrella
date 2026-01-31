@@ -469,15 +469,55 @@ export default function Home() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveSection('shop')}
+              onClick={() => {
+                setActiveSection('shop');
+                setActiveTab('products');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setSelectedSupplier('');
+                setSubCategories([]);
+                setSubServiceCategories([]);
+                setCurrentPage(1);
+              }}
               className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
-                activeSection === 'shop'
+                activeSection === 'shop' && activeTab === 'products'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <ShoppingBag className="h-5 w-5" />
-              Shop
+              Products
+              {activeSection === 'shop' && products.length > 0 && activeTab === 'products' && (
+                <span className="ml-1.5 text-xs font-normal">
+                  ({getFilteredProducts(products).length})
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSection('shop');
+                setActiveTab('services');
+                setSelectedMainCategoryId('');
+                setSelectedSubCategoryId('');
+                setSelectedSupplier('');
+                setSubCategories([]);
+                setSubServiceCategories([]);
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base font-semibold transition-all duration-200 ${
+                activeSection === 'shop' && activeTab === 'services'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              Services
+              {activeSection === 'shop' && products.length > 0 && activeTab === 'services' && (
+                <span className="ml-1.5 text-xs font-normal">
+                  ({getFilteredProducts(products).length})
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -517,59 +557,6 @@ export default function Home() {
             {/* Left Sidebar - Fixed/Sticky */}
             <div className="hidden md:flex md:flex-col md:w-80 lg:w-72 xl:w-80 flex-shrink-0">
               <div className="sticky top-4 bg-white rounded-lg border border-gray-200 shadow-sm p-5 max-h-[calc(100vh-120px)] overflow-y-auto">
-                {/* Products vs Services Tabs */}
-                <div className="mb-6">
-                  <div className="inline-flex bg-gray-100 rounded-lg p-1 shadow-sm w-full">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('products');
-                        setSelectedMainCategoryId('');
-                        setSelectedSubCategoryId('');
-                        setSelectedSupplier('');
-                        setSubCategories([]);
-                        setSubServiceCategories([]);
-                        setCurrentPage(1);
-                      }}
-                      className={`flex-1 relative px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${
-                        activeTab === 'products'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Products
-                      {products.length > 0 && activeTab === 'products' && (
-                        <span className="ml-1.5 text-xs font-normal">
-                          ({getFilteredProducts(products).length})
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('services');
-                        setSelectedMainCategoryId('');
-                        setSelectedSubCategoryId('');
-                        setSelectedSupplier('');
-                        setSubCategories([]);
-                        setSubServiceCategories([]);
-                        setCurrentPage(1);
-                      }}
-                      className={`flex-1 relative px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 ${
-                        activeTab === 'services'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Services
-                      {products.length > 0 && activeTab === 'services' && (
-                        <span className="ml-1.5 text-xs font-normal">
-                          ({getFilteredProducts(products).length})
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
 
                 {/* Search Bar */}
                 <div className="mb-6">
