@@ -1,379 +1,272 @@
-# Supplier User Guide
+# User Guide - Suppliers
 
-Complete guide for suppliers using the Construction Pricing Platform.
+## 🎯 Welcome to AI QS Assistant!
 
-## Table of Contents
+This guide will help you add your products and prices so QS professionals can see them in AI answers.
 
-1. [Dashboard Overview](#dashboard-overview)
-2. [Managing Products](#managing-products)
-3. [Setting Prices](#setting-prices)
-4. [Viewing Statistics](#viewing-statistics)
-5. [Best Practices](#best-practices)
+---
 
-## Dashboard Overview
+## 🚀 Getting Started
 
-The Supplier Dashboard provides an overview of your business on the platform.
+### Step 1: Sign Up (30 seconds)
 
-### Key Metrics
+1. Go to the registration page
+2. Select **"I'm a Supplier"**
+3. Choose **"Create new supplier"** or **"Join existing supplier"**
+4. Enter your email, password, and name
+5. Click **"Create account"**
+6. ✅ **You're in!** No approvals needed.
 
-- **Total Products**: All products in your catalog (including inactive)
-- **Active Products**: Currently active products
-- **Products with Prices**: Products that have default prices set
-- **Private Prices**: Number of products with company-specific pricing
+### Step 2: Add Your First Product
 
-### Quick Actions
-
-- **Add Product**: Create a new product in your catalog
-- **Import CSV**: Bulk import products (coming soon - currently disabled)
-- **User Management**: Manage users in your organization (admin only)
-  - Shows a red notification badge with pending user request count
-
-## Managing Products
-
-### Adding a Product
-
-#### Step 1: Click "Add Product"
-Click the blue "Add Product" button in the Quick Actions section.
-
-#### Step 2: Fill in Product Details
-
-**Required Fields:**
-- **SKU**: Unique product identifier (e.g., "STEEL-BAR-001")
-- **Name**: Product name (e.g., "Steel Reinforcement Bar #3")
-- **Unit**: Measurement unit (e.g., "piece", "kg", "m", "ton")
-
-**Optional Fields:**
-- **Description**: Detailed product description
-- **Category**: Product category (e.g., "Steel", "Cement", "Wood")
-- **Default Price**: Base price for all companies
-- **Currency**: Price currency (USD, EUR, GBP, SGD)
-
-#### Step 3: Create Product
-Click "Create Product" to save. The product will appear in your catalog immediately.
-
-### Viewing Products
-
-#### Method 1: Click Stat Cards
-1. Click on any stat card (Total Products, Active Products, etc.)
-2. A filtered product list appears below
-3. View products in a table format
-
-#### Method 2: Filter by Type
-- **Total Products**: Shows all products (including inactive)
-- **Active Products**: Shows only active products
-- **Products with Prices**: Shows products with default prices
-- **Private Prices**: Shows products with company-specific pricing
-
-#### Method 3: Search Products
-1. Use the search bar at the top of the products table
-2. Type the product name to filter
-3. Search is case-insensitive and filters in real-time
-4. Results update as you type
-
-### Product Information Displayed
-
-The product table shows:
-- **SKU**: Product identifier
-- **Name**: Product name
-- **Category**: Product category
-- **Unit**: Measurement unit
-- **Price**: Current default price (if set)
-- **Status**: Active or Inactive
-- **Actions**: Edit, Inactive/Activate, and Delete buttons
-
-### Managing Products in the Table
-
-Each product row includes action buttons:
-
-#### Edit Product
-1. Click the **"Edit"** button on any product row
-2. A modal opens with the product's current information pre-filled
-3. Modify any field (SKU, name, description, category, unit, price, currency)
-4. Click **"Update Product"** to save changes
-5. Changes are reflected immediately in the table
-
-#### Activate/Deactivate Product
-1. Click the **"Inactive"** button to deactivate an active product
-2. Click the **"Activate"** button to reactivate an inactive product
-3. A confirmation dialog will appear before changing the status
-4. Inactive products won't appear in company searches
-
-#### Delete Product
-**Note**: Delete functionality is only available to admin users (supplier_admin). Staff users cannot delete products.
-
-1. Click the **"Delete"** button on any product row (admin only)
-2. A confirmation modal appears asking to confirm deletion
-3. Click **"Delete"** in the modal to permanently remove the product
-4. **Warning**: This action cannot be undone
-5. Product and all associated prices will be deleted
-
-## Setting Prices
-
-### Default Prices
-
-Default prices are visible to all companies browsing your catalog.
-
-#### Setting Default Price During Product Creation
-1. When adding a product, enter the "Default Price" field
-2. Select the currency
-3. The price will be set automatically
-
-#### Updating Default Price
-
-**Using API:**
-```bash
-PUT /api/v1/products/{productId}/default-price
-{
-  "price": 150.00,
-  "currency": "USD"
-}
-```
-
-### Special Prices (Private Prices)
-
-Special prices are company-specific prices that override default prices for that specific company. Only the selected company can see their special price - other companies will see the default price.
-
-You can set special prices in two ways:
-1. **Fixed Price**: Set a specific price amount (e.g., SGD 38.00)
-2. **Discount Percentage**: Set a discount percentage (e.g., 3% off the default price)
-
-#### Managing Special Prices During Product Creation
-
-**Step 1: Add Special Price Entry**
-1. When creating a new product, scroll to the "Special Prices (Optional)" section
-2. Click **"Add Company Price"** button
+1. Go to the **Products** page
+2. Click **"Add Product"**
 3. Fill in the form:
-   - **Company**: Select from the dropdown list of active companies
-   - **Pricing Type**: Choose "Special Price" or "Discount %"
-   - **If Special Price**:
-     - Enter the fixed price amount
-     - Select the currency (USD, EUR, GBP, SGD)
-   - **If Discount %**:
-     - Enter discount percentage (0-100)
-     - Currency will use the product's default currency
-   - **Notes** (Optional): Add any notes about this special price
-4. Click **"Include"** to add the special price to the list
+   - Product name (e.g., "Cement")
+   - Price (e.g., 50.00)
+   - Unit (e.g., "bag")
+4. Click **"Save"**
+5. ✅ **Done!** Your product now appears in AI answers.
 
-**Step 2: Review Included Special Prices**
-- All included special prices are shown in a table
-- Review the pricing type, price/discount, and company
-- Edit or delete entries before creating the product
+---
 
-**Step 3: Create Product**
-- Click **"Create Product"** to save the product with all special prices
+## 📝 Adding Products
 
-#### Managing Special Prices When Editing Product
+### Simple Product Form
 
-**Step 1: Edit Product**
-1. Click the **"Edit"** button on any product row
-2. The edit modal opens with current product information
+The form is simple - just 3 fields:
 
-**Step 2: Manage Special Prices**
-1. Scroll to the "Special Prices (Optional)" section in the edit modal
-2. View existing special prices in the table
-3. Add new special prices:
-   - Click **"Add Company Price"**
-   - Fill in company, pricing type, and price/discount
-   - Click **"Include"** to add
-4. Edit existing special prices:
-   - Click **"Edit"** button on any special price row
-   - Modify pricing type, price/discount, or notes
-   - Click **"Update"** to save changes
-5. Delete special prices:
-   - Click **"Delete"** button on any special price row
-   - Confirm deletion
-
-**Step 3: Update Product**
-- Click **"Update Product"** to save all changes including special prices
-
-#### Pricing Type Options
-
-**Special Price (Fixed Price)**
-- Enter a specific price amount (e.g., 40.00)
-- Select currency independently
-- Company sees this exact price
-
-**Discount Percentage**
-- Enter discount percentage (0-100)
-- System calculates: Default Price × (1 - Discount% / 100)
-- Example: Default SGD 40.00 with 3% discount = SGD 38.80
-- Uses product's default currency
-- Company sees both discount percentage and calculated price
-
-#### Special Price Rules
-
-- **One Pricing Type Per Company**: Each company can have either a fixed price OR a discount percentage, not both
-- **Company Selection**: Once a company is included, it cannot be selected again for the same product
-- **Validation**: Discount percentage must be between 0-100
-- **Privacy**: Each company only sees their own special price
-
-#### Benefits of Special Prices
-- Offer discounts to specific companies
-- Negotiate custom pricing
-- Maintain different pricing tiers
-- Track company-specific agreements
-- **Privacy**: Each company only sees their own special price
-- Easy management through the dashboard UI
-
-#### Using API (Advanced)
-
-You can also manage special prices via API:
-
-**Create Special Price:**
-```bash
-POST /api/v1/products/{productId}/private-prices
-{
-  "companyId": "company-uuid",
-  "price": 140.00,
-  "currency": "USD",
-  "notes": "Volume discount for preferred customer"
-}
+```
+┌─────────────────────────────────────┐
+│  Add Product                        │
+├─────────────────────────────────────┤
+│  Product Name *                     │
+│  [Cement________________]           │
+│                                     │
+│  Price *                            │
+│  [50.00________________]            │
+│                                     │
+│  Unit *                             │
+│  [bag________________]              │
+│                                     │
+│  [Cancel]  [Save Product]          │
+└─────────────────────────────────────┘
 ```
 
-**List All Special Prices for a Product:**
-```bash
-GET /api/v1/products/{productId}/private-prices
+### Required Fields
+
+1. **Product Name**
+   - Be specific: "Portland Cement" not just "Cement"
+   - Use common names QS professionals search for
+   - Examples: "Steel Bar #3", "Sand (Fine)", "Concrete M20"
+
+2. **Price**
+   - Enter the price per unit
+   - Use numbers only (e.g., 50.00)
+   - This is the price QS professionals will see
+
+3. **Unit**
+   - How the product is sold
+   - Examples: "bag", "kg", "ton", "piece", "m3", "m2"
+
+### Tips for Product Names
+
+**Good names:**
+- ✅ "Portland Cement"
+- ✅ "Steel Reinforcement Bar #3"
+- ✅ "Fine Sand"
+- ✅ "Concrete M20"
+
+**Avoid:**
+- ❌ "Cement" (too generic)
+- ❌ "Product 1" (not descriptive)
+- ❌ "ABC-123" (internal codes)
+
+---
+
+## ✏️ Managing Products
+
+### Viewing Your Products
+
+Your products list shows:
+- Product name
+- Current price
+- Unit
+- Last updated
+
+### Editing a Product
+
+1. Click on a product in the list
+2. Update the price or other details
+3. Click **"Save"**
+4. ✅ Changes appear in AI answers immediately
+
+### Deleting a Product
+
+1. Click on a product
+2. Click **"Delete"**
+3. Confirm deletion
+4. ✅ Product removed from AI answers
+
+---
+
+## 💰 Updating Prices
+
+### When to Update
+
+- Price changes
+- New pricing structure
+- Seasonal adjustments
+- Promotional pricing
+
+### How to Update
+
+1. Go to Products page
+2. Click on the product
+3. Change the price
+4. Click **"Save"**
+5. ✅ New price appears in AI answers within 30 seconds
+
+### Best Practices
+
+- **Update regularly** - Keep prices current
+- **Be accurate** - QS professionals rely on your prices
+- **Notify of changes** - Consider informing regular customers
+
+---
+
+## 📊 How Your Products Appear
+
+### In AI Answers
+
+When a QS professional asks: "What's the price of cement?"
+
+The AI will show:
+```
+Based on current supplier data:
+- Your Company: Cement - $50/bag
+- Other Supplier: Cement - $52/bag
+- Another Supplier: Cement - $48/bag
+
+Best price: $48/bag from Another Supplier
 ```
 
-**Update Special Price:**
-```bash
-PUT /api/v1/private-prices/{privatePriceId}
-{
-  "price": 135.00,
-  "currency": "USD"
-}
-```
+**Your products appear automatically** - No extra steps needed!
 
-**Delete Special Price:**
-```bash
-DELETE /api/v1/private-prices/{privatePriceId}
-```
+### Visibility
 
-## Viewing Statistics
+- ✅ All QS professionals can see your prices
+- ✅ Your products appear in search results
+- ✅ Best prices are highlighted
+- ✅ Your company name is shown
 
-### Dashboard Statistics
+---
 
-The dashboard automatically updates with:
-- Total product count
-- Active product count
-- Products with pricing
-- Private pricing agreements
+## 🎯 Best Practices
 
-### Real-Time Updates
+### 1. Complete Product Information
 
-- Statistics refresh automatically when you add products
-- Product counts update immediately
-- No manual refresh needed
+**Do:**
+- Use clear, descriptive names
+- Include standard units
+- Keep prices current
 
-## Best Practices
+**Don't:**
+- Use internal codes
+- Skip required fields
+- Leave outdated prices
 
-### Product Management
+### 2. Regular Updates
 
-1. **Use Clear SKUs**
-   - Follow a consistent naming convention
-   - Make SKUs descriptive and unique
-   - Example: "STEEL-BAR-001" instead of "SB1"
+**Do:**
+- Update prices when they change
+- Review products monthly
+- Remove discontinued products
 
-2. **Complete Product Information**
-   - Always include descriptions
-   - Use appropriate categories
-   - Set accurate units
+**Don't:**
+- Leave old prices
+- Forget to update
+- Keep inactive products
 
-3. **Keep Products Active**
-   - Deactivate products that are no longer available
-   - Don't delete products (use soft delete)
+### 3. Competitive Pricing
 
-### Pricing Strategy
+**Do:**
+- Set competitive prices
+- Review market rates
+- Offer best value
 
-1. **Set Competitive Default Prices**
-   - Research market rates
-   - Consider your margins
-   - Update prices regularly
+**Don't:**
+- Overprice products
+- Ignore competition
+- Set unrealistic prices
 
-2. **Use Private Prices Strategically**
-   - Offer discounts for volume buyers
-   - Reward loyal customers
-   - Negotiate long-term contracts
+---
 
-3. **Price Updates**
-   - Update prices when costs change
-   - Notify companies of significant changes
-   - Maintain price history for reference
+## 📈 Benefits
 
-### Organization
+### For You
 
-1. **Categorize Products**
-   - Use consistent categories
-   - Group similar products
-   - Makes browsing easier for companies
+- 🚀 **Instant visibility** - Products appear in AI answers immediately
+- 📝 **Easy management** - Simple form, quick updates
+- 💼 **More opportunities** - Reach more QS professionals
+- ⏱️ **Less admin** - No manual quote requests
 
-2. **Regular Maintenance**
-   - Review product list regularly
-   - Update outdated information
-   - Remove discontinued products
+### For QS Professionals
 
-## Troubleshooting
+- ⚡ **Instant access** - See your prices in seconds
+- 📊 **Easy comparison** - Your prices shown alongside competitors
+- 💰 **Better decisions** - All options visible at once
 
-### Product Not Appearing
-- Check if product is marked as active
-- Verify you're viewing the correct filter
-- Refresh the page
+---
 
-### Price Not Showing
-- Ensure default price is set
-- Check if price is marked as active
-- Verify currency is correct
+## 🆘 Troubleshooting
 
-### Statistics Not Updating
-- Wait a few seconds for automatic refresh
-- Manually refresh the page
-- Check your internet connection
+### Issue: Product not appearing in AI answers
 
-## Responding to RFQs (Request for Quote) 🆕
+**Possible reasons:**
+- Product name doesn't match what QS is searching for
+- Price not set
+- Product recently added (wait 30 seconds)
 
-The platform includes a comprehensive RFQ feature that allows suppliers to view and respond to quote requests from companies.
+**Solution:**
+- Use common product names
+- Check price is set correctly
+- Wait a moment and try again
 
-### Quick Overview
+### Issue: Price not updating
 
-- **View RFQs**: Browse relevant RFQs (targeted to you or matching your product categories)
-- **Submit Bids**: Respond to RFQs with pricing, terms, and conditions
-- **Track Responses**: Monitor bid status and receive notifications
-- **Negotiate**: Respond to company counter-offers
+**Solution:**
+- Make sure you clicked "Save"
+- Wait 30 seconds for cache to update
+- Check the product is active
 
-### Getting Started with RFQs
+### Issue: Can't add product
 
-1. **View Available RFQs**
-   - Navigate to Supplier Dashboard → RFQs section
-   - Browse RFQs targeted to you or matching your product categories
-   - Filter by status, category, and other criteria
+**Solution:**
+- Check all required fields are filled
+- Verify you're logged in
+- Try refreshing the page
 
-2. **Submit a Bid**
-   - Click "View" or "Respond" on any RFQ
-   - Review RFQ requirements and details
-   - Fill in your quote: price, quantity, terms, validity period
-   - Submit your bid
+---
 
-3. **Track Your Bids**
-   - Monitor bid status: Pending, Accepted, Rejected, Countered
-   - Receive real-time notifications for company actions
-   - Respond to counter-offers when companies negotiate
+## 📞 Getting Help
 
-### Learn More
+- **Documentation:** See [Product Overview](../PRODUCT_OVERVIEW.md)
+- **Technical Issues:** Check [Troubleshooting](../TROUBLESHOOTING_AUTH.md)
+- **Feature Requests:** Contact support
 
-For complete RFQ documentation including workflows, best practices, and detailed guides, see:
-- **[Complete RFQ Guide](./rfq-guide.md)** - Comprehensive RFQ feature documentation
+---
 
-## Next Steps
+## ✅ Summary
 
-- Learn about [RFQ Feature](./rfq-guide.md) 🆕 - Complete guide for viewing and responding to RFQs
-- Learn about [API Testing](./api-testing.md) for advanced features
-- Review [Company Guide](./company-guide.md) to understand the buyer perspective
-- Check [Technical Documentation](../technical/) for integration details
+**You can now:**
+- ✅ Add products in 1 minute
+- ✅ Update prices instantly
+- ✅ Reach QS professionals automatically
+- ✅ No manual quotes needed
 
+**Your products appear in AI answers immediately!**
 
+---
 
-
-
-
-
-
+**Ready to start?** Go to the Products page and add your first product!

@@ -1,133 +1,91 @@
-# Construction Supplier Pricing & Procurement Platform
+# AI QS Assistant Documentation
 
-> **Transforming construction procurement from endless phone calls to instant digital pricing**
+## 🎯 What is This?
 
----
+**ConstructGPT / QSGPT** - An AI-powered assistant for Quantity Surveyors that provides instant answers about construction pricing, powered by real-time supplier data.
 
-## 🎯 The Problem We Solve
-
-The construction industry is stuck in the past, relying on outdated, manual processes for pricing and procurement that waste time, reduce efficiency, and create unnecessary friction between suppliers and companies.
-
-### The Current Pain Points
-
-#### For Construction Companies & Estimators
-- **📞 Endless Phone Calls** - Spending hours calling multiple suppliers to get quotes and check prices
-- **📧 Scattered Information** - Price data buried in emails, phone notes, and supplier websites
-- **⏰ Delayed Responses** - Waiting days for suppliers to respond with updated pricing
-- **🔍 No Comparison Tools** - Difficulty comparing prices across suppliers efficiently
-- **💼 Manual Quote Management** - RFQs scattered across email threads and phone conversations
-- **📊 Limited Transparency** - No visibility into negotiated/private pricing for team members
-
-#### For Suppliers
-- **📱 Multiple Communication Channels** - Managing pricing inquiries through phone, email, WhatsApp, and more
-- **🔄 Time-Consuming Updates** - Manually updating prices for each company individually
-- **📉 Missed Opportunities** - Limited visibility to reach potential buyers
-- **💸 Pricing Complexity** - Difficult to manage default vs. private pricing relationships
-- **📋 Manual Catalog Management** - No centralized system to showcase products and services
-
-### The Real Cost
-
-- **Lost Productivity**: Estimators spend 2-3 hours daily on price discovery
-- **Delayed Projects**: Slow price updates delay project timelines and budgets
-- **Missed Opportunities**: Suppliers miss potential sales due to poor visibility
-- **Communication Overhead**: Constant phone calls interrupt workflow for both parties
-- **Data Fragmentation**: No centralized pricing history or analytics
-
----
-
-## ✨ Our Solution
-
-**Construction Supplier Pricing & Procurement Platform** is a modern B2B marketplace that digitizes and automates the entire pricing and procurement workflow, eliminating the need for manual phone calls and scattered communication.
-
-### Key Value Propositions
-
-#### For Companies (Estimators, QS Professionals, Project Managers)
-- 🚀 **Instant Price Discovery** - Search products and services from multiple suppliers in one platform
-- 🔄 **Real-Time Updates** - Receive instant price change notifications (no phone calls needed)
-- 🔐 **Private Pricing Visibility** - See your negotiated prices alongside default pricing
-- 🤖 **AI-Powered Quotes** - Generate instant cost estimates using AI chat interface
-- 📋 **Streamlined RFQ Management** - Create and manage quote requests with bulk CSV upload
-- 📊 **Price Comparison** - Easily compare prices across suppliers to make informed decisions
-- 👥 **Team Collaboration** - Share pricing data with team members seamlessly
-
-#### For Suppliers
-- 📦 **Centralized Catalog Management** - Manage all products and services in one place
-- 💰 **Flexible Pricing Strategy** - Set default prices (visible to all) and private prices (company-specific)
-- ⚡ **Instant Price Broadcasting** - Update prices once, notify all companies automatically
-- 🎯 **Increased Visibility** - Reach more potential buyers through a single platform
-- 📈 **Market Insights** - Track product views and pricing analytics
-- 📧 **Reduced Communication Overhead** - Less time on phone calls, more time on business
-
-### Platform Features
-
-1. **Real-Time Pricing Engine** - WebSocket-based instant price updates across the platform
-2. **Multi-Supplier Marketplace** - Browse products and services from multiple suppliers simultaneously
-3. **Private Pricing Management** - Secure, company-specific negotiated pricing
-4. **AI Quote Assistant** - Intelligent cost estimation and quote generation
-5. **RFQ Workflow System** - Complete request-for-quote management with bulk operations
-6. **Product & Service Catalog** - Comprehensive cataloging with categories and search
-7. **Role-Based Access Control** - Secure, multi-tenant architecture with strict data isolation
-8. **Audit & Analytics** - Complete price history and change tracking
-
----
-
-## 🌟 Why It Matters
-
-We're not just building software—we're **modernizing an entire industry**. By replacing manual phone calls with digital automation, we're helping construction companies and suppliers work smarter, faster, and more efficiently.
-
-**The Future of Construction Procurement:**
-- ⚡ From hours of phone calls → Instant digital pricing
-- 📧 From scattered emails → Centralized platform
-- ⏰ From days of waiting → Real-time updates
-- 📞 From manual communication → Automated workflows
-- 💼 From data silos → Transparent collaboration
+Think of it as "ChatGPT for Quantity Surveyors" - but with actual, up-to-date supplier prices.
 
 ---
 
 ## 📚 Documentation Structure
 
-### For End Users
-- **[Getting Started Guide](./user-guide/getting-started.md)** - New user onboarding
-- **[User Registration & Role Management](./user-guide/user-registration-and-roles.md)** - Account setup and permissions
-- **[RFQ Feature Guide](./user-guide/rfq-guide.md)** 🆕 - Complete guide for Request for Quote feature
-- **[Supplier Guide](./user-guide/supplier-guide.md)** - Managing products, prices, and catalog
-- **[Company Guide](./user-guide/company-guide.md)** - Browsing products, viewing prices, managing quotes
-- **[API Testing Guide](./user-guide/api-testing.md)** - Testing platform features via API
+### For Everyone (Non-Technical)
 
-### For Developers
-- **[Architecture Overview](./technical/architecture.md)** - System architecture and design decisions
-- **[API Reference](./technical/api-reference.md)** - Complete API endpoint documentation
-- **[RFQ System Technical Documentation](./technical/rfq-system.md)** 🆕 - Technical implementation details for RFQ system
-- **[User Registration & Role Management (Technical)](./technical/user-registration-role-management.md)** - Authentication and authorization implementation
-- **[Price Management Flow](./technical/price-management-flow.md)** - Default and private pricing workflows
-- **[Setup & Installation](./technical/setup.md)** - Development environment setup
-- **[Deployment Guide](./technical/deployment.md)** - Production deployment instructions
+1. **[Product Overview](./PRODUCT_OVERVIEW.md)** - What this product does and why it exists
+2. **[User Guide - QS Professionals](./user-guide/qs-guide.md)** - How to use the AI chat
+3. **[User Guide - Suppliers](./user-guide/supplier-guide.md)** - How to add products and prices
+4. **[Getting Started](./user-guide/getting-started.md)** - Quick start guide
 
----
+### For Developers (Technical)
 
-## 🚀 Quick Start
+1. **[AI Architecture](./AI_ARCHITECTURE.md)** - Complete AI technology stack
+2. **[Implementation Plan](./AI_IMPLEMENTATION_PLAN.md)** - Step-by-step implementation
+3. **[Database Migration](./MIGRATION_GUIDE.md)** - How to migrate to simplified schema
+4. **[Simplified Schema](./SIMPLIFIED_SCHEMA.md)** - New database structure
+5. **[API Reference](./technical/api-reference.md)** - API endpoints
 
-### For Users
-1. [Read the Getting Started Guide](./user-guide/getting-started.md)
-2. [Register your account](./user-guide/user-registration-and-roles.md)
-3. Explore Products/Services marketplace
-4. Use AI Quote for instant estimates
-5. Submit RFQs for bulk quoting
+### For Project Managers
 
-### For Developers
-1. [Read the Architecture Overview](./technical/architecture.md)
-2. [Set up Development Environment](./technical/setup.md)
-3. Review [API Reference](./technical/api-reference.md)
-4. Start building!
+1. **[Transformation Summary](./TRANSFORMATION_SUMMARY.md)** - What changed and why
+2. **[Simplification Plan](./SIMPLIFIED_MVP_PLAN.md)** - Simplified feature set
+3. **[Implementation Status](./IMPLEMENTATION_STATUS.md)** - Current progress
 
 ---
 
-## 📞 Need Help?
+## 🚀 Quick Links
 
-- **User Support**: Check the [User Guides](./user-guide/) section
-- **Technical Support**: Review [Technical Documentation](./technical/)
-- **Questions**: Open an issue in the repository
+- [Product Overview](./PRODUCT_OVERVIEW.md) - Start here for non-technical overview
+- [AI Architecture](./AI_ARCHITECTURE.md) - Technical deep dive
+- [Getting Started](./user-guide/getting-started.md) - Quick start
+- [Migration Guide](./MIGRATION_GUIDE.md) - Database migration steps
 
 ---
 
-*Last Updated: 2025*
+## 📖 Key Documents
+
+### Product Understanding
+- [Product Overview](./PRODUCT_OVERVIEW.md) - What, why, and how (non-technical)
+- [Transformation Summary](./TRANSFORMATION_SUMMARY.md) - What changed from old system
+
+### Technical Details
+- [AI Architecture](./AI_ARCHITECTURE.md) - Complete AI stack explanation
+- [Simplified Schema](./SIMPLIFIED_SCHEMA.md) - Database structure
+- [Implementation Plan](./AI_IMPLEMENTATION_PLAN.md) - Development roadmap
+
+### User Guides
+- [QS User Guide](./user-guide/qs-guide.md) - How QS professionals use it
+- [Supplier User Guide](./user-guide/supplier-guide.md) - How suppliers add data
+
+### Operations
+- [Migration Guide](./MIGRATION_GUIDE.md) - Database migration
+- [Setup Guide](./SETUP.md) - Development setup
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+
+---
+
+## 🎯 Core Concept
+
+**Problem:** QS professionals waste hours calling suppliers to get prices.
+
+**Solution:** AI assistant that answers questions instantly with real supplier data.
+
+**How it works:**
+1. QS asks: "What's the price of cement?"
+2. System queries supplier database
+3. AI generates answer with real prices
+4. QS gets instant answer
+
+---
+
+## 📋 Documentation Status
+
+- ✅ Product Overview (non-technical)
+- ✅ AI Architecture (technical)
+- ✅ User Guides
+- ✅ Migration Guides
+- ✅ Implementation Plans
+
+---
+
+**Start with [Product Overview](./PRODUCT_OVERVIEW.md) for a complete understanding!**

@@ -1,29 +1,25 @@
-# Construction Supplier Pricing Platform
+# AI QS Assistant (ConstructGPT/QSGPT)
 
-A real-time pricing platform connecting construction suppliers with companies/estimators/QS professionals, replacing frequent phone calls with automated price management and notifications.
+An AI-powered assistant for Quantity Surveyors that provides instant answers about construction pricing, powered by real-time supplier data.
+
+**Think of it as "ChatGPT for Quantity Surveyors" - but with actual, up-to-date supplier prices.**
 
 ## 🚀 Features
 
-### MVP (Phase 1)
-- ✅ Multi-tenant authentication (Suppliers + Companies)
-- ✅ Supplier product catalog management
-- ✅ Default price management (visible to all companies)
-- ✅ Private price assignment (company-specific)
-- ✅ Real-time price updates via WebSocket
-- ✅ Role-based access control with strict data isolation
-- ✅ Responsive web application
-- ✅ Price search and filtering
-- ✅ Audit logging
-- ✅ User registration and role management system
-- ✅ Admin approval workflow (Super Admin & Tenant Admin)
-- ✅ User permission management (view/create/admin)
-- ✅ Pending user approval system
+### Core Features (MVP)
+- ✅ **AI Chat Interface** - ChatGPT-like interface for QS professionals
+- ✅ **Real-Time Supplier Data** - All AI answers include actual supplier prices
+- ✅ **Smart Calculations** - Automatic cost calculations with quantities
+- ✅ **Simple Registration** - 2 user types (QS, Supplier), instant access
+- ✅ **Product Management** - Suppliers add products easily (name, price, unit)
+- ✅ **Caching Layer** - Fast responses with Redis caching
+- ✅ **Responsive Design** - Works on all devices
 
 ### Coming Soon (Phase 2+)
-- 📱 Mobile applications (iOS/Android)
-- 📱 Offline mode for mobile
-- 📄 CSV import/export
-- 📊 Price history and analytics
+- 📊 Vector database for knowledge base
+- 📝 Quote generation from chat
+- 🔍 Advanced product search
+- 📱 Mobile applications
 - 🔗 Supplier ERP integration
 
 ## 🏗️ Architecture
