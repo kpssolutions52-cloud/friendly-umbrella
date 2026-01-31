@@ -5,6 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../utils/prisma';
+import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/authMiddleware';
 import { requireSupplier } from '../middleware/permissionsMiddleware';
 import { body, param, validationResult } from 'express-validator';
@@ -31,13 +32,48 @@ router.get(
         return res.status(400).json({ error: 'Organization ID not found' });
       }
 
-      const products = await prisma.product.findMany({
-        where: { supplierId: organizationId },
-        orderBy: { name: 'asc' },
-      });
+      let products: any[] = [];
+
+      try {
+        // Try new schema first
+        products = await prisma.product.findMany({
+          where: { supplierId: organizationId },
+          orderBy: { name: 'asc' },
+        });
+      } catch (error: any) {
+        // If new schema fails, try old schema with raw SQL
+        if (error.message?.includes('relation') || error.message?.includes('column')) {
+          console.log('[ProductRoutes] Trying old schema with raw SQL for product list');
+          try {
+            const result = await prisma.$queryRaw<any[]>(
+              Prisma.sql`
+                SELECT 
+                  id,
+                  supplier_id as "supplierId",
+                  name,
+                  price,
+                  unit,
+                  created_at as "createdAt",
+                  updated_at as "updatedAt"
+                FROM products
+                WHERE supplier_id::text = ${organizationId}::text
+                ORDER BY name ASC
+              `
+            );
+
+            products = result || [];
+          } catch (oldSchemaError: any) {
+            console.error('[ProductRoutes] Old schema product list failed:', oldSchemaError);
+            products = [];
+          }
+        } else {
+          throw error;
+        }
+      }
 
       res.json({ products });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Product list error:', error);
       next(error);
     }
   }
@@ -69,17 +105,48 @@ router.post(
         return res.status(400).json({ error: 'Organization ID not found' });
       }
 
-      const product = await prisma.product.create({
-        data: {
-          supplierId: organizationId,
-          name: input.name,
-          price: input.price,
-          unit: input.unit,
-        },
-      });
+      let product: any;
+
+      try {
+        // Try new schema first
+        product = await prisma.product.create({
+          data: {
+            supplierId: organizationId,
+            name: input.name,
+            price: input.price,
+            unit: input.unit,
+          },
+        });
+      } catch (error: any) {
+        // If new schema fails, try old schema with raw SQL
+        if (error.message?.includes('relation') || error.message?.includes('column')) {
+          console.log('[ProductRoutes] Trying old schema with raw SQL for product creation');
+          try {
+            const result = await prisma.$queryRaw<any[]>(
+              Prisma.sql`
+                INSERT INTO products (id, supplier_id, name, price, unit, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${organizationId}::text, ${input.name}, ${input.price}, ${input.unit}, NOW(), NOW())
+                RETURNING id, supplier_id as "supplierId", name, price, unit, created_at as "createdAt", updated_at as "updatedAt"
+              `
+            );
+
+            if (result && result.length > 0) {
+              product = result[0];
+            } else {
+              throw new Error('Failed to create product in old schema');
+            }
+          } catch (oldSchemaError: any) {
+            console.error('[ProductRoutes] Old schema product creation failed:', oldSchemaError);
+            throw oldSchemaError;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       res.status(201).json({ product });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Product creation error:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
