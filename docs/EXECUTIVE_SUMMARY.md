@@ -2,7 +2,9 @@
 
 ## 🎯 One-Sentence Pitch
 
-**ConstructionGuru is the ChatGPT for Construction - an AI-powered platform that eliminates phone calls and manual work for Quantity Surveyors and Suppliers through natural language AI and real-time supplier data. (B2C expansion planned for Phase 2)**
+**ConstructionGuru is the ChatGPT for Construction** - an AI-powered platform that eliminates phone calls and manual work for Quantity Surveyors and Suppliers through natural language AI and real-time supplier data.
+
+> **💡 Strategy:** Perfect B2B (QS + Suppliers) first, then expand to B2C (General Users) in Phase 2.
 
 ---
 
@@ -22,11 +24,14 @@
 - **B2C Expansion (Phase 2):** General Users (homeowners)
 
 ### Market
-- **Phase 1 TAM: $10+ billion (B2B)**
-- **B2B:** 100,000+ QS, 500,000+ suppliers
-- **Phase 2 TAM: $500+ billion (B2C expansion)**
-- **B2C:** 50+ million homeowners annually (future)
-- **Timing:** Perfect - AI maturity + market readiness
+
+| Segment | Size | TAM |
+|---------|------|-----|
+| **Phase 1 (B2B)** | 100,000+ QS, 500,000+ suppliers | **$10+ billion** |
+| **Phase 2 (B2C)** | 50+ million homeowners annually | **$500+ billion** |
+| **Total** | Complete construction market | **$500+ billion** |
+
+> **✅ Timing:** Perfect - AI maturity + market readiness
 
 ---
 
@@ -38,24 +43,38 @@
 3. **Transaction Fees:** 2-5% on orders
 4. **Premium Features:** Advanced analytics, custom integrations
 
-### Projections (Phase 1: B2B Focus)
-- **Year 1:** $4.8M ARR (1,000 QS, 500 Suppliers)
-- **Year 2:** $42M ARR (10,000 QS, 5,000 Suppliers)
-- **Year 3:** $210M ARR (B2B market leadership)
+### Revenue Projections
 
-### Projections (Phase 2: B2C Expansion)
-- **Year 4:** $550M ARR (add General Users)
-- **Year 5:** $1B+ ARR (complete platform)
+**Phase 1: B2B Focus**
+
+| Year | QS Users | Suppliers | ARR |
+|------|----------|-----------|-----|
+| **Year 1** | 1,000 | 500 | **$4.8M** |
+| **Year 2** | 10,000 | 5,000 | **$42M** |
+| **Year 3** | 50,000 | 25,000 | **$210M** |
+
+**Phase 2: B2C Expansion (Future)**
+
+| Year | General Users | Total ARR |
+|------|---------------|-----------|
+| **Year 4** | 100,000 | **$550M** |
+| **Year 5** | 500,000 | **$1B+** |
+
+> **📈 Path to $100M+ ARR in 3 years (B2B), $1B+ in 5 years (complete platform)**
 
 ---
 
 ## 🏆 Competitive Advantage
 
-1. **First-Mover:** 6-12 month head start
-2. **Complete Ecosystem:** Only platform serving all 3 user types
-3. **AI-First:** Built for AI from day one
-4. **Network Effects:** More users = better data = better AI
-5. **Viral Potential:** B2C users share on social media
+| Advantage | Impact |
+|-----------|--------|
+| **🚀 First-Mover** | 6-12 month head start |
+| **🔗 Complete Ecosystem** | Only platform serving QS + Suppliers (B2B focus) |
+| **🤖 AI-First Design** | Built for AI from day one |
+| **📊 Network Effects** | More users = better data = better AI |
+| **⚡ Real-Time Data** | Always current, no stale information |
+
+> **✅ Defensible moat through network effects and data advantage**
 
 ---
 
