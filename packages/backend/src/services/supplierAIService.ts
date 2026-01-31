@@ -376,6 +376,245 @@ export async function processSupplierCommand(
         },
       },
     };
+  } else if (intent.intent === 'delete_product' && intent.productName) {
+    // Delete product - handle both old and new schemas
+    let product: any;
+
+    try {
+      // Try new schema first
+      product = await prisma.product.findFirst({
+        where: {
+          supplierId,
+          name: {
+            contains: intent.productName,
+            mode: 'insensitive',
+          },
+        },
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product search (delete)');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const searchPattern = `%${intent.productName}%`;
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE supplier_id::text = ${supplierId}::text
+              AND LOWER(name) LIKE LOWER(${searchPattern})
+              LIMIT 1
+            `
+          );
+
+          if (result && result.length > 0) {
+            product = result[0];
+          } else {
+            product = null;
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product search failed (delete):', oldSchemaError);
+          product = null;
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    if (!product) {
+      return {
+        answer: `I couldn't find a product named "${intent.productName}" in your inventory.`,
+      };
+    }
+
+    // Delete product - handle both old and new schemas
+    try {
+      // Try new schema first
+      await prisma.product.delete({
+        where: { id: product.id },
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product deletion');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          await prisma.$executeRaw(
+            Prisma.sql`DELETE FROM products WHERE id = ${product.id}`
+          );
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product deletion failed:', oldSchemaError);
+          throw new Error(`Failed to delete product: ${oldSchemaError.message || 'Unknown error'}`);
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    return {
+      answer: `✅ Deleted product: ${product.name}`,
+      action: {
+        type: 'product_deleted',
+        data: {
+          product: product,
+        },
+      },
+    };
+  } else if (intent.intent === 'update_product' && intent.productName) {
+    // Update product (name, unit, etc.) - handle both old and new schemas
+    let product: any;
+
+    try {
+      // Try new schema first
+      product = await prisma.product.findFirst({
+        where: {
+          supplierId,
+          name: {
+            contains: intent.productName,
+            mode: 'insensitive',
+          },
+        },
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product search (update)');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          const searchPattern = `%${intent.productName}%`;
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE supplier_id::text = ${supplierId}::text
+              AND LOWER(name) LIKE LOWER(${searchPattern})
+              LIMIT 1
+            `
+          );
+
+          if (result && result.length > 0) {
+            product = result[0];
+          } else {
+            product = null;
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product search failed (update):', oldSchemaError);
+          product = null;
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    if (!product) {
+      return {
+        answer: `I couldn't find a product named "${intent.productName}" in your inventory.`,
+      };
+    }
+
+    // Build update data
+    const updateData: any = {};
+    if (intent.newProductName) {
+      updateData.name = intent.newProductName;
+    }
+    if (intent.unit) {
+      updateData.unit = intent.unit;
+    }
+    if (intent.price !== undefined) {
+      updateData.price = intent.price;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return {
+        answer: `What would you like to update about "${product.name}"? You can change the name, unit, or price.`,
+      };
+    }
+
+    // Update product - handle both old and new schemas
+    let updatedProduct: any;
+
+    try {
+      // Try new schema first
+      updatedProduct = await prisma.product.update({
+        where: { id: product.id },
+        data: updateData,
+      });
+    } catch (error: any) {
+      // If new schema fails, try old schema with raw SQL
+      if (error.message?.includes('relation') || error.message?.includes('column')) {
+        console.log('[SupplierAIService] Trying old schema with raw SQL for product update');
+        try {
+          const { Prisma } = await import('@prisma/client');
+          
+          // Build SQL update based on what fields need updating
+          if (updateData.name && updateData.unit && updateData.price !== undefined) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET name = ${updateData.name}, unit = ${updateData.unit}, price = ${updateData.price}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.name && updateData.unit) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET name = ${updateData.name}, unit = ${updateData.unit}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.name && updateData.price !== undefined) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET name = ${updateData.name}, price = ${updateData.price}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.unit && updateData.price !== undefined) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET unit = ${updateData.unit}, price = ${updateData.price}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.name) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET name = ${updateData.name}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.unit) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET unit = ${updateData.unit}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          } else if (updateData.price !== undefined) {
+            await prisma.$executeRaw(
+              Prisma.sql`UPDATE products SET price = ${updateData.price}, updated_at = NOW() WHERE id = ${product.id}`
+            );
+          }
+
+          // Fetch updated product
+          const result = await prisma.$queryRaw<any[]>(
+            Prisma.sql`
+              SELECT id, supplier_id as "supplierId", name, price, unit
+              FROM products
+              WHERE id = ${product.id}
+            `
+          );
+
+          if (result && result.length > 0) {
+            updatedProduct = result[0];
+          } else {
+            updatedProduct = { ...product, ...updateData }; // Fallback
+          }
+        } catch (oldSchemaError: any) {
+          console.error('[SupplierAIService] Old schema product update failed:', oldSchemaError);
+          throw new Error(`Failed to update product: ${oldSchemaError.message || 'Unknown error'}`);
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    const changes: string[] = [];
+    if (intent.newProductName) changes.push(`name to "${updatedProduct.name}"`);
+    if (intent.unit) changes.push(`unit to "${updatedProduct.unit}"`);
+    if (intent.price !== undefined) changes.push(`price to $${Number(updatedProduct.price).toFixed(2)}`);
+
+    return {
+      answer: `✅ Updated ${product.name}: ${changes.join(', ')}`,
+      action: {
+        type: 'product_updated',
+        data: {
+          product: updatedProduct,
+        },
+      },
+    };
   } else {
     // General question - use AI to answer
     const systemPrompt = `You are a helpful assistant for suppliers managing their product inventory and prices.
@@ -383,9 +622,18 @@ You help suppliers:
 - Update product prices
 - Add new products
 - View their product list
+- Delete products
+- Update product names and units
 - Answer questions about their inventory
 
-Be concise and helpful. If the supplier wants to update a price, guide them on the correct format.`;
+Be concise and helpful. If the supplier wants to update a price, guide them on the correct format.
+Examples of commands you can help with:
+- "Add cement at $48 per bag"
+- "Update cement price to $50"
+- "Delete steel product"
+- "Rename cement to Portland Cement"
+- "Change cement unit to kg"
+- "Show my products"`;
 
     try {
       const response = await openai.chat.completions.create({
