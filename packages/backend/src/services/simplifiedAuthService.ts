@@ -28,9 +28,13 @@ export class SimplifiedAuthService {
    */
   async register(input: SimplifiedRegisterInput) {
     try {
-      // Validate email is unique
+      // Validate email is unique - use select to avoid selecting 'name' if it doesn't exist
       const existingUser = await prisma.user.findUnique({
         where: { email: input.email },
+        select: {
+          id: true,
+          email: true,
+        },
       });
 
       if (existingUser) {
