@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '../utils/prisma';
+import { Prisma } from '@prisma/client';
 import {
   getCachedSupplierData,
   setCachedSupplierData,
@@ -57,21 +58,23 @@ export async function getSupplierPrices(
       console.log('[DataRetrievalService] Trying old schema with raw SQL for:', productName);
       try {
         const searchPattern = `%${productName}%`;
-        const result = await prisma.$queryRaw<any[]>`
-          SELECT 
-            p.id as "productId",
-            p.name as "productName",
-            p.price,
-            p.unit,
-            p.supplier_id as "supplierId",
-            t.name as "supplierName"
-          FROM products p
-          LEFT JOIN tenants t ON p.supplier_id::text = t.id::text
-          WHERE LOWER(p.name) LIKE LOWER(${searchPattern})
-          AND t.type = 'supplier'
-          ORDER BY p.price ASC
-          LIMIT 10
-        `;
+        const result = await prisma.$queryRaw<any[]>(
+          Prisma.sql`
+            SELECT 
+              p.id as "productId",
+              p.name as "productName",
+              p.price,
+              p.unit,
+              p.supplier_id as "supplierId",
+              t.name as "supplierName"
+            FROM products p
+            LEFT JOIN tenants t ON p.supplier_id::text = t.id::text
+            WHERE LOWER(p.name) LIKE LOWER(${searchPattern})
+            AND t.type = 'supplier'
+            ORDER BY p.price ASC
+            LIMIT 10
+          `
+        );
 
         products = result.map((row: any) => ({
           id: row.productId,
