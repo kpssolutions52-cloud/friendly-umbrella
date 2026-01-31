@@ -56,6 +56,7 @@ export async function getSupplierPrices(
     if (error.message?.includes('relation') || error.message?.includes('column')) {
       console.log('[DataRetrievalService] Trying old schema with raw SQL for:', productName);
       try {
+        const searchPattern = `%${productName}%`;
         const result = await prisma.$queryRaw<any[]>`
           SELECT 
             p.id as "productId",
@@ -63,11 +64,10 @@ export async function getSupplierPrices(
             p.price,
             p.unit,
             p.supplier_id as "supplierId",
-            t.id as "supplierId",
             t.name as "supplierName"
           FROM products p
-          LEFT JOIN tenants t ON p.supplier_id = t.id
-          WHERE LOWER(p.name) LIKE LOWER(${'%' + productName + '%'})
+          LEFT JOIN tenants t ON p.supplier_id::text = t.id::text
+          WHERE LOWER(p.name) LIKE LOWER(${searchPattern})
           AND t.type = 'supplier'
           ORDER BY p.price ASC
           LIMIT 10
