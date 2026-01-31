@@ -21,6 +21,7 @@ export interface SupplierPriceData {
 /**
  * Get supplier prices for a product
  * Uses cache if available
+ * Supports both old and new schemas
  */
 export async function getSupplierPrices(
   productName: string
@@ -31,25 +32,70 @@ export async function getSupplierPrices(
     return cached;
   }
 
-  // Query database
-  const products = await prisma.product.findMany({
-    where: {
-      name: {
-        contains: productName,
-        mode: 'insensitive',
+  let products: any[] = [];
+
+  try {
+    // Try new schema first
+    products = await prisma.product.findMany({
+      where: {
+        name: {
+          contains: productName,
+          mode: 'insensitive',
+        },
       },
-    },
-    include: {
-      supplier: true,
-    },
-    orderBy: {
-      price: 'asc', // Best price first
-    },
-    take: 10, // Top 10 suppliers
-  });
+      include: {
+        supplier: true,
+      },
+      orderBy: {
+        price: 'asc', // Best price first
+      },
+      take: 10, // Top 10 suppliers
+    });
+  } catch (error: any) {
+    // If new schema fails, try old schema with raw SQL
+    if (error.message?.includes('relation') || error.message?.includes('column')) {
+      console.log('[DataRetrievalService] Trying old schema with raw SQL for:', productName);
+      try {
+        const result = await prisma.$queryRaw<any[]>`
+          SELECT 
+            p.id as "productId",
+            p.name as "productName",
+            p.price,
+            p.unit,
+            p.supplier_id as "supplierId",
+            t.id as "supplierId",
+            t.name as "supplierName"
+          FROM products p
+          LEFT JOIN tenants t ON p.supplier_id = t.id
+          WHERE LOWER(p.name) LIKE LOWER(${'%' + productName + '%'})
+          AND t.type = 'supplier'
+          ORDER BY p.price ASC
+          LIMIT 10
+        `;
+
+        products = result.map((row: any) => ({
+          id: row.productId,
+          name: row.productName,
+          price: row.price,
+          unit: row.unit,
+          supplierId: row.supplierId,
+          supplier: {
+            id: row.supplierId,
+            name: row.supplierName,
+          },
+        }));
+      } catch (oldSchemaError: any) {
+        console.error('[DataRetrievalService] Old schema query failed:', oldSchemaError);
+        // Return empty array if both schemas fail
+        return [];
+      }
+    } else {
+      throw error;
+    }
+  }
 
   const result = products.map((p) => ({
-    supplier: p.supplier.name,
+    supplier: p.supplier?.name || 'Unknown Supplier',
     product: p.name,
     price: Number(p.price),
     unit: p.unit,
