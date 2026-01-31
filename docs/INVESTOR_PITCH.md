@@ -64,13 +64,15 @@ We're building the **ChatGPT for Construction** - an AI-powered platform that el
 - Real-time visibility to all customers
 - **Increase sales, reduce admin time**
 
-#### 3. General Users (Homeowners)
-**"Your Complete Construction Guide"**
+#### 3. General Users (Homeowners) ⏸️ **PHASE 2**
+**"Your Complete Construction Guide"** (Future)
 - "I want to build a kitchen" → AI guides you through everything
 - Get real-time quotes instantly
 - Budget planning and tracking
 - Step-by-step project guidance
 - **Build with confidence**
+
+**Strategy:** Perfect QS + Supplier experience first, then expand to General Users in Phase 2.
 
 ---
 

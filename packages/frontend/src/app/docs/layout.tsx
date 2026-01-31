@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/Logo';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, TrendingUp, Users, Zap, Target, FileText, Code, BarChart3, Rocket, Building2, ShoppingCart, Home } from 'lucide-react';
 
 export default function DocsLayout({
   children,
@@ -41,9 +41,9 @@ export default function DocsLayout({
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-blue-50/20">
       {/* Fixed Top Navigation */}
-      <nav className="bg-white border-b border-gray-200 flex-shrink-0 z-20">
+      <nav className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm flex-shrink-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center flex-1 min-w-0">
@@ -78,7 +78,7 @@ export default function DocsLayout({
                 {/* Company Name */}
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                    QS AI Agent
+                    ConstructionGuru
                   </div>
                   <div className="hidden xs:block text-xs font-semibold text-gray-700 -mt-0.5 truncate">
                     Documentation
@@ -133,10 +133,57 @@ export default function DocsLayout({
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <nav className="p-4 sm:p-6 space-y-1">
-            {/* Non-Technical Section */}
+            {/* For Investors Section */}
             <div className="mb-4 sm:mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
-                Non-Technical
+              <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wider px-3 py-2 flex items-center gap-2">
+                <TrendingUp className="h-3 w-3" />
+                For Investors
+              </h3>
+              <ul className="mt-2 space-y-1">
+                <li>
+                  <Link
+                    href="/docs/executive-summary"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target font-semibold bg-blue-50 text-blue-700"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Rocket className="h-4 w-4" />
+                      Executive Summary ⭐
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/docs/investor-pitch"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Investor Pitch
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/docs/complete-roadmap"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Product Roadmap
+                    </span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Product Documentation */}
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                Product Docs
               </h3>
               <ul className="mt-2 space-y-1">
                 <li>
@@ -145,16 +192,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Overview
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/complete-vision"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target font-semibold"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    Complete Vision ⭐
+                    <span className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Overview
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -163,7 +204,22 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    What is QS AI Agent?
+                    <span className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Product Overview
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/docs/complete-vision"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Complete Vision
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -172,25 +228,32 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Quick Start
+                    <span className="flex items-center gap-2">
+                      <Rocket className="h-4 w-4" />
+                      Quick Start
+                    </span>
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/docs/multi-company"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    Multi-Company Architecture
-                  </Link>
-                </li>
+              </ul>
+            </div>
+
+            {/* User Guides */}
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 flex items-center gap-2">
+                <Users className="h-3 w-3" />
+                User Guides
+              </h3>
+              <ul className="mt-2 space-y-1">
                 <li>
                   <Link
                     href="/docs/dual-ai-interface"
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Dual AI Interface
+                    <span className="flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Dual AI Interface
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -199,7 +262,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Supplier Guide
+                    <span className="flex items-center gap-2">
+                      <ShoppingCart className="h-4 w-4" />
+                      Supplier Guide
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -208,7 +274,22 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Quote Workflow Guide
+                    <span className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Quote Workflow
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/docs/multi-company"
+                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Multi-Company
+                    </span>
                   </Link>
                 </li>
               </ul>
@@ -216,7 +297,8 @@ export default function DocsLayout({
 
             {/* Technical Section */}
             <div className="mb-4 sm:mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2 flex items-center gap-2">
+                <Code className="h-3 w-3" />
                 Technical
               </h3>
               <ul className="mt-2 space-y-1">
@@ -226,7 +308,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Architecture
+                    <span className="flex items-center gap-2">
+                      <Code className="h-4 w-4" />
+                      Architecture
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -235,7 +320,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Database Schema
+                    <span className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Database Schema
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -244,7 +332,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Implementation Guide
+                    <span className="flex items-center gap-2">
+                      <Code className="h-4 w-4" />
+                      Implementation
+                    </span>
                   </Link>
                 </li>
                 <li>
@@ -253,16 +344,10 @@ export default function DocsLayout({
                     className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
                     onClick={() => setSidebarOpen(false)}
                   >
-                    Code Migration Guide
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/docs/quote-workflow-architecture"
-                    className="text-gray-700 hover:text-blue-600 hover:bg-gray-50 block px-3 py-2 text-sm rounded-md transition-colors touch-target"
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    Quote Workflow Architecture
+                    <span className="flex items-center gap-2">
+                      <Code className="h-4 w-4" />
+                      Code Migration
+                    </span>
                   </Link>
                 </li>
               </ul>
@@ -271,9 +356,9 @@ export default function DocsLayout({
         </aside>
         
         {/* Scrollable Main Content Area */}
-        <main className="flex-1 overflow-y-auto min-w-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-            <div className="bg-white shadow rounded-lg p-4 sm:p-6 lg:p-8 prose prose-sm sm:prose lg:prose-lg max-w-none prose-blue">
+        <main className="flex-1 overflow-y-auto min-w-0 bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+            <div className="bg-white shadow-xl rounded-2xl p-6 sm:p-8 lg:p-12 prose prose-sm sm:prose lg:prose-lg max-w-none prose-blue prose-headings:font-bold prose-headings:text-gray-900 prose-h1:text-4xl prose-h1:mb-6 prose-h1:bg-gradient-to-r prose-h1:from-blue-600 prose-h1:to-purple-600 prose-h1:bg-clip-text prose-h1:text-transparent prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:text-gray-800 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-h3:text-gray-700 prose-p:text-gray-600 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-700 prose-ul:list-disc prose-ul:pl-6 prose-ol:list-decimal prose-ol:pl-6 prose-li:my-2">
               {children}
             </div>
           </div>

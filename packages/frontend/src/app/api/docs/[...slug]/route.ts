@@ -22,6 +22,11 @@ const docPaths: Record<string, string> = {
   // Main index
   '': 'docs/README.md',
   
+  // For Investors
+  'executive-summary': 'docs/EXECUTIVE_SUMMARY.md',
+  'investor-pitch': 'docs/INVESTOR_PITCH.md',
+  'complete-roadmap': 'docs/COMPLETE_ROADMAP.md',
+  
   // Non-Technical
   'complete-vision': 'docs/COMPLETE_VISION.md',
   'product-overview': 'docs/PRODUCT_OVERVIEW.md',
