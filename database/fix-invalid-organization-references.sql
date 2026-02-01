@@ -6,7 +6,7 @@
 /*
 DELETE FROM users 
 WHERE organization_id IS NULL 
-   OR organization_id NOT IN (SELECT id FROM organizations);
+   OR organization_id::text NOT IN (SELECT id::text FROM organizations);
 */
 
 -- Option 2: Assign users to a default organization if their org is missing
@@ -37,7 +37,7 @@ SET organization_id = (
 WHERE u.type = 'supplier'
   AND (
     u.organization_id IS NULL 
-    OR u.organization_id NOT IN (SELECT id FROM organizations)
+    OR u.organization_id::text NOT IN (SELECT id::text FROM organizations)
   );
 */
 
@@ -60,7 +60,7 @@ SELECT
     NOW(),
     NOW()
 FROM users u
-LEFT JOIN organizations o ON u.organization_id = o.id
+LEFT JOIN organizations o ON u.organization_id::text = o.id::text
 WHERE u.type = 'supplier' 
   AND (o.type != 'supplier' OR o.id IS NULL)
 ON CONFLICT (email) DO NOTHING;
@@ -79,8 +79,8 @@ WHERE u.type = 'supplier'
   )
   AND (
     u.organization_id IS NULL 
-    OR u.organization_id NOT IN (
-        SELECT id FROM organizations WHERE type = 'supplier'
+    OR u.organization_id::text NOT IN (
+        SELECT id::text FROM organizations WHERE type = 'supplier'
     )
   );
 */
@@ -90,7 +90,7 @@ WHERE u.type = 'supplier'
 /*
 DELETE FROM products 
 WHERE supplier_id IS NULL 
-   OR supplier_id NOT IN (SELECT id FROM organizations WHERE type = 'supplier');
+   OR supplier_id::text NOT IN (SELECT id::text FROM organizations WHERE type = 'supplier');
 */
 
 -- IMPORTANT: Always backup your database before running any of these queries!

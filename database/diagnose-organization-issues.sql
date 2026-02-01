@@ -18,7 +18,7 @@ SELECT
         ELSE 'OK'
     END as status
 FROM users u
-LEFT JOIN organizations o ON u.organization_id = o.id
+LEFT JOIN organizations o ON u.organization_id::text = o.id::text
 WHERE 
     u.organization_id IS NULL 
     OR o.id IS NULL
@@ -41,7 +41,7 @@ SELECT
         ELSE 'OK'
     END as status
 FROM users u
-LEFT JOIN organizations o ON u.organization_id = o.id
+LEFT JOIN organizations o ON u.organization_id::text = o.id::text
 WHERE u.type = 'supplier'
 ORDER BY status, u.email;
 
@@ -66,6 +66,6 @@ SELECT
         ELSE 'OK'
     END as status
 FROM products p
-LEFT JOIN organizations o ON p.supplier_id = o.id
+LEFT JOIN organizations o ON p.supplier_id::text = o.id::text
 WHERE o.id IS NULL OR o.type != 'supplier'
 ORDER BY status, p.name;
