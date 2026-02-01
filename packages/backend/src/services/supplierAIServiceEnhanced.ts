@@ -93,6 +93,56 @@ const tools = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'update_product_price',
+      description: 'Update the price of an existing product. Use this when user wants to change a product price (e.g., "Update steel price to $500" or "Set cement price to $48").',
+      parameters: {
+        type: 'object',
+        properties: {
+          productName: {
+            type: 'string',
+            description: 'The name of the product to update (can be partial match)',
+          },
+          price: {
+            type: 'number',
+            description: 'The new price value',
+          },
+          unit: {
+            type: 'string',
+            description: 'Optional: The unit of measurement (e.g., "bag", "ton", "kg")',
+          },
+        },
+        required: ['productName', 'price'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'add_product',
+      description: 'Add a new product to the inventory. Use this when user wants to add a new product (e.g., "Add paint at $25 per gallon").',
+      parameters: {
+        type: 'object',
+        properties: {
+          productName: {
+            type: 'string',
+            description: 'The name of the new product',
+          },
+          price: {
+            type: 'number',
+            description: 'The price of the product',
+          },
+          unit: {
+            type: 'string',
+            description: 'The unit of measurement (e.g., "bag", "ton", "kg", "gallon")',
+          },
+        },
+        required: ['productName', 'price', 'unit'],
+      },
+    },
+  },
 ];
 
 /**
@@ -265,6 +315,74 @@ async function executeTool(
       };
     }
 
+    case 'update_product_price': {
+      const product = await prisma.product.findFirst({
+        where: {
+          supplierId,
+          name: {
+            contains: args.productName,
+            mode: 'insensitive',
+          },
+        },
+      });
+
+      if (!product) {
+        return {
+          success: false,
+          error: `Product "${args.productName}" not found in your inventory.`,
+        };
+      }
+
+      const updateData: any = {
+        price: args.price,
+      };
+      if (args.unit) {
+        updateData.unit = args.unit;
+      }
+
+      const updatedProduct = await prisma.product.update({
+        where: { id: product.id },
+        data: updateData,
+      });
+
+      return {
+        success: true,
+        product: {
+          id: updatedProduct.id,
+          name: updatedProduct.name,
+          unit: updatedProduct.unit,
+          price: Number(updatedProduct.price),
+        },
+        message: `Updated ${updatedProduct.name} price to $${args.price}/${updatedProduct.unit}`,
+      };
+    }
+
+    case 'add_product': {
+      const productNamePrefix = args.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
+      const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
+
+      const newProduct = await prisma.product.create({
+        data: {
+          supplierId,
+          name: args.productName,
+          sku,
+          price: args.price,
+          unit: args.unit || 'unit',
+        },
+      });
+
+      return {
+        success: true,
+        product: {
+          id: newProduct.id,
+          name: newProduct.name,
+          unit: newProduct.unit,
+          price: Number(newProduct.price),
+        },
+        message: `Added new product: ${newProduct.name} at $${args.price}/${newProduct.unit}`,
+      };
+    }
+
     default:
       return {
         success: false,
@@ -309,16 +427,23 @@ You have access to the following tools:
 - calculate_total_price: Calculate total for a quantity of one product
 - list_products: List all products
 - calculate_multi_product_total: Calculate total for multiple different products
+- update_product_price: ✅ UPDATE the price of an existing product (e.g., "Update steel price to $500")
+- add_product: ✅ ADD a new product to inventory (e.g., "Add paint at $25 per gallon")
+
+IMPORTANT: You CAN and SHOULD update product prices! If a supplier asks to update a price, use the update_product_price tool.
+If they ask "why can't you update prices", explain that you CAN update prices and use the tool to do it.
 
 Your product inventory:
 ${productContext || 'No products yet'}
 
 When answering questions:
 1. Use tools to get accurate, up-to-date information
-2. Perform calculations step by step
-3. Provide clear, formatted responses
-4. If a product isn't found, suggest similar products or ask for clarification
-5. For complex queries involving multiple products, use calculate_multi_product_total
+2. For price updates, use update_product_price tool
+3. For adding products, use add_product tool
+4. Perform calculations step by step
+5. Provide clear, formatted responses
+6. If a product isn't found, suggest similar products or ask for clarification
+7. For complex queries involving multiple products, use calculate_multi_product_total
 
 Be helpful, accurate, and concise. Always use tools to get real data rather than guessing.`;
 
@@ -402,6 +527,49 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
         type: 'products_listed',
         data: { products: allProducts },
       };
+    } else if (toolsUsed.includes('update_product_price')) {
+      // Find the tool result for update_product_price
+      const updateToolCall = messages
+        .filter((m) => m.role === 'tool')
+        .map((m) => {
+          try {
+            return JSON.parse(m.content || '{}');
+          } catch {
+            return null;
+          }
+        })
+        .find((result) => result?.success && result?.product);
+
+      if (updateToolCall?.product) {
+        action = {
+          type: 'price_updated',
+          data: {
+            product: updateToolCall.product,
+            price: updateToolCall.product.price,
+          },
+        };
+      }
+    } else if (toolsUsed.includes('add_product')) {
+      // Find the tool result for add_product
+      const addToolCall = messages
+        .filter((m) => m.role === 'tool')
+        .map((m) => {
+          try {
+            return JSON.parse(m.content || '{}');
+          } catch {
+            return null;
+          }
+        })
+        .find((result) => result?.success && result?.product);
+
+      if (addToolCall?.product) {
+        action = {
+          type: 'product_added',
+          data: {
+            product: addToolCall.product,
+          },
+        };
+      }
     }
 
     return {

@@ -294,12 +294,21 @@ export async function getSupplierData(
 }
 
 /**
- * Ask AI question with supplier data context
+ * Message interface for conversation history
+ */
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Ask AI question with supplier data context and conversation history
  */
 export async function askQSQuestion(
   question: string,
   supplierData?: SupplierData[],
-  additionalContext?: string
+  additionalContext?: string,
+  conversationHistory?: ConversationMessage[]
 ): Promise<string> {
   let systemPrompt = `You are an intelligent Quantity Surveyor assistant with access to a real construction materials database.
 
@@ -311,10 +320,13 @@ export async function askQSQuestion(
 5. Provide detailed supplier information including contact details
 6. Handle complex multi-part questions
 
-**IMPORTANT RULES:**
+**CRITICAL RULES:**
 - ALWAYS use REAL data from the database when available
 - NEVER make up or guess supplier names, prices, or contact information
-- If data is not in the system, clearly state that and ask permission before providing generic information
+- NEVER invent supplier names like "Test Supplier Inc" or any other fake names
+- NEVER create fake product prices or product names
+- If data is not in the system, clearly state "No data found in the system database" and DO NOT invent information
+- Only provide generic educational information if explicitly allowed by the user
 - For comparisons, analyze all available data and provide clear recommendations
 - For calculations, show your work step-by-step
 - For complex questions, break them down and answer each part systematically
@@ -364,12 +376,28 @@ Format prices clearly with currency symbols. For calculations, show your work st
   try {
     const model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
     
+    // Build messages array with conversation history
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    // Add conversation history if provided (limit to last 10 messages to avoid token limits)
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recentHistory = conversationHistory.slice(-10); // Keep last 10 messages
+      recentHistory.forEach((msg) => {
+        messages.push({
+          role: msg.role,
+          content: msg.content,
+        });
+      });
+    }
+
+    // Add current question
+    messages.push({ role: 'user', content: question });
+    
     const response = await openai.chat.completions.create({
       model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: question },
-      ],
+      messages: messages,
       temperature: 0.7,
       // max_tokens: 1500, // Removed - let OpenAI use default
     });
@@ -1166,7 +1194,7 @@ export async function processQSQuestion(
   if (needsPermission) {
     const productList = products.length > 0 ? products.join(', ') : 'the requested information';
     return {
-      answer: `I don't have any supplier data for "${productList}" in the system database.\n\nWould you like me to provide general information about suppliers from my knowledge base instead?\n\nPlease reply with "yes" or "allow generic answers" to proceed with general information, or ask a different question about suppliers that are in the system.`,
+      answer: `❌ No data found in system database for "${productList}".\n\nI cannot provide specific supplier names, prices, or contact information because there is no data in the system database.\n\nWould you like me to provide general educational information about construction materials instead? (This will NOT include specific supplier names or prices)\n\nPlease reply with "yes" to proceed with general information, or ask a different question about suppliers/products that exist in the system.`,
       requiresPermission: true,
       hasSystemData: false,
       systemDataSummary: systemDataSummary.trim() || 'No data found in system database.',
@@ -1230,7 +1258,7 @@ export async function processQSQuestion(
   // Update system prompt to indicate if we're using generic data
   let additionalPromptContext = '';
   if (allowGenericAnswers && !hasSystemData) {
-    additionalPromptContext = '\n\nIMPORTANT: You are providing general information from your knowledge base because no data was found in the system database. Make it clear in your response that this is general information, not specific to the user\'s system.';
+    additionalPromptContext = '\n\nCRITICAL: You are providing general information from your knowledge base because NO DATA was found in the system database. DO NOT make up specific supplier names, product names, or prices. Only provide general educational information about construction materials. NEVER invent supplier names like "Test Supplier Inc" or specific product prices. If asked about specific suppliers or products, clearly state that no data exists in the system database.';
   }
 
   // Get AI response with enhanced context
