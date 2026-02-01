@@ -1,5 +1,4 @@
-import { Router, Response, NextFunction } from 'express';
-import { optionalAuthenticate, AuthRequest } from '../middleware/auth';
+import { Router, Request, Response, NextFunction } from 'express';
 import { query, param, validationResult } from 'express-validator';
 import { prisma } from '../utils/prisma';
 import {
@@ -15,9 +14,9 @@ const router = Router();
 // IMPORTANT: This route must be defined BEFORE /products/public to avoid route conflicts
 router.get(
   '/products/public/:id',
-  optionalAuthenticate,
+  // Removed optionalAuthenticate - this is a public endpoint
   param('id').isUUID().withMessage('Invalid product ID'),
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -93,13 +92,14 @@ router.get(
       let calculatedPrice: number | null = null;
 
       // For customers, show private prices if available
-      if (req.userRole === 'customer' && privatePrice) {
-        if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
-          discountPercentage = Number(privatePrice.discountPercentage);
-          const defaultPriceValue = Number(defaultPrice.price);
-          calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
-          calculatedPrice = Math.round(calculatedPrice * 100) / 100;
-          finalPrice = calculatedPrice;
+      // Customer-specific pricing not available in current schema
+      if (false && privatePrice) {
+            if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
+            const discount = Number(privatePrice.discountPercentage || 0);
+            const defaultPriceValue = Number(defaultPrice.price);
+            const calculated = defaultPriceValue * (1 - discount / 100);
+            calculatedPrice = Math.round(calculated * 100) / 100;
+            finalPrice = calculatedPrice || null;
           finalCurrency = privatePrice.currency || defaultPrice.currency;
         } else if (privatePrice.price !== null) {
           finalPrice = Number(privatePrice.price);
@@ -144,7 +144,7 @@ router.get(
           price: Number(defaultPrice.price),
           currency: defaultPrice.currency,
         } : null,
-        privatePrice: (req.userRole === 'customer' && privatePrice) ? {
+        privatePrice: (false && privatePrice) ? { // Customer-specific pricing not available
           price: privatePrice.price ? Number(privatePrice.price) : null,
           discountPercentage: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined 
             ? Number(privatePrice.discountPercentage) 
@@ -153,7 +153,7 @@ router.get(
           currency: privatePrice.currency,
         } : null,
         price: finalPrice,
-        priceType: (req.userRole === 'customer' && privatePrice) ? 'private' : defaultPrice ? 'default' : null,
+        priceType: defaultPrice ? 'default' : null, // Customer-specific pricing not available
         currency: finalCurrency,
         images: [], // Images not in current Product schema
       };
@@ -168,7 +168,7 @@ router.get(
 // Public products endpoint - shows default prices for guests, special prices for logged-in customers
 router.get(
   '/products/public',
-  optionalAuthenticate,
+  // Removed optionalAuthenticate - this is a public endpoint
   query('q').optional().isString().withMessage('Query must be a string'),
   query('category').optional().isString(),
   query('serviceCategoryId').optional().isString(),
@@ -184,7 +184,7 @@ router.get(
     .toInt()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -458,13 +458,14 @@ router.get(
         let calculatedPrice: number | null = null;
 
         // For customers, show private prices if available
-        if (req.userRole === 'customer' && privatePrice) {
+        // Customer-specific pricing not available in current schema
+      if (false && privatePrice) {
           if (privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined && defaultPrice) {
-            discountPercentage = Number(privatePrice.discountPercentage);
+            const discount = Number(privatePrice.discountPercentage || 0);
             const defaultPriceValue = Number(defaultPrice.price);
-            calculatedPrice = defaultPriceValue * (1 - discountPercentage / 100);
-            calculatedPrice = Math.round(calculatedPrice * 100) / 100;
-            finalPrice = calculatedPrice;
+            const calculated = defaultPriceValue * (1 - discount / 100);
+            calculatedPrice = Math.round(calculated * 100) / 100;
+            finalPrice = calculatedPrice || null;
             finalCurrency = privatePrice.currency || defaultPrice.currency;
           } else if (privatePrice.price !== null) {
             finalPrice = Number(privatePrice.price);
@@ -505,16 +506,16 @@ router.get(
             price: Number(defaultPrice.price),
             currency: defaultPrice.currency,
           } : null,
-          privatePrice: (req.userRole === 'customer' && privatePrice) ? {
+          privatePrice: (false && privatePrice) ? { // Customer-specific pricing not available
             price: privatePrice.price ? Number(privatePrice.price) : null,
             discountPercentage: privatePrice.discountPercentage !== null && privatePrice.discountPercentage !== undefined 
               ? Number(privatePrice.discountPercentage) 
               : null,
-            calculatedPrice: calculatedPrice,
+            calculatedPrice: calculatedPrice || null,
             currency: privatePrice.currency,
           } : null,
           price: finalPrice,
-          priceType: (req.userRole === 'customer' && privatePrice) ? 'private' : defaultPrice ? 'default' : null,
+          priceType: defaultPrice ? 'default' : null, // Customer-specific pricing not available
           currency: finalCurrency,
         };
       });
@@ -559,7 +560,7 @@ router.get(
 // Public categories endpoint - fetch from categories table managed by super admin
 router.get(
   '/products/public/categories',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Fetch categories - ProductCategory model doesn't exist in current schema
       const categories: any[] = [];
@@ -658,9 +659,9 @@ router.get(
 // GET /api/v1/suppliers/public/:id - Get supplier details (public access)
 router.get(
   '/suppliers/public/:id',
-  optionalAuthenticate,
+  // Removed optionalAuthenticate - this is a public endpoint
   param('id').isUUID().withMessage('Invalid supplier ID'),
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
