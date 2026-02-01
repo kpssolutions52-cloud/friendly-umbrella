@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2 } from 'lucide-react';
+import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
+import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Header } from '@/components/Header';
 
 interface Message {
@@ -51,6 +52,20 @@ export default function SupplierChatPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
+  
+  // Inventory manager state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'updatedAt'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    price: '',
+    unit: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   // Redirect if not authenticated or not supplier
   useEffect(() => {
@@ -88,7 +103,12 @@ export default function SupplierChatPage() {
       const response = await apiGet<{ products: Product[] }>(
         '/api/v1/products?supplier=true'
       );
-      setProducts(response.products || []);
+      // Ensure price is always a number
+      const normalizedProducts = (response.products || []).map(product => ({
+        ...product,
+        price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price) || 0,
+      }));
+      setProducts(normalizedProducts);
     } catch (error: any) {
       console.error('Failed to load products:', error);
       setProducts([]);
@@ -357,6 +377,158 @@ export default function SupplierChatPage() {
     }
   };
 
+  // Filtered and sorted products for dashboard
+  const filteredAndSortedProducts = useMemo(() => {
+    let filtered = products;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(query) ||
+          product.unit.toLowerCase().includes(query) ||
+          product.price.toString().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'price':
+          comparison = a.price - b.price;
+          break;
+        case 'updatedAt':
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [products, searchQuery, sortBy, sortOrder]);
+
+  const handleSort = (field: 'name' | 'price' | 'updatedAt') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: 'name' | 'price' | 'updatedAt' }) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUp className="h-3 w-3 ml-1 text-blue-600" />
+    ) : (
+      <ArrowDown className="h-3 w-3 ml-1 text-blue-600" />
+    );
+  };
+
+  const handleAddProduct = () => {
+    setFormData({ name: '', price: '', unit: '' });
+    setEditingProduct(null);
+    setShowAddForm(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      unit: product.unit,
+    });
+    setEditingProduct(product);
+    setShowAddForm(true);
+  };
+
+  const handleSubmitProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.price || !formData.unit) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      if (editingProduct) {
+        // Update existing product
+        await apiPut(`/api/v1/products/${editingProduct.id}`, {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+        });
+      } else {
+        // Create new product
+        await apiPost('/api/v1/products', {
+          name: formData.name,
+          price: parseFloat(formData.price),
+          unit: formData.unit,
+        });
+      }
+      setShowAddForm(false);
+      setEditingProduct(null);
+      setFormData({ name: '', price: '', unit: '' });
+      await loadProducts();
+      
+      // Add success message to chat
+      const successMessage: Message = {
+        role: 'assistant',
+        content: editingProduct 
+          ? `Product "${formData.name}" updated successfully!`
+          : `Product "${formData.name}" added successfully!`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, successMessage]);
+    } catch (error: any) {
+      console.error('Failed to save product:', error);
+      const errorText = error?.error?.message || error?.error || error?.message || 'Failed to save product. Please try again.';
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `Error: ${errorText}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!confirm(`Are you sure you want to delete "${productName}"?`)) {
+      return;
+    }
+
+    try {
+      await apiDelete(`/api/v1/products/${productId}`);
+      await loadProducts();
+      
+      // Add success message to chat
+      const successMessage: Message = {
+        role: 'assistant',
+        content: `Product "${productName}" deleted successfully!`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, successMessage]);
+    } catch (error: any) {
+      console.error('Failed to delete product:', error);
+      const errorText = error?.error?.message || error?.error || error?.message || 'Failed to delete product. Please try again.';
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `Error: ${errorText}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
   // Check both new schema (type) and old schema (tenant.type)
   if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
@@ -579,28 +751,194 @@ export default function SupplierChatPage() {
               <div>
                 <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Product Dashboard
+                  Inventory Manager
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {products.length} product{products.length !== 1 ? 's' : ''}
+                  {products.length} product{products.length !== 1 ? 's' : ''} in inventory
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshProducts}
-              disabled={refreshing || loadingProducts}
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Refresh'
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshProducts}
+                disabled={refreshing || loadingProducts}
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Refresh'
+                )}
+              </Button>
+              <Button
+                onClick={handleAddProduct}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Product
+              </Button>
+            </div>
           </div>
 
-          {/* Products Grid */}
+          {/* Add/Edit Form */}
+          {showAddForm && (
+            <div className="bg-white border-b border-gray-200 px-4 py-4">
+              <h2 className="text-base font-semibold mb-3">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h2>
+              <form onSubmit={handleSubmitProduct} className="space-y-3">
+                <div>
+                  <Label htmlFor="dashboard-name" className="text-sm">Product Name *</Label>
+                  <Input
+                    id="dashboard-name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                    placeholder="e.g., Cement"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="dashboard-price" className="text-sm">Price *</Label>
+                    <Input
+                      id="dashboard-price"
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, price: e.target.value })
+                      }
+                      required
+                      placeholder="48.00"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dashboard-unit" className="text-sm">Unit *</Label>
+                    <Input
+                      id="dashboard-unit"
+                      value={formData.unit}
+                      onChange={(e) =>
+                        setFormData({ ...formData, unit: e.target.value })
+                      }
+                      required
+                      placeholder="e.g., bag, ton, kg"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    type="submit" 
+                    disabled={submitting}
+                    size="sm"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Saving...
+                      </>
+                    ) : (
+                      editingProduct ? 'Update Product' : 'Add Product'
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setEditingProduct(null);
+                      setFormData({ name: '', price: '', unit: '' });
+                    }}
+                    size="sm"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Search and Filter Bar */}
+          {products.length > 0 && (
+            <div className="bg-white border-b border-gray-200 px-4 py-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search products by name, price, or unit..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Sort and View Toggle */}
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-gray-50">
+                    <span className="text-xs text-gray-600 whitespace-nowrap">Sort:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'name' | 'price' | 'updatedAt')}
+                      className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer"
+                    >
+                      <option value="name">Name</option>
+                      <option value="price">Price</option>
+                      <option value="updatedAt">Last Updated</option>
+                    </select>
+                    <button
+                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      {sortOrder === 'asc' ? (
+                        <ArrowUp className="h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* View Mode Toggle */}
+                  <div className="flex border rounded-md overflow-hidden">
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                      className="rounded-none border-0"
+                    >
+                      <Grid3x3 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                      className="rounded-none border-0"
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Results count */}
+              {searchQuery && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Showing {filteredAndSortedProducts.length} of {products.length} products
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Products Display */}
           <div className="flex-1 overflow-y-auto p-4">
             {loadingProducts ? (
               <div className="flex items-center justify-center h-full">
@@ -617,21 +955,31 @@ export default function SupplierChatPage() {
                     No products yet
                   </h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Use the AI chat to add your first product
+                    Use the AI chat or click "Add Product" to add your first product
                   </p>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                    <p className="text-sm text-blue-800 font-medium mb-2">
-                      Try saying:
-                    </p>
-                    <p className="text-xs text-blue-700">
-                      "Add cement at $48 per bag"
-                    </p>
-                  </div>
+                  <Button onClick={handleAddProduct} size="sm" className="bg-green-600 hover:bg-green-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Product
+                  </Button>
                 </div>
               </div>
-            ) : (
+            ) : filteredAndSortedProducts.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Search className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-sm text-gray-500 mb-2">No products match your search.</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSearchQuery('')} 
+                    size="sm"
+                  >
+                    Clear Search
+                  </Button>
+                </div>
+              </div>
+            ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {products.map((product) => (
+                {filteredAndSortedProducts.map((product) => (
                   <div
                     key={product.id}
                     className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-all duration-300 ${
@@ -641,21 +989,36 @@ export default function SupplierChatPage() {
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-base font-semibold text-gray-900 flex-1">
+                      <h3 className="text-base font-semibold text-gray-900 flex-1 pr-2">
                         {product.name}
                       </h3>
-                      {refreshing && (
-                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                      )}
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditProduct(product)}
+                          className="h-8 w-8 p-0 hover:bg-blue-50"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteProduct(product.id, product.name)}
+                          className="h-8 w-8 p-0 hover:bg-red-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-baseline gap-2">
                         <span className="text-2xl font-bold text-gray-900">
-                          ${product.price.toFixed(2)}
+                          ${(Number(product.price) || 0).toFixed(2)}
                         </span>
-                        <span className="text-sm text-gray-500">
-                          / {product.unit}
-                        </span>
+                        <span className="text-sm text-gray-500">/{product.unit}</span>
                       </div>
                       <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
                         Updated: {new Date(product.updatedAt).toLocaleDateString()}
@@ -663,6 +1026,99 @@ export default function SupplierChatPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('name')}
+                      >
+                        <div className="flex items-center">
+                          Product Name
+                          <SortIcon field="name" />
+                        </div>
+                      </th>
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('price')}
+                      >
+                        <div className="flex items-center">
+                          Price
+                          <SortIcon field="price" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Unit
+                      </th>
+                      <th 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('updatedAt')}
+                      >
+                        <div className="flex items-center">
+                          Last Updated
+                          <SortIcon field="updatedAt" />
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredAndSortedProducts.map((product) => (
+                      <tr 
+                        key={product.id} 
+                        className={`hover:bg-gray-50 ${
+                          highlightedProductId === product.id ? 'bg-green-50' : ''
+                        }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {product.name}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-gray-900">
+                            ${(Number(product.price) || 0).toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">{product.unit}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {new Date(product.updatedAt).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditProduct(product)}
+                              className="hover:bg-blue-50 hover:border-blue-300"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteProduct(product.id, product.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

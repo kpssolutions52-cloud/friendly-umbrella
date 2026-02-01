@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,12 @@ export default function SupplierProductsPage() {
     unit: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'updatedAt'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Redirect if not authenticated or not supplier
   // Check both new schema (type) and old schema (tenant.type) for compatibility
@@ -44,18 +50,6 @@ export default function SupplierProductsPage() {
       router.push('/');
       return;
     }
-    // For MVP 1, redirect suppliers to chat page by default
-    // The Products page is accessible via header button, but default landing should be chat
-    // Check if user came directly to this page (not from navigation)
-    const referrer = document.referrer;
-    const isDirectAccess = !referrer || referrer.includes('/supplier/products') || referrer === window.location.href;
-    if (isDirectAccess && !sessionStorage.getItem('supplier-products-accessed')) {
-      // User came directly to this page, redirect to chat
-      router.push('/supplier/chat');
-      return;
-    }
-    // Mark that user has accessed products page (so they can navigate back)
-    sessionStorage.setItem('supplier-products-accessed', 'true');
   }, [isAuthenticated, user, router]);
 
   // Load products
@@ -149,6 +143,63 @@ export default function SupplierProductsPage() {
     }
   };
 
+  // Filtered and sorted products
+  const filteredAndSortedProducts = useMemo(() => {
+    let filtered = products;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(query) ||
+          product.unit.toLowerCase().includes(query) ||
+          product.price.toString().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'price':
+          comparison = a.price - b.price;
+          break;
+        case 'updatedAt':
+          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [products, searchQuery, sortBy, sortOrder]);
+
+  const handleSort = (field: 'name' | 'price' | 'updatedAt') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: 'name' | 'price' | 'updatedAt' }) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUp className="h-3 w-3 ml-1 text-blue-600" />
+    ) : (
+      <ArrowDown className="h-3 w-3 ml-1 text-blue-600" />
+    );
+  };
+
   // Check both new schema (type) and old schema (tenant.type) for compatibility
   if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
@@ -163,14 +214,17 @@ export default function SupplierProductsPage() {
           <div className="mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Product Management</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6" />
+                Inventory Manager
+              </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Manage your product inventory and prices
+                {products.length} product{products.length !== 1 ? 's' : ''} in inventory
               </p>
             </div>
             <Button 
               onClick={handleAdd} 
-              className="flex items-center gap-2 w-full sm:w-auto touch-target"
+              className="flex items-center gap-2 w-full sm:w-auto touch-target bg-green-600 hover:bg-green-700"
               size="sm"
             >
               <Plus className="h-4 w-4" />
@@ -179,6 +233,80 @@ export default function SupplierProductsPage() {
             </Button>
           </div>
         </div>
+
+        {/* Search and Filter Bar */}
+        {products.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-4 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search products by name, price, or unit..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 touch-target"
+                  />
+                </div>
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-gray-50">
+                  <span className="text-xs text-gray-600 whitespace-nowrap">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'name' | 'price' | 'updatedAt')}
+                    className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer"
+                  >
+                    <option value="name">Name</option>
+                    <option value="price">Price</option>
+                    <option value="updatedAt">Last Updated</option>
+                  </select>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    {sortOrder === 'asc' ? (
+                      <ArrowUp className="h-4 w-4" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+
+                {/* View Mode Toggle */}
+                <div className="flex border rounded-md overflow-hidden">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="rounded-none border-0"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="rounded-none border-0"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Results count */}
+            {searchQuery && (
+              <div className="mt-2 text-xs text-gray-500">
+                Showing {filteredAndSortedProducts.length} of {products.length} products
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add/Edit Form */}
         {showAddForm && (
@@ -271,7 +399,7 @@ export default function SupplierProductsPage() {
           </div>
         )}
 
-        {/* Products List */}
+        {/* Products Display */}
         {loading ? (
           <div className="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
@@ -279,29 +407,111 @@ export default function SupplierProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
+            <Package className="h-12 w-12 mx-auto text-gray-300 mb-4" />
             <p className="text-sm sm:text-base text-gray-500 mb-4">No products yet.</p>
-            <Button onClick={handleAdd} className="touch-target" size="sm">
+            <Button onClick={handleAdd} className="touch-target bg-green-600 hover:bg-green-700" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
               Add Your First Product
             </Button>
           </div>
+        ) : filteredAndSortedProducts.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
+            <Search className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-sm sm:text-base text-gray-500 mb-2">No products match your search.</p>
+            <Button 
+              variant="outline" 
+              onClick={() => setSearchQuery('')} 
+              className="touch-target" 
+              size="sm"
+            >
+              Clear Search
+            </Button>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <>
+            {/* Grid View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredAndSortedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 flex-1 pr-2">
+                      {product.name}
+                    </h3>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                        className="h-8 w-8 p-0 hover:bg-blue-50"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(product.id)}
+                        className="h-8 w-8 p-0 hover:bg-red-50"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-gray-900">
+                        ${product.price.toFixed(2)}
+                      </span>
+                      <span className="text-sm text-gray-500">/{product.unit}</span>
+                    </div>
+                    <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
+                      Updated: {new Date(product.updatedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : (
           <>
-            {/* Desktop Table View */}
-            <div className="hidden sm:block bg-white rounded-lg shadow overflow-hidden">
+            {/* List/Table View */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product Name
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        Product Name
+                        <SortIcon field="name" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('price')}
+                    >
+                      <div className="flex items-center">
+                        Price
+                        <SortIcon field="price" />
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Unit
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Updated
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('updatedAt')}
+                    >
+                      <div className="flex items-center">
+                        Last Updated
+                        <SortIcon field="updatedAt" />
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -309,15 +519,15 @@ export default function SupplierProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {products.map((product) => (
-                    <tr key={product.id}>
+                  {filteredAndSortedProducts.map((product) => (
+                    <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {product.name}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900">
                           ${product.price.toFixed(2)}
                         </div>
                       </td>
@@ -335,14 +545,17 @@ export default function SupplierProductsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleEdit(product)}
+                            className="hover:bg-blue-50 hover:border-blue-300"
+                            title="Edit"
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4 text-blue-600" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleDelete(product.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300"
+                            title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -352,51 +565,6 @@ export default function SupplierProductsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="sm:hidden space-y-3">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg shadow p-4 border border-gray-200"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-gray-900 truncate">
-                        {product.name}
-                      </h3>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-lg font-bold text-gray-900">
-                          ${product.price.toFixed(2)}
-                        </span>
-                        <span className="text-sm text-gray-500">/{product.unit}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 ml-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                        className="touch-target p-2"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-700 touch-target p-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Updated: {new Date(product.updatedAt).toLocaleDateString()}
-                  </div>
-                </div>
-              ))}
             </div>
           </>
         )}

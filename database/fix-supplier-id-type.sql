@@ -207,15 +207,15 @@ SELECT
     tc.constraint_name,
     tc.table_name,
     kcu.column_name,
-    kcu.data_type as column_type,
+    col.data_type as column_type,
     ccu.table_name AS foreign_table_name,
     ccu.column_name AS foreign_column_name,
-    ccu.data_type as foreign_column_type,
+    col_fk.data_type as foreign_column_type,
     CASE 
         WHEN ccu.table_name = 'organizations' 
          AND ccu.column_name = 'id'
-         AND kcu.data_type = 'uuid'
-         AND ccu.data_type = 'uuid'
+         AND col.data_type = 'uuid'
+         AND col_fk.data_type = 'uuid'
         THEN '✅ CORRECT'
         ELSE '❌ STILL WRONG'
     END as status
@@ -229,6 +229,11 @@ JOIN information_schema.constraint_column_usage AS ccu
 JOIN information_schema.columns AS col
     ON col.table_name = kcu.table_name
     AND col.column_name = kcu.column_name
+    AND col.table_schema = kcu.table_schema
+JOIN information_schema.columns AS col_fk
+    ON col_fk.table_name = ccu.table_name
+    AND col_fk.column_name = ccu.column_name
+    AND col_fk.table_schema = ccu.table_schema
 WHERE tc.table_name = 'products'
     AND tc.constraint_type = 'FOREIGN KEY'
     AND kcu.column_name = 'supplier_id';
