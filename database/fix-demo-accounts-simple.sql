@@ -1,7 +1,15 @@
 -- Simple script to fix demo accounts - handles the "Default Organization" issue
 -- Run this if demo accounts are linked to wrong organizations
 
--- Step 1: Get or create demo supplier organization
+-- Step 1: Create orgtype enum if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'orgtype') THEN
+        CREATE TYPE orgtype AS ENUM ('company', 'supplier');
+    END IF;
+END $$;
+
+-- Step 2: Get or create demo supplier organization
 INSERT INTO organizations (id, name, type, email, created_at, updated_at)
 SELECT 
     gen_random_uuid(),
@@ -15,7 +23,7 @@ WHERE NOT EXISTS (
     WHERE email = 'demo-supplier@constructionguru.com'
 );
 
--- Step 2: Get or create demo company organization
+-- Step 3: Get or create demo company organization
 INSERT INTO organizations (id, name, type, email, created_at, updated_at)
 SELECT 
     gen_random_uuid(),
@@ -29,7 +37,15 @@ WHERE NOT EXISTS (
     WHERE email = 'demo-company@constructionguru.com'
 );
 
--- Step 3: Fix demo supplier user - link to supplier organization
+-- Step 4: Create usertype enum if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'usertype') THEN
+        CREATE TYPE usertype AS ENUM ('qs', 'supplier');
+    END IF;
+END $$;
+
+-- Step 5: Fix demo supplier user - link to supplier organization
 UPDATE users
 SET 
     organization_id = (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1),
@@ -37,7 +53,7 @@ SET
 WHERE email = 'demo.supplier@constructionguru.com'
   AND (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1) IS NOT NULL;
 
--- Step 4: Fix demo QS user - link to company organization
+-- Step 6: Fix demo QS user - link to company organization
 UPDATE users
 SET 
     organization_id = (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1),
@@ -45,7 +61,7 @@ SET
 WHERE email = 'demo.qs@constructionguru.com'
   AND (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1) IS NOT NULL;
 
--- Step 5: Show results
+-- Step 7: Show results
 SELECT 
     u.email,
     u.type as user_type,
