@@ -1,10 +1,11 @@
 -- Create company_prices table if it doesn't exist
 -- This table stores company-specific pricing for products
+-- Note: products.id is TEXT, organizations.id is UUID
 
 CREATE TABLE IF NOT EXISTS company_prices (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   product_id TEXT NOT NULL,
-  company_id TEXT NOT NULL,
+  company_id UUID NOT NULL,
   price DECIMAL(12, 2) NOT NULL,
   effective_from TIMESTAMP NOT NULL DEFAULT NOW(),
   effective_until TIMESTAMP,
