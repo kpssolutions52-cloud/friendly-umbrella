@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
+import Link from 'next/link';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -510,6 +511,19 @@ export default function ChatPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Products Button */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <Link href="/company/products">
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                      <Package className="h-5 w-5 mr-2" />
+                      Browse Products
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    View all products across suppliers with search and category filters
+                  </p>
                 </div>
 
                 {/* Recent Projects */}
