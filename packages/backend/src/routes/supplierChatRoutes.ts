@@ -5,6 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { processSupplierCommand } from '../services/supplierAIService';
+import { processSupplierCommandEnhanced } from '../services/supplierAIServiceEnhanced';
 import { requireAuth } from '../middleware/authMiddleware';
 import { requireSupplier } from '../middleware/permissionsMiddleware';
 
@@ -79,15 +80,28 @@ router.post(
       }
 
       // Process command with AI - use the verified organization ID
-      console.log('[supplierChatRoutes] Processing command with verified organizationId:', organization.id);
-      const result = await processSupplierCommand(command.trim(), organization.id);
+      // Use enhanced AI service if enabled via environment variable
+      const useEnhancedAI = process.env.USE_ENHANCED_AI === 'true';
+      const startTime = Date.now();
+      console.log('[supplierChatRoutes] Processing command with verified organizationId:', organization.id, 'Enhanced AI:', useEnhancedAI);
+      
+      const result = useEnhancedAI
+        ? await processSupplierCommandEnhanced(command.trim(), organization.id)
+        : await processSupplierCommand(command.trim(), organization.id);
 
-      res.json({
+      const processingTime = Date.now() - startTime;
+      console.log('[supplierChatRoutes] Command processed in', processingTime, 'ms');
+
+      // Send response immediately after processing
+      const response = {
         answer: result.answer,
         action: result.action,
         command: command.trim(),
         timestamp: new Date().toISOString(),
-      });
+      };
+      
+      console.log('[supplierChatRoutes] Sending response');
+      res.json(response);
     } catch (error: any) {
       console.error('Supplier chat error:', error);
       console.error('Supplier chat error details:', {

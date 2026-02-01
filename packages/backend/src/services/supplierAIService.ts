@@ -12,13 +12,14 @@ const openai = new OpenAI({
 });
 
 interface PriceUpdateIntent {
-  intent: 'update_price' | 'add_product' | 'view_products' | 'delete_product' | 'update_product' | 'general';
+  intent: 'update_price' | 'add_product' | 'view_products' | 'delete_product' | 'update_product' | 'calculate_price' | 'general';
   productName?: string;
   newProductName?: string; // For renaming products
   price?: number;
   unit?: string;
   companyId?: string; // For company-specific pricing
   productId?: string; // For delete/update operations
+  quantity?: number; // For price calculations
 }
 
 /**
@@ -36,16 +37,18 @@ Possible intents:
 - view_products: View list of products
 - delete_product: Delete/remove a product
 - update_product: Update product name or other details (not just price)
+- calculate_price: Calculate total price for a quantity of a product
 - general: General question or command
 
 Return JSON with this structure:
 {
-  "intent": "update_price" | "add_product" | "view_products" | "delete_product" | "update_product" | "general",
+  "intent": "update_price" | "add_product" | "view_products" | "delete_product" | "update_product" | "calculate_price" | "general",
   "productName": "cement" (if product mentioned for search),
   "newProductName": "Portland Cement" (if renaming product),
   "price": 48.50 (if price mentioned),
   "unit": "bag" (if unit mentioned),
-  "companyId": "uuid" (if company-specific price mentioned)
+  "companyId": "uuid" (if company-specific price mentioned),
+  "quantity": 10 (if quantity mentioned for calculations)
 }
 
 Examples:
@@ -57,6 +60,9 @@ Examples:
 - "Remove steel from my inventory" → {"intent": "delete_product", "productName": "steel"}
 - "Rename cement to Portland Cement" → {"intent": "update_product", "productName": "cement", "newProductName": "Portland Cement"}
 - "Change cement unit to kg" → {"intent": "update_product", "productName": "cement", "unit": "kg"}
+- "How much is the price total of 10 Cement" → {"intent": "calculate_price", "productName": "Cement", "quantity": 10}
+- "What's the total cost for 5 bags of cement?" → {"intent": "calculate_price", "productName": "cement", "quantity": 5}
+- "Calculate price for 20 units of steel" → {"intent": "calculate_price", "productName": "steel", "quantity": 20}
 - "What's my current cement price?" → {"intent": "general"}
 
 Return only valid JSON, no other text.`;
@@ -440,6 +446,81 @@ export async function processSupplierCommand(
         },
       },
     };
+  } else if (intent.intent === 'calculate_price' && intent.productName && intent.quantity !== undefined) {
+    // Calculate total price for a quantity of a product
+    const quantity = intent.quantity;
+    
+    // Validate quantity
+    if (quantity <= 0 || !Number.isFinite(quantity)) {
+      return {
+        answer: `⚠️ Please provide a valid positive quantity. For example: "How much is the price total of 10 Cement"`,
+      };
+    }
+
+    const product = await prisma.product.findFirst({
+      where: {
+        supplierId,
+        name: {
+          contains: intent.productName,
+          mode: 'insensitive',
+        },
+      },
+      include: {
+        defaultPrices: {
+          where: { isActive: true },
+          orderBy: { effectiveFrom: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!product) {
+      return {
+        answer: `I couldn't find a product named "${intent.productName}" in your inventory. Please check the product name and try again.`,
+      };
+    }
+
+    // Get the current price (from defaultPrices if available, otherwise from product.price)
+    let unitPrice: number;
+    let currency: string = 'USD';
+
+    if (product.defaultPrices && product.defaultPrices.length > 0) {
+      unitPrice = Number(product.defaultPrices[0].price);
+      currency = product.defaultPrices[0].currency || 'USD';
+    } else {
+      // Fallback to product.price if no defaultPrices
+      unitPrice = Number(product.price) || 0;
+    }
+
+    if (unitPrice <= 0) {
+      return {
+        answer: `⚠️ Product "${product.name}" doesn't have a valid price set. Please set a price first using "Update ${product.name} price to $X".`,
+      };
+    }
+
+    // Calculate total
+    const totalPrice = unitPrice * quantity;
+
+    // Format the answer
+    const answer = `💰 Price Calculation for ${product.name}:\n\n` +
+      `• Unit Price: ${currency} ${unitPrice.toFixed(2)}/${product.unit}\n` +
+      `• Quantity: ${quantity} ${product.unit}${quantity !== 1 ? 's' : ''}\n` +
+      `• Total Price: ${currency} ${totalPrice.toFixed(2)}\n\n` +
+      `Calculation: ${quantity} × ${currency} ${unitPrice.toFixed(2)} = ${currency} ${totalPrice.toFixed(2)}`;
+
+    return {
+      answer,
+      action: {
+        type: 'products_listed', // Reuse this action type for calculation results
+        data: {
+          product: product,
+          quantity: quantity,
+          unitPrice: unitPrice,
+          totalPrice: totalPrice,
+          currency: currency,
+        },
+      },
+    };
   } else {
     // General question - use AI to answer
     const systemPrompt = `You are a helpful assistant for suppliers managing their product inventory and prices.
@@ -449,6 +530,7 @@ You help suppliers:
 - View their product list
 - Delete products
 - Update product names and units
+- Calculate total prices for quantities of products
 - Answer questions about their inventory
 
 Be concise and helpful. If the supplier wants to update a price, guide them on the correct format.
@@ -458,7 +540,10 @@ Examples of commands you can help with:
 - "Delete steel product"
 - "Rename cement to Portland Cement"
 - "Change cement unit to kg"
-- "Show my products"`;
+- "Show my products"
+- "How much is the price total of 10 Cement"
+- "Calculate price for 5 bags of cement"
+- "What's the total cost for 20 units of steel?"`;
 
     try {
       const response = await openai.chat.completions.create({

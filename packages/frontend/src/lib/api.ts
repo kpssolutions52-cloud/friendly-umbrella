@@ -143,11 +143,11 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
   return apiRequest<T>(endpoint, { method: 'GET' });
 }
 
-export async function apiPost<T>(endpoint: string, data?: any, retryOn401 = true): Promise<T> {
+export async function apiPost<T>(endpoint: string, data?: any, retryOn401 = true, customTimeout?: number): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: 'POST',
     body: JSON.stringify(data),
-  }, retryOn401);
+  }, retryOn401, customTimeout);
 }
 
 export async function apiPut<T>(endpoint: string, data?: any): Promise<T> {

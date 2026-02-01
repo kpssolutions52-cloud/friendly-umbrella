@@ -151,12 +151,13 @@ export default function SupplierChatPage() {
   const handleFetchProducts = async () => {
     setLoading(true);
     try {
+      // Use longer timeout for AI chat requests
       const response = await apiPost<{
         answer: string;
         action?: { type: string; data?: any };
       }>('/api/v1/supplier/chat', {
         command: 'Show my products',
-      });
+      }, true, 60000); // 60 second timeout
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -297,12 +298,13 @@ export default function SupplierChatPage() {
   const executeCommand = async (command: string) => {
     setLoading(true);
     try {
+      // Use longer timeout for AI chat requests (60 seconds) as they can take time
       const response = await apiPost<{
         answer: string;
         action?: { type: string; data?: any };
       }>('/api/v1/supplier/chat', {
         command,
-      });
+      }, true, 60000); // 60 second timeout for AI requests
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -336,12 +338,28 @@ export default function SupplierChatPage() {
       }
     } catch (error: any) {
       const errorText = error?.error?.message || error?.error || error?.message || 'Failed to process command. Please try again.';
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: `Error: ${errorText}`,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      
+      // If it's a timeout error, check if it might be a price update that succeeded
+      // by refreshing products to see if anything changed
+      if (errorText.includes('timeout') || errorText.includes('Request timeout')) {
+        // Refresh products to check if update succeeded
+        await refreshProducts();
+        
+        // Show a message that suggests checking if the update worked
+        const timeoutMessage: Message = {
+          role: 'assistant',
+          content: `⚠️ Request timed out, but the update may have succeeded. Please check your products list. If the price was updated, you'll see it there.`,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, timeoutMessage]);
+      } else {
+        const errorMessage: Message = {
+          role: 'assistant',
+          content: `Error: ${errorText}`,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setLoading(false);
     }
