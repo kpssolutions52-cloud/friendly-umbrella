@@ -194,19 +194,65 @@ export async function processSupplierCommand(
     };
   } else if (intent.intent === 'add_product' && intent.productName && intent.price !== undefined) {
     // Add new product - NEW SCHEMA ONLY
+    // First, verify the supplier organization exists and is of type 'supplier'
+    const supplierOrg = await prisma.organization.findUnique({
+      where: { id: supplierId },
+    });
+
+    if (!supplierOrg) {
+      return {
+        answer: `❌ Error: Your supplier organization (ID: ${supplierId}) was not found in the database. Please contact support.`,
+      };
+    }
+
+    if (supplierOrg.type !== 'supplier') {
+      return {
+        answer: `❌ Error: Your organization is of type "${supplierOrg.type}", but products can only be created for supplier organizations. Please contact support.`,
+      };
+    }
+
     // Generate SKU automatically: first 3 letters of product name (uppercase) + timestamp
     const productNamePrefix = intent.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
     const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
     
-    const newProduct = await prisma.product.create({
-      data: {
+    try {
+      const newProduct = await prisma.product.create({
+        data: {
+          supplierId,
+          name: intent.productName,
+          sku,
+          price: intent.price,
+          unit: intent.unit || 'unit',
+        },
+      });
+
+    } catch (error: any) {
+      console.error('Error creating product:', error);
+      console.error('Error details:', {
         supplierId,
-        name: intent.productName,
-        sku,
+        productName: intent.productName,
         price: intent.price,
-        unit: intent.unit || 'unit',
-      },
-    });
+        unit: intent.unit,
+        errorCode: error.code,
+        errorMessage: error.message,
+      });
+
+      // Handle foreign key constraint violation
+      if (error.code === 'P2003') {
+        return {
+          answer: `❌ Error: Could not create product. Your supplier organization (ID: ${supplierId}) is not valid. Please contact support or try logging out and back in.`,
+        };
+      }
+
+      // Handle other Prisma errors
+      if (error.code && error.code.startsWith('P')) {
+        return {
+          answer: `❌ Error creating product: ${error.message}. Please try again or contact support.`,
+        };
+      }
+
+      throw error; // Re-throw unexpected errors
+    }
 
     return {
       answer: `✅ Added new product: ${newProduct.name} at $${Number(newProduct.price).toFixed(2)}/${newProduct.unit}`,

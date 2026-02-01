@@ -37,6 +37,25 @@ router.post(
         });
       }
 
+      // Verify organization exists and is of type 'supplier'
+      const { prisma } = await import('../utils/prisma');
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { id: true, type: true, name: true },
+      });
+
+      if (!organization) {
+        return res.status(400).json({
+          error: `Your supplier organization (ID: ${organizationId}) was not found in the database. Please contact support.`,
+        });
+      }
+
+      if (organization.type !== 'supplier') {
+        return res.status(400).json({
+          error: `Your organization "${organization.name}" is of type "${organization.type}", but this endpoint requires a supplier organization. Please contact support.`,
+        });
+      }
+
       // Process command with AI
       const result = await processSupplierCommand(command.trim(), organizationId);
 
