@@ -118,6 +118,7 @@ BEGIN
         
         -- Option 1: Handle orphaned products
         -- Strategy: Make ALL orphaned product SKUs unique first, then assign them
+        -- Simplest approach: make all orphaned SKUs unique to avoid any conflicts
         
         -- Step 1: Make SKUs unique for ALL orphaned products
         -- This ensures no conflicts when assigning to default supplier
@@ -127,48 +128,6 @@ BEGIN
           AND NOT EXISTS (
               SELECT 1 FROM organizations o 
               WHERE o.id = p.supplier_id
-          )
-          AND (
-              -- SKU already exists for default supplier (will conflict)
-              EXISTS (
-                  SELECT 1 FROM products p2
-                  WHERE p2.supplier_id = default_supplier_id
-                    AND p2.sku = p.sku
-              )
-              OR
-              -- SKU exists for another orphaned product (duplicate within orphaned set)
-              -- Use row_number to only update duplicates (keep first one, update others)
-              p.id IN (
-                  SELECT p4.id
-                  FROM products p4
-                  WHERE p4.supplier_id IS NOT NULL
-                    AND NOT EXISTS (
-                        SELECT 1 FROM organizations o3 
-                        WHERE o3.id = p4.supplier_id
-                    )
-                    AND p4.sku IN (
-                        SELECT p5.sku
-                        FROM products p5
-                        WHERE p5.supplier_id IS NOT NULL
-                          AND NOT EXISTS (
-                              SELECT 1 FROM organizations o4 
-                              WHERE o4.id = p5.supplier_id
-                          )
-                        GROUP BY p5.sku
-                        HAVING COUNT(*) > 1
-                    )
-                    AND p4.id NOT IN (
-                        -- Keep the first product with each SKU (by id)
-                        SELECT DISTINCT ON (p6.sku) p6.id
-                        FROM products p6
-                        WHERE p6.supplier_id IS NOT NULL
-                          AND NOT EXISTS (
-                              SELECT 1 FROM organizations o5 
-                              WHERE o5.id = p6.supplier_id
-                          )
-                        ORDER BY p6.sku, p6.id
-                    )
-              )
           );
         
         -- Step 2: Now assign all orphaned products to default supplier
