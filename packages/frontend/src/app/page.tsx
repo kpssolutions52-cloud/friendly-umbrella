@@ -168,9 +168,16 @@ export default function Home() {
       }
       setTotalPages(response.pagination.totalPages);
       setTotalProducts(response.pagination.total || 0);
-    } catch (error) {
-      console.error('Failed to load products:', error);
+    } catch (error: any) {
+      // Silently fail for MVP 1 - this endpoint doesn't exist yet
+      if (error?.error?.statusCode === 404 || error?.status === 404) {
+        console.log('Products public endpoint not available in MVP 1');
+      } else {
+        console.error('Failed to load products:', error);
+      }
       setProducts([]);
+      setTotalPages(0);
+      setTotalProducts(0);
     } finally {
       setIsLoadingProducts(false);
     }
@@ -180,8 +187,13 @@ export default function Home() {
     try {
       const response = await getMainCategories();
       setMainCategories(response.categories || []);
-    } catch (error) {
-      console.error('Failed to load main categories:', error);
+    } catch (error: any) {
+      // Silently fail for MVP 1 - these endpoints don't exist yet
+      if (error?.error?.statusCode === 404 || error?.status === 404) {
+        console.log('Categories endpoint not available in MVP 1');
+      } else {
+        console.error('Failed to load main categories:', error);
+      }
       setMainCategories([]);
     }
   }, []);
@@ -190,8 +202,13 @@ export default function Home() {
     try {
       const response = await getMainServiceCategories();
       setMainServiceCategories(response.categories || []);
-    } catch (error) {
-      console.error('Failed to load main service categories:', error);
+    } catch (error: any) {
+      // Silently fail for MVP 1 - these endpoints don't exist yet
+      if (error?.error?.statusCode === 404 || error?.status === 404) {
+        console.log('Service categories endpoint not available in MVP 1');
+      } else {
+        console.error('Failed to load main service categories:', error);
+      }
       setMainServiceCategories([]);
     }
   }, []);
@@ -200,8 +217,14 @@ export default function Home() {
     try {
       const response = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/suppliers/public');
       setSuppliers(response.suppliers);
-    } catch (error) {
-      console.error('Failed to load suppliers:', error);
+    } catch (error: any) {
+      // Silently fail for MVP 1 - this endpoint doesn't exist yet
+      if (error?.error?.statusCode === 404 || error?.status === 404) {
+        console.log('Suppliers public endpoint not available in MVP 1');
+      } else {
+        console.error('Failed to load suppliers:', error);
+      }
+      setSuppliers([]);
     }
   }, []);
 
