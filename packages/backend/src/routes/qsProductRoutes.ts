@@ -91,25 +91,36 @@ router.get(
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      // Build where clause - simplified to just filter by supplier type
-      const where: any = {};
-      
-      // Filter by supplier type using the relation
-      where.supplier = {
-        type: 'supplier',
+      // Build where clause - filter by supplier type
+      // In the simplified schema, all products belong to suppliers (Organization with type='supplier')
+      const where: any = {
+        supplier: {
+          type: 'supplier',
+        },
       };
 
       if (supplierId) {
         where.supplierId = supplierId;
-        // If supplierId is provided, we don't need the type filter
-        delete where.supplier;
+        // Keep supplier type filter even with supplierId to ensure it's a supplier
       }
 
       if (searchQuery) {
-        where.OR = [
-          { name: { contains: searchQuery, mode: 'insensitive' } },
-          { sku: { contains: searchQuery, mode: 'insensitive' } },
+        // Combine search with supplier filter using AND
+        where.AND = [
+          {
+            supplier: {
+              type: 'supplier',
+            },
+          },
+          {
+            OR: [
+              { name: { contains: searchQuery, mode: 'insensitive' } },
+              { sku: { contains: searchQuery, mode: 'insensitive' } },
+            ],
+          },
         ];
+        // Remove the top-level supplier filter since we're using AND
+        delete where.supplier;
       }
       
       // Log for debugging
