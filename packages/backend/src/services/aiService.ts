@@ -399,7 +399,16 @@ export async function processQSQuestion(
   // Check cache first
   const cached = await getCachedResponse(question);
   if (cached) {
-    return cached;
+    // Parse cached response - it's stored as JSON string
+    try {
+      return JSON.parse(cached) as QSQuestionResponse;
+    } catch {
+      // If parsing fails, return as answer string
+      return {
+        answer: cached,
+        hasSystemData: false,
+      };
+    }
   }
 
   // Extract products and quantities

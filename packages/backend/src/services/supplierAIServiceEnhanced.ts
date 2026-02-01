@@ -345,13 +345,14 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
     let finalAnswer = '';
 
     while (maxIterations > 0) {
+      // Use type assertion for function calling support (OpenAI v4.28.0 supports tools)
       const response = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        messages: messages as any, // Type assertion for function calling support
+        messages: messages as any,
         tools: tools as any,
-        tool_choice: 'auto', // Let AI decide when to use tools
-        temperature: 0.3, // Lower temperature for more consistent results
-      });
+        tool_choice: 'auto' as any,
+        temperature: 0.3,
+      } as any);
 
       const message = response.choices[0].message;
       messages.push(message as any);
