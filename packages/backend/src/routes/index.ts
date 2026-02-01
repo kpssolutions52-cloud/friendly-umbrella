@@ -26,6 +26,8 @@ import simplifiedProductRoutes from './simplifiedProductRoutes';
 import { publicCategoryRoutes } from './publicCategoryRoutes';
 import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
 import qsProductRoutes from './qsProductRoutes';
+import publicRoutes from './publicRoutes';
+import publicRoutes from './publicRoutes';
 
 export function setupRoutes(app: Express) {
   // MVP 1: Simplified auth routes (2-step registration)
@@ -43,9 +45,11 @@ export function setupRoutes(app: Express) {
   app.use('/api/v1', publicServiceCategoryRoutes);
   app.use('/api/v1', qsProductRoutes);
   
+  // Public routes for landing page (products, suppliers, service providers)
+  app.use('/api/v1', publicRoutes);
+  
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);
-  // app.use('/api/v1', publicRoutes);
   // app.use('/api/v1', quoteRoutes);
   // app.use('/api/v1/admin', superAdminRoutes);
   // app.use('/api/v1/admin', categoryRoutes);

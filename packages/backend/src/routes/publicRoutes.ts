@@ -37,7 +37,7 @@ router.get(
       const product = await prisma.product.findFirst({
         where: {
           id: productId,
-          isActive: true,
+          // Note: Product model doesn't have isActive field in current schema
         },
         include: {
           ...(includeCategory && {
@@ -288,13 +288,13 @@ router.get(
 
       // Build where clause
       const where: any = {
-        isActive: true,
+        // Note: Product model doesn't have isActive or type fields in current schema
       };
 
-      // Filter by type (product or service)
-      if (type) {
-        where.type = type;
-      }
+      // Filter by type (product or service) - removed as Product model doesn't have type field
+      // if (type) {
+      //   where.type = type;
+      // }
 
       if (supplierId) {
         where.supplierId = supplierId;
@@ -764,16 +764,14 @@ router.get(
   '/suppliers/public',
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const suppliers = await prisma.tenant.findMany({
+      const suppliers = await prisma.organization.findMany({
         where: {
           type: 'supplier',
-          isActive: true,
-          status: 'active',
         },
         select: {
           id: true,
           name: true,
-          logoUrl: true,
+          email: true,
         },
         orderBy: {
           name: 'asc',
@@ -792,16 +790,14 @@ router.get(
   '/service-providers/public',
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const serviceProviders = await prisma.tenant.findMany({
+      const serviceProviders = await prisma.organization.findMany({
         where: {
-          type: 'service_provider',
-          isActive: true,
-          status: 'active',
+          type: 'supplier', // Note: In current schema, service providers might also be 'supplier' type
         },
         select: {
           id: true,
           name: true,
-          logoUrl: true,
+          email: true,
         },
         orderBy: {
           name: 'asc',

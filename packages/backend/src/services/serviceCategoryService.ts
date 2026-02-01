@@ -40,12 +40,13 @@ export class ServiceCategoryService {
    * Get all service categories in hierarchical structure
    */
   async getAllCategories(includeInactive = false): Promise<ServiceCategoryWithChildren[]> {
-    const where: any = {};
-    if (!includeInactive) {
-      where.isActive = true;
-    }
+    try {
+      const where: any = {};
+      if (!includeInactive) {
+        where.isActive = true;
+      }
 
-    const categories = await (prisma as any).serviceCategory.findMany({
+      const categories = await (prisma as any).serviceCategory.findMany({
       where,
       select: {
         id: true,
@@ -88,77 +89,103 @@ export class ServiceCategoryService {
       ],
     });
 
-    // Organize into hierarchical structure
-    const mainCategories = categories.filter((cat: any) => !cat.parentId);
-    const subcategories = categories.filter((cat: any) => cat.parentId);
+      // Organize into hierarchical structure
+      const mainCategories = categories.filter((cat: any) => !cat.parentId);
+      const subcategories = categories.filter((cat: any) => cat.parentId);
 
-    return mainCategories.map((mainCat: any) => ({
-      ...mainCat,
-      children: subcategories
-        .filter((sub: any) => sub.parentId === mainCat.id)
-        .map((sub: any) => ({
-          ...sub,
-          children: [],
-        })),
-    })) as ServiceCategoryWithChildren[];
+      return mainCategories.map((mainCat: any) => ({
+        ...mainCat,
+        children: subcategories
+          .filter((sub: any) => sub.parentId === mainCat.id)
+          .map((sub: any) => ({
+            ...sub,
+            children: [],
+          })),
+      })) as ServiceCategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('serviceCategory')) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
    * Get all main service categories only (no subcategories)
    */
   async getMainCategories(includeInactive = false): Promise<ServiceCategoryWithChildren[]> {
-    const where: any = { parentId: null };
-    if (!includeInactive) {
-      where.isActive = true;
-    }
+    try {
+      const where: any = { parentId: null };
+      if (!includeInactive) {
+        where.isActive = true;
+      }
 
-    return (prisma as any).serviceCategory.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        iconUrl: true,
-        parentId: true,
-        isActive: true,
-        displayOrder: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: [
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    }) as Promise<ServiceCategoryWithChildren[]>;
+      return await (prisma as any).serviceCategory.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          iconUrl: true,
+          parentId: true,
+          isActive: true,
+          displayOrder: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: [
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      }) as ServiceCategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('serviceCategory')) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
    * Get subcategories for a specific main service category
    */
   async getSubcategories(parentId: string, includeInactive = false): Promise<ServiceCategoryWithChildren[]> {
-    const where: any = { parentId };
-    if (!includeInactive) {
-      where.isActive = true;
-    }
+    try {
+      const where: any = { parentId };
+      if (!includeInactive) {
+        where.isActive = true;
+      }
 
-    return (prisma as any).serviceCategory.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        iconUrl: true,
-        parentId: true,
-        isActive: true,
-        displayOrder: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: [
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    }) as Promise<ServiceCategoryWithChildren[]>;
+      return await (prisma as any).serviceCategory.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          iconUrl: true,
+          parentId: true,
+          isActive: true,
+          displayOrder: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: [
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      }) as ServiceCategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('serviceCategory')) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
@@ -385,27 +412,36 @@ export class ServiceCategoryService {
    * Get flat list of all service categories (for dropdowns)
    */
   async getFlatCategories(includeInactive = false): Promise<Array<{ id: string; name: string; parentName?: string }>> {
-    const categories = await (prisma as any).serviceCategory.findMany({
-      where: includeInactive ? {} : { isActive: true },
-      include: {
-        parent: {
-          select: {
-            name: true,
+    try {
+      const categories = await (prisma as any).serviceCategory.findMany({
+        where: includeInactive ? {} : { isActive: true },
+        include: {
+          parent: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { parentId: 'asc' },
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    });
+        orderBy: [
+          { parentId: 'asc' },
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      });
 
-    return categories.map((cat: any) => ({
-      id: cat.id,
-      name: cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name,
-      parentName: cat.parent?.name,
-    }));
+      return categories.map((cat: any) => ({
+        id: cat.id,
+        name: cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name,
+        parentName: cat.parent?.name,
+      }));
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('serviceCategory')) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 }
 

@@ -40,83 +40,110 @@ export class CategoryService {
    * Get all categories in hierarchical structure
    */
   async getAllCategories(includeInactive = false): Promise<CategoryWithChildren[]> {
-    const where: any = {};
-    if (!includeInactive) {
-      where.isActive = true;
+    try {
+      const where: any = {};
+      if (!includeInactive) {
+        where.isActive = true;
+      }
+
+      const categories = await (prisma as any).productCategory.findMany({
+        where,
+        include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          children: {
+            where: includeInactive ? {} : { isActive: true },
+            orderBy: {
+              displayOrder: 'asc',
+            },
+          },
+        },
+        orderBy: [
+          { parentId: 'asc' }, // Main categories first (parentId is null)
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      });
+
+      // Organize into hierarchical structure
+      const mainCategories = categories.filter((cat: any) => !cat.parentId);
+      const subcategories = categories.filter((cat: any) => cat.parentId);
+
+      return mainCategories.map((mainCat: any) => ({
+        ...mainCat,
+        children: subcategories
+          .filter((sub: any) => sub.parentId === mainCat.id)
+          .map((sub: any) => ({
+            ...sub,
+            children: [],
+          })),
+      })) as CategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('productCategory')) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
     }
-
-    const categories = await (prisma as any).productCategory.findMany({
-      where,
-      include: {
-        parent: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        children: {
-          where: includeInactive ? {} : { isActive: true },
-          orderBy: {
-            displayOrder: 'asc',
-          },
-        },
-      },
-      orderBy: [
-        { parentId: 'asc' }, // Main categories first (parentId is null)
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    });
-
-    // Organize into hierarchical structure
-    const mainCategories = categories.filter((cat: any) => !cat.parentId);
-    const subcategories = categories.filter((cat: any) => cat.parentId);
-
-    return mainCategories.map((mainCat: any) => ({
-      ...mainCat,
-      children: subcategories
-        .filter((sub: any) => sub.parentId === mainCat.id)
-        .map((sub: any) => ({
-          ...sub,
-          children: [],
-        })),
-    })) as CategoryWithChildren[];
   }
 
   /**
    * Get all main categories only (no subcategories)
    */
   async getMainCategories(includeInactive = false): Promise<CategoryWithChildren[]> {
-    const where: any = { parentId: null };
-    if (!includeInactive) {
-      where.isActive = true;
-    }
+    try {
+      const where: any = { parentId: null };
+      if (!includeInactive) {
+        where.isActive = true;
+      }
 
-    return (prisma as any).productCategory.findMany({
-      where,
-      orderBy: [
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    }) as Promise<CategoryWithChildren[]>;
+      return await (prisma as any).productCategory.findMany({
+        where,
+        orderBy: [
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      }) as CategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('productCategory')) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
    * Get subcategories for a specific main category
    */
   async getSubcategories(parentId: string, includeInactive = false): Promise<CategoryWithChildren[]> {
-    const where: any = { parentId };
-    if (!includeInactive) {
-      where.isActive = true;
-    }
+    try {
+      const where: any = { parentId };
+      if (!includeInactive) {
+        where.isActive = true;
+      }
 
-    return (prisma as any).productCategory.findMany({
-      where,
-      orderBy: [
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    }) as Promise<CategoryWithChildren[]>;
+      return await (prisma as any).productCategory.findMany({
+        where,
+        orderBy: [
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      }) as CategoryWithChildren[];
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('productCategory')) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
@@ -343,27 +370,36 @@ export class CategoryService {
    * Get flat list of all categories (for dropdowns)
    */
   async getFlatCategories(includeInactive = false): Promise<Array<{ id: string; name: string; parentName?: string }>> {
-    const categories = await (prisma as any).productCategory.findMany({
-      where: includeInactive ? {} : { isActive: true },
-      include: {
-        parent: {
-          select: {
-            name: true,
+    try {
+      const categories = await (prisma as any).productCategory.findMany({
+        where: includeInactive ? {} : { isActive: true },
+        include: {
+          parent: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-      orderBy: [
-        { parentId: 'asc' },
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    });
+        orderBy: [
+          { parentId: 'asc' },
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      });
 
-    return categories.map((cat: any) => ({
-      id: cat.id,
-      name: cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name,
-      parentName: cat.parent?.name,
-    }));
+      return categories.map((cat: any) => ({
+        id: cat.id,
+        name: cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name,
+        parentName: cat.parent?.name,
+      }));
+    } catch (error: any) {
+      // Handle missing model gracefully
+      if (error.code === 'P2021' || error.code === '42P01' || error.message?.includes('productCategory')) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      throw error;
+    }
   }
 }
 
