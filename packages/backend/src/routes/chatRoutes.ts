@@ -20,7 +20,7 @@ router.post(
   requireQS,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { question } = req.body;
+      const { question, allowGenericAnswers } = req.body;
 
       if (!question || typeof question !== 'string' || question.trim().length === 0) {
         return res.status(400).json({
@@ -29,10 +29,16 @@ router.post(
       }
 
       // Process question with AI and supplier data
-      const answer = await processQSQuestion(question.trim());
+      const response = await processQSQuestion(
+        question.trim(),
+        allowGenericAnswers === true || allowGenericAnswers === 'true'
+      );
 
       res.json({
-        answer,
+        answer: response.answer,
+        requiresPermission: response.requiresPermission || false,
+        hasSystemData: response.hasSystemData || false,
+        systemDataSummary: response.systemDataSummary,
         question: question.trim(),
         timestamp: new Date().toISOString(),
       });

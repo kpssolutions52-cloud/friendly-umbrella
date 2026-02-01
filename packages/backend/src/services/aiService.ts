@@ -14,6 +14,7 @@ import {
   calculateTotalCost,
   SupplierPriceData,
 } from './dataRetrievalService';
+import { prisma } from '../utils/prisma';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -45,6 +46,44 @@ function formatSupplierData(supplierData: SupplierData[]): string {
       return `- ${item.supplier}: ${item.product} - $${item.price}/${item.unit} ${marker}`;
     })
     .join('\n');
+}
+
+/**
+ * Format supplier list for AI context
+ */
+function formatSupplierList(suppliers: Array<{
+  supplierId: string;
+  supplierName: string;
+  productName: string;
+  price: number;
+  unit: string;
+}>): string {
+  if (!suppliers || suppliers.length === 0) {
+    return 'No suppliers found for this product.';
+  }
+
+  // Group by supplier name
+  const supplierMap = new Map<string, Array<{ productName: string; price: number; unit: string }>>();
+  
+  suppliers.forEach((s) => {
+    if (!supplierMap.has(s.supplierName)) {
+      supplierMap.set(s.supplierName, []);
+    }
+    supplierMap.get(s.supplierName)!.push({
+      productName: s.productName,
+      price: s.price,
+      unit: s.unit,
+    });
+  });
+
+  // Format as list
+  const result: string[] = [];
+  supplierMap.forEach((products, supplierName) => {
+    const productList = products.map((p) => `${p.productName} ($${p.price}/${p.unit})`).join(', ');
+    result.push(`- **${supplierName}**: ${productList}`);
+  });
+
+  return result.join('\n');
 }
 
 /**
@@ -127,18 +166,26 @@ export async function askQSQuestion(
 You help QS professionals with construction pricing, material specifications, 
 and cost calculations.
 
+IMPORTANT: You have access to REAL supplier data from the database. 
+ALWAYS use this real data when answering questions. Do NOT provide generic 
+or hypothetical supplier information when real data is available.
+
 `;
 
   if (supplierData && supplierData.length > 0) {
-    systemPrompt += `Current supplier prices:
+    systemPrompt += `Current supplier prices from the database:
 ${formatSupplierData(supplierData)}
 
-IMPORTANT: Always include these real supplier prices in your answer when relevant. 
+IMPORTANT: Always include these REAL supplier prices in your answer when relevant. 
 The price marked with "⭐ BEST PRICE" is the lowest price available. 
 Always mention this best price prominently in your response, for example: 
 "The best price is $X from Supplier Y (⭐ BEST PRICE)".`;
+  } else if (additionalContext && additionalContext.includes('Suppliers for')) {
+    systemPrompt += `You have supplier information from the database. Use this information to answer the question.`;
   } else {
-    systemPrompt += `You can provide general information about construction materials and pricing, but note that real-time supplier prices are not currently available.`;
+    systemPrompt += `Note: Real-time supplier prices are not currently available for this query. 
+You can provide general information, but make it clear that you're providing general 
+information and suggest the user check the database for specific suppliers.`;
   }
 
   if (additionalContext) {
@@ -218,9 +265,137 @@ export function isCalculationQuery(question: string): boolean {
 }
 
 /**
+ * Check if question is asking about suppliers
+ */
+export function isSupplierQuery(question: string): boolean {
+  const supplierKeywords = [
+    'supplier',
+    'suppliers',
+    'who has',
+    'who sells',
+    'who provides',
+    'list suppliers',
+    'show suppliers',
+    'find suppliers',
+    'supplier for',
+    'suppliers for',
+    'available suppliers',
+    'which supplier',
+    'which suppliers',
+  ];
+  const lowerQuestion = question.toLowerCase();
+  return supplierKeywords.some((keyword) => lowerQuestion.includes(keyword));
+}
+
+/**
+ * Get suppliers that have a specific product
+ */
+export async function getSuppliersForProduct(productName: string): Promise<Array<{
+  supplierId: string;
+  supplierName: string;
+  productName: string;
+  price: number;
+  unit: string;
+}>> {
+  try {
+    // Query products that match the product name and get their suppliers
+    const products = await prisma.product.findMany({
+      where: {
+        name: {
+          contains: productName,
+          mode: 'insensitive',
+        },
+        supplier: {
+          type: 'supplier',
+        },
+      },
+      include: {
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        price: 'asc',
+      },
+    });
+
+    // Filter out products with null suppliers and map to result
+    return products
+      .filter((p) => p.supplier !== null)
+      .map((p) => ({
+        supplierId: p.supplierId,
+        supplierName: p.supplier!.name,
+        productName: p.name,
+        price: Number(p.price),
+        unit: p.unit,
+      }));
+  } catch (error) {
+    console.error('Error getting suppliers for product:', error);
+    return [];
+  }
+}
+
+/**
+ * Get all suppliers in the system
+ */
+export async function getAllSuppliers(): Promise<Array<{
+  id: string;
+  name: string;
+  email: string;
+  productCount: number;
+}>> {
+  try {
+    const suppliers = await prisma.organization.findMany({
+      where: {
+        type: 'supplier',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        products: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return suppliers.map((s) => ({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      productCount: s.products?.length || 0,
+    }));
+  } catch (error) {
+    console.error('Error getting all suppliers:', error);
+    return [];
+  }
+}
+
+/**
+ * Response type for processQSQuestion
+ */
+export interface QSQuestionResponse {
+  answer: string;
+  requiresPermission?: boolean;
+  hasSystemData?: boolean;
+  systemDataSummary?: string;
+}
+
+/**
  * Main function to process QS question with caching and enhanced data retrieval
  */
-export async function processQSQuestion(question: string): Promise<string> {
+export async function processQSQuestion(
+  question: string,
+  allowGenericAnswers: boolean = false
+): Promise<QSQuestionResponse> {
   // Check cache first
   const cached = await getCachedResponse(question);
   if (cached) {
@@ -233,6 +408,45 @@ export async function processQSQuestion(question: string): Promise<string> {
   
   let supplierData: SupplierData[] = [];
   let calculationResult = null;
+  let supplierListContext = '';
+
+  // Track if we found any system data
+  let hasSystemData = false;
+  let systemDataSummary = '';
+
+  // Handle supplier queries (e.g., "list cement suppliers")
+  if (isSupplierQuery(question)) {
+    if (products.length > 0) {
+      // User is asking for suppliers of a specific product
+      for (const product of products) {
+        const suppliers = await getSuppliersForProduct(product);
+        if (suppliers.length > 0) {
+          hasSystemData = true;
+          supplierListContext += `Suppliers for ${product}:\n${formatSupplierList(suppliers)}\n\n`;
+          systemDataSummary += `Found ${suppliers.length} supplier(s) for ${product} in the system database.\n`;
+          // Also add to supplierData for price display
+          supplierData.push(...suppliers.map((s) => ({
+            supplier: s.supplierName,
+            product: s.productName,
+            price: s.price,
+            unit: s.unit,
+          })));
+        } else {
+          systemDataSummary += `No suppliers found for ${product} in the system database.\n`;
+        }
+      }
+    } else {
+      // User is asking for all suppliers (no specific product)
+      const allSuppliers = await getAllSuppliers();
+      if (allSuppliers.length > 0) {
+        hasSystemData = true;
+        supplierListContext = `All suppliers in the system:\n${allSuppliers.map((s) => `- **${s.name}** (${s.productCount} products)`).join('\n')}\n\n`;
+        systemDataSummary = `Found ${allSuppliers.length} supplier(s) in the system database.\n`;
+      } else {
+        systemDataSummary = `No suppliers found in the system database.\n`;
+      }
+    }
+  }
 
   // Handle calculation queries
   if (isCalculationQuery(question) && quantities.length > 0) {
@@ -242,18 +456,45 @@ export async function processQSQuestion(question: string): Promise<string> {
     }));
     
     calculationResult = await calculateTotalCost(items);
-    supplierData = calculationResult.items
-      .filter((item) => item.bestPrice)
-      .map((item) => ({
-        supplier: item.bestPrice!.supplier,
-        product: item.productName,
-        price: item.bestPrice!.price,
-        unit: item.bestPrice!.unit,
-      }));
+    const itemsWithData = calculationResult.items.filter((item) => item.bestPrice);
+    if (itemsWithData.length > 0) {
+      hasSystemData = true;
+      systemDataSummary += `Found pricing data for ${itemsWithData.length} product(s) in the system.\n`;
+    }
+    supplierData.push(...itemsWithData.map((item) => ({
+      supplier: item.bestPrice!.supplier,
+      product: item.productName,
+      price: item.bestPrice!.price,
+      unit: item.bestPrice!.unit,
+    })));
   } else if (isPriceQuery(question) && products.length > 0) {
     // Get supplier data for price queries
     for (const product of products) {
       const prices = await getSupplierPrices(product);
+      if (prices.length > 0) {
+        hasSystemData = true;
+        systemDataSummary += `Found ${prices.length} price(s) for ${product} in the system database.\n`;
+      }
+      supplierData.push(...prices.map((p) => ({
+        supplier: p.supplier,
+        product: p.product,
+        price: p.price,
+        unit: p.unit,
+      })));
+    }
+    // Remove duplicates
+    supplierData = supplierData.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.product === item.product && t.supplier === item.supplier)
+    );
+  } else if (products.length > 0 && !isSupplierQuery(question)) {
+    // If product is mentioned but not a price/supplier query, still get supplier data
+    for (const product of products) {
+      const prices = await getSupplierPrices(product);
+      if (prices.length > 0) {
+        hasSystemData = true;
+        systemDataSummary += `Found ${prices.length} supplier(s) for ${product} in the system database.\n`;
+      }
       supplierData.push(...prices.map((p) => ({
         supplier: p.supplier,
         product: p.product,
@@ -268,8 +509,29 @@ export async function processQSQuestion(question: string): Promise<string> {
     );
   }
 
+  // Check if this is a supplier-related question and we have no data
+  const isSupplierRelated = isSupplierQuery(question) || products.length > 0;
+  const needsPermission = isSupplierRelated && !hasSystemData && !allowGenericAnswers;
+
+  // If we need permission and don't have it, return permission request
+  if (needsPermission) {
+    const productList = products.length > 0 ? products.join(', ') : 'the requested information';
+    return {
+      answer: `I don't have any supplier data for "${productList}" in the system database.\n\nWould you like me to provide general information about suppliers from my knowledge base instead?\n\nPlease reply with "yes" or "allow generic answers" to proceed with general information, or ask a different question about suppliers that are in the system.`,
+      requiresPermission: true,
+      hasSystemData: false,
+      systemDataSummary: systemDataSummary.trim() || 'No data found in system database.',
+    };
+  }
+
   // Build enhanced context
   let context = '';
+  
+  // Add supplier list context if available
+  if (supplierListContext) {
+    context += supplierListContext;
+  }
+  
   if (supplierData.length > 0) {
     context += `Current Supplier Prices:\n${formatSupplierData(supplierData)}\n\n`;
   }
@@ -284,11 +546,22 @@ export async function processQSQuestion(question: string): Promise<string> {
     context += `Grand Total: $${calculationResult.grandTotal.toFixed(2)}\n\n`;
   }
 
+  // Update system prompt to indicate if we're using generic data
+  let additionalPromptContext = '';
+  if (allowGenericAnswers && !hasSystemData) {
+    additionalPromptContext = '\n\nIMPORTANT: You are providing general information from your knowledge base because no data was found in the system database. Make it clear in your response that this is general information, not specific to the user\'s system.';
+  }
+
   // Get AI response with enhanced context
-  const answer = await askQSQuestion(question, supplierData, context);
+  const answer = await askQSQuestion(question, supplierData, context + additionalPromptContext);
 
   // Cache the response
   await setCachedResponse(question, answer, 60); // 1 minute cache
 
-  return answer;
+  return {
+    answer,
+    requiresPermission: false,
+    hasSystemData,
+    systemDataSummary: systemDataSummary.trim() || (hasSystemData ? 'Data found in system database.' : 'No data found in system database.'),
+  };
 }

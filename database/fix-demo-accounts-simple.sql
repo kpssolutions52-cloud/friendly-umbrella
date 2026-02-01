@@ -1,11 +1,30 @@
 -- Simple script to fix demo accounts - handles the "Default Organization" issue
 -- Run this if demo accounts are linked to wrong organizations
 
--- Step 1: Create orgtype enum if it doesn't exist
+-- Step 1: Create OrgType enum if it doesn't exist (PascalCase for Prisma compatibility)
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'orgtype') THEN
-        CREATE TYPE orgtype AS ENUM ('company', 'supplier');
+    -- Check if OrgType (PascalCase) exists
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'OrgType') THEN
+        -- Check if orgtype (lowercase) exists and migrate it
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'orgtype') THEN
+            -- Create the new OrgType enum
+            CREATE TYPE "OrgType" AS ENUM ('company', 'supplier');
+            -- Update organizations table to use new type
+            ALTER TABLE organizations 
+            ALTER COLUMN type TYPE "OrgType" 
+            USING type::text::"OrgType";
+            -- Drop old enum if no other tables use it
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE udt_name = 'orgtype' AND table_name != 'organizations'
+            ) THEN
+                DROP TYPE orgtype;
+            END IF;
+        ELSE
+            -- Neither exists - create OrgType
+            CREATE TYPE "OrgType" AS ENUM ('company', 'supplier');
+        END IF;
     END IF;
 END $$;
 
@@ -37,14 +56,29 @@ WHERE NOT EXISTS (
     WHERE email = 'demo-company@constructionguru.com'
 );
 
--- Step 4: Create usertype enum if it doesn't exist
+-- Step 4: Create UserType enum if it doesn't exist (PascalCase for Prisma compatibility)
 DO $$
 BEGIN
-    -- Check if usertype exists (lowercase)
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'usertype') THEN
-        -- Check if UserType exists (PascalCase)
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserType') THEN
-            CREATE TYPE usertype AS ENUM ('qs', 'supplier');
+    -- Check if UserType (PascalCase) exists
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserType') THEN
+        -- Check if usertype (lowercase) exists and migrate it
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'usertype') THEN
+            -- Create the new UserType enum
+            CREATE TYPE "UserType" AS ENUM ('qs', 'supplier');
+            -- Update users table to use new type
+            ALTER TABLE users 
+            ALTER COLUMN type TYPE "UserType" 
+            USING type::text::"UserType";
+            -- Drop old enum if no other tables use it
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE udt_name = 'usertype' AND table_name != 'users'
+            ) THEN
+                DROP TYPE usertype;
+            END IF;
+        ELSE
+            -- Neither exists - create UserType
+            CREATE TYPE "UserType" AS ENUM ('qs', 'supplier');
         END IF;
     END IF;
 END $$;

@@ -13,6 +13,9 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  requiresPermission?: boolean;
+  hasSystemData?: boolean;
+  systemDataSummary?: string;
 }
 
 interface Project {
@@ -123,14 +126,23 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await apiPost<{ answer: string }>('/api/v1/chat', {
+      const response = await apiPost<{ 
+        answer: string; 
+        requiresPermission?: boolean;
+        hasSystemData?: boolean;
+        systemDataSummary?: string;
+      }>('/api/v1/chat', {
         question: questionText,
+        allowGenericAnswers: false,
       });
 
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.answer,
         timestamp: new Date().toISOString(),
+        requiresPermission: response.requiresPermission,
+        hasSystemData: response.hasSystemData,
+        systemDataSummary: response.systemDataSummary,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -268,6 +280,83 @@ export default function ChatPage() {
                   <div className="whitespace-pre-wrap break-words">
                     {message.content}
                   </div>
+                  
+                  {/* Permission request UI */}
+                  {message.requiresPermission && (
+                    <div className="mt-3 pt-3 border-t border-gray-300">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            // Resend the last user question with permission
+                            const lastUserMessage = messages
+                              .filter((m) => m.role === 'user')
+                              .slice(-1)[0];
+                            
+                            if (lastUserMessage) {
+                              try {
+                                const response = await apiPost<{ 
+                                  answer: string; 
+                                  requiresPermission?: boolean;
+                                  hasSystemData?: boolean;
+                                  systemDataSummary?: string;
+                                }>('/api/v1/chat', {
+                                  question: lastUserMessage.content,
+                                  allowGenericAnswers: true,
+                                });
+
+                                const permissionMessage: Message = {
+                                  role: 'assistant',
+                                  content: response.answer,
+                                  timestamp: new Date().toISOString(),
+                                  requiresPermission: false,
+                                  hasSystemData: response.hasSystemData,
+                                  systemDataSummary: response.systemDataSummary,
+                                };
+
+                                setMessages((prev) => [...prev, permissionMessage]);
+                              } catch (error: any) {
+                                const errorMessage: Message = {
+                                  role: 'assistant',
+                                  content: `Error: ${error?.error?.message || 'Failed to get response. Please try again.'}`,
+                                  timestamp: new Date().toISOString(),
+                                };
+                                setMessages((prev) => [...prev, errorMessage]);
+                              }
+                            }
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                        >
+                          Yes, provide general information
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const infoMessage: Message = {
+                              role: 'assistant',
+                              content: 'Understood. I\'ll only provide information from the system database. Please ask about suppliers or products that are in the system.',
+                              timestamp: new Date().toISOString(),
+                            };
+                            setMessages((prev) => [...prev, infoMessage]);
+                          }}
+                          className="text-xs"
+                        >
+                          No, system data only
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* System data indicator */}
+                  {message.hasSystemData !== undefined && (
+                    <div className={`text-xs mt-2 ${
+                      message.hasSystemData ? 'text-green-600' : 'text-amber-600'
+                    }`}>
+                      {message.hasSystemData ? '✓ Using system database data' : '⚠ No system data found'}
+                    </div>
+                  )}
+
                   <div
                     className={`text-xs mt-1 ${
                       message.role === 'user'
