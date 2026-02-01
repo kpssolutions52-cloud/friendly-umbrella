@@ -79,6 +79,7 @@ END $$;
 DO $$
 DECLARE
     orphaned_count INTEGER;
+    default_supplier_id UUID;
 BEGIN
     -- Count orphaned products
     SELECT COUNT(*) INTO orphaned_count
@@ -86,22 +87,56 @@ BEGIN
     WHERE p.supplier_id IS NOT NULL
       AND NOT EXISTS (
           SELECT 1 FROM organizations o 
-          WHERE o.id::text = p.supplier_id::text
+          WHERE o.id = p.supplier_id
       );
     
     IF orphaned_count > 0 THEN
-        RAISE NOTICE 'Found % orphaned products. Setting supplier_id to NULL...', orphaned_count;
+        RAISE NOTICE 'Found % orphaned products. Attempting to fix...', orphaned_count;
         
-        -- Set supplier_id to NULL for orphaned products
+        -- Try to get or create a default supplier organization for orphaned products
+        SELECT id INTO default_supplier_id
+        FROM organizations
+        WHERE type = 'supplier'
+        ORDER BY created_at ASC
+        LIMIT 1;
+        
+        -- If no supplier exists, create one
+        IF default_supplier_id IS NULL THEN
+            INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+            VALUES (
+                gen_random_uuid(),
+                'Default Supplier Organization',
+                'supplier',
+                'default-supplier@constructionguru.com',
+                NOW(),
+                NOW()
+            )
+            RETURNING id INTO default_supplier_id;
+            
+            RAISE NOTICE 'Created default supplier organization: %', default_supplier_id;
+        END IF;
+        
+        -- Option 1: Assign orphaned products to default supplier (if you want to keep them)
         UPDATE products p
-        SET supplier_id = NULL
+        SET supplier_id = default_supplier_id
         WHERE p.supplier_id IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM organizations o 
-              WHERE o.id::text = p.supplier_id::text
+              WHERE o.id = p.supplier_id
           );
         
-        RAISE NOTICE 'Set supplier_id to NULL for % orphaned products', orphaned_count;
+        RAISE NOTICE 'Assigned % orphaned products to default supplier organization', orphaned_count;
+        
+        -- Option 2: If you prefer to DELETE orphaned products instead, uncomment this:
+        /*
+        DELETE FROM products p
+        WHERE p.supplier_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM organizations o 
+              WHERE o.id = p.supplier_id
+          );
+        RAISE NOTICE 'Deleted % orphaned products', orphaned_count;
+        */
     ELSE
         RAISE NOTICE 'No orphaned products found';
     END IF;
