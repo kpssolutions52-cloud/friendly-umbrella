@@ -222,8 +222,30 @@ export async function processSupplierCommand(
     const productNamePrefix = intent.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
     const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
     
+    // Verify the organization one more time right before creating
+    const finalCheck = await prisma.organization.findUnique({
+      where: { id: supplierOrg.id },
+      select: { id: true, type: true, name: true },
+    });
+
+    if (!finalCheck) {
+      return {
+        answer: `❌ Error: Organization was deleted between validation and creation. Please try again.`,
+      };
+    }
+
+    if (finalCheck.type !== 'supplier') {
+      return {
+        answer: `❌ Error: Organization type changed to "${finalCheck.type}". Please contact support.`,
+      };
+    }
+
     console.log('[supplierAIService] Creating product with data:', {
-      supplierId,
+      supplierId: supplierOrg.id,
+      supplierIdType: typeof supplierOrg.id,
+      supplierIdLength: supplierOrg.id?.length,
+      organizationName: finalCheck.name,
+      organizationType: finalCheck.type,
       name: intent.productName,
       sku,
       price: intent.price,
@@ -234,7 +256,7 @@ export async function processSupplierCommand(
     try {
       newProduct = await prisma.product.create({
         data: {
-          supplierId: supplierOrg.id, // Use the verified organization ID
+          supplierId: finalCheck.id, // Use the re-verified organization ID
           name: intent.productName,
           sku,
           price: intent.price,
@@ -266,20 +288,31 @@ export async function processSupplierCommand(
 
       // Handle foreign key constraint violation
       if (error.code === 'P2003') {
+        console.error('[supplierAIService] Foreign key constraint violation details:', {
+          errorCode: error.code,
+          errorMessage: error.message,
+          meta: error.meta,
+          supplierId: supplierOrg.id,
+          supplierIdFromParam: supplierId,
+        });
+
         // Double-check the organization still exists
         const recheckOrg = await prisma.organization.findUnique({
-          where: { id: supplierId },
+          where: { id: supplierOrg.id },
           select: { id: true, type: true, name: true },
         });
         
         if (!recheckOrg) {
           return {
-            answer: `❌ Error: Your supplier organization (ID: ${supplierId}) was not found. This may indicate a data inconsistency. Please contact support.`,
+            answer: `❌ Error: Your supplier organization (ID: ${supplierOrg.id}) was not found. This may indicate a data inconsistency. Please contact support.`,
           };
         }
+
+        // Check if the constraint is about supplierId
+        const constraintInfo = error.meta?.field_name || error.meta?.target || 'unknown';
         
         return {
-          answer: `❌ Error: Could not create product due to a database constraint violation. Your organization "${recheckOrg.name}" (ID: ${supplierId}) exists but there may be a data issue. Please contact support or try logging out and back in.`,
+          answer: `❌ Error: Database constraint violation (${constraintInfo}). Your organization "${recheckOrg.name}" (ID: ${recheckOrg.id}) exists. This may be a database schema issue. Please contact support.`,
         };
       }
 
