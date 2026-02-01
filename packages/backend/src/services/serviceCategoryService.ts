@@ -123,16 +123,17 @@ export class ServiceCategoryService {
    */
   async getMainCategories(includeInactive = false): Promise<ServiceCategoryWithChildren[]> {
     try {
+      // Check if serviceCategory model exists at runtime
+      if (!(prisma as any).serviceCategory) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      
       const where: any = { parentId: null };
       if (!includeInactive) {
         where.isActive = true;
       }
 
-      // Check if serviceCategory model exists at runtime
-      if (!(prisma as any).serviceCategory) {
-        return [];
-      }
-      
       return await (prisma as any).serviceCategory.findMany({
         where,
         select: {
