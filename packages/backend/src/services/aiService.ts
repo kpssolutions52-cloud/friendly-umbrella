@@ -87,34 +87,173 @@ function formatSupplierList(suppliers: Array<{
 }
 
 /**
- * Extract product/material names from question
- * Simple keyword matching - can be enhanced with AI later
+ * Extract product/material names from question using AI and database lookup
  */
-export function extractProductsFromQuestion(
+export async function extractProductsFromQuestion(
   question: string
-): string[] {
+): Promise<string[]> {
+  const lowerQuestion = question.toLowerCase();
+  
+  // First, try to find products in the database that match keywords in the question
+  try {
+    // Extract potential product keywords (single words that might be products)
+    const words = lowerQuestion.split(/\s+/).filter(w => w.length > 3);
+    
+    // Query database for products that contain these words
+    const dbProducts = await prisma.product.findMany({
+      where: {
+        name: {
+          contains: words.join(' '),
+          mode: 'insensitive',
+        },
+        supplier: {
+          type: 'supplier',
+        },
+      },
+      select: {
+        name: true,
+      },
+      take: 20,
+      distinct: ['name'],
+    });
+
+    if (dbProducts.length > 0) {
+      // Extract unique product names and check if they're mentioned in the question
+      const foundProducts = dbProducts
+        .map(p => p.name.toLowerCase())
+        .filter(productName => {
+          // Check if the product name or its key words appear in the question
+          const productWords = productName.split(/\s+/);
+          return productWords.some(word => lowerQuestion.includes(word)) || 
+                 lowerQuestion.includes(productName);
+        });
+      
+      if (foundProducts.length > 0) {
+        return [...new Set(foundProducts)]; // Remove duplicates
+      }
+    }
+  } catch (error) {
+    console.error('Error querying database for products:', error);
+  }
+
+  // Fallback: Use AI to extract product names
+  try {
+    const extractionPrompt = `Extract all product/material names from this construction-related question. 
+Return only a JSON array of product names (use common construction material names), nothing else.
+
+Question: "${question}"
+
+Examples:
+- "I need cement and steel" → ["cement", "steel"]
+- "What's the price of roofing materials?" → ["roofing", "roofing materials"]
+- "Show me suppliers for tiles and paint" → ["tiles", "paint"]
+
+Return JSON array only:`;
+
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+      messages: [
+        { role: 'system', content: 'You are a product name extractor. Return only valid JSON arrays.' },
+        { role: 'user', content: extractionPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+    });
+
+    const content = response.choices[0].message.content?.trim();
+    if (content) {
+      try {
+        const products = JSON.parse(content);
+        if (Array.isArray(products) && products.length > 0) {
+          return products.map((p: string) => p.toLowerCase());
+        }
+      } catch {
+        // If JSON parsing fails, continue to keyword matching
+      }
+    }
+  } catch (error) {
+    console.error('Error extracting products with AI:', error);
+  }
+
+  // Final fallback: Simple keyword matching
   const commonMaterials = [
-    'cement',
-    'steel',
-    'sand',
-    'gravel',
-    'brick',
-    'tile',
-    'paint',
-    'wood',
-    'concrete',
-    'rebar',
-    'wire',
-    'pipe',
-    'plaster',
-    'mortar',
-    'aggregate',
+    'cement', 'steel', 'sand', 'gravel', 'brick', 'tile', 'paint', 'wood',
+    'concrete', 'rebar', 'wire', 'pipe', 'plaster', 'mortar', 'aggregate',
+    'roofing', 'insulation', 'drywall', 'lumber', 'plywood', 'hardware',
+    'electrical', 'plumbing', 'fixtures', 'windows', 'doors', 'flooring',
   ];
 
+  return commonMaterials.filter((material) => lowerQuestion.includes(material));
+}
+
+/**
+ * Analyze query intent and complexity using AI
+ */
+export async function analyzeQueryIntent(question: string): Promise<{
+  intent: 'price' | 'supplier' | 'product' | 'comparison' | 'calculation' | 'contact' | 'general';
+  complexity: 'simple' | 'complex' | 'multi-step';
+  entities: {
+    products?: string[];
+    suppliers?: string[];
+    quantities?: Array<{ product: string; quantity: number; unit?: string }>;
+  };
+  requiresMultiStep: boolean;
+}> {
+  try {
+    const analysisPrompt = `Analyze this construction-related question and return a JSON object with:
+- intent: one of "price", "supplier", "product", "comparison", "calculation", "contact", "general"
+- complexity: "simple" (single question) or "complex" (needs reasoning) or "multi-step" (needs multiple queries)
+- entities: object with products (array), suppliers (array), quantities (array of {product, quantity, unit})
+- requiresMultiStep: boolean
+
+Question: "${question}"
+
+Examples:
+- "What's the price of cement?" → {"intent": "price", "complexity": "simple", "entities": {"products": ["cement"]}, "requiresMultiStep": false}
+- "Compare prices of cement from all suppliers" → {"intent": "comparison", "complexity": "complex", "entities": {"products": ["cement"]}, "requiresMultiStep": true}
+- "Which supplier has the cheapest steel and what's their contact?" → {"intent": "comparison", "complexity": "multi-step", "entities": {"products": ["steel"]}, "requiresMultiStep": true}
+
+Return JSON only:`;
+
+    const response = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4-turbo-preview',
+      messages: [
+        { role: 'system', content: 'You are a query analyzer. Return only valid JSON objects.' },
+        { role: 'user', content: analysisPrompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 300,
+    });
+
+    const content = response.choices[0].message.content?.trim();
+    if (content) {
+      try {
+        const analysis = JSON.parse(content);
+        return {
+          intent: analysis.intent || 'general',
+          complexity: analysis.complexity || 'simple',
+          entities: analysis.entities || {},
+          requiresMultiStep: analysis.requiresMultiStep || false,
+        };
+      } catch {
+        // Fall through to default
+      }
+    }
+  } catch (error) {
+    console.error('Error analyzing query intent:', error);
+  }
+
+  // Fallback to simple analysis
   const lowerQuestion = question.toLowerCase();
-  return commonMaterials.filter((material) =>
-    lowerQuestion.includes(material)
-  );
+  return {
+    intent: isPriceQuery(question) ? 'price' : isSupplierQuery(question) ? 'supplier' : 'general',
+    complexity: lowerQuestion.includes('compare') || lowerQuestion.includes('best') || lowerQuestion.includes('cheapest') ? 'complex' : 'simple',
+    entities: {
+      products: [],
+      suppliers: [],
+    },
+    requiresMultiStep: false,
+  };
 }
 
 /**
@@ -162,26 +301,40 @@ export async function askQSQuestion(
   supplierData?: SupplierData[],
   additionalContext?: string
 ): Promise<string> {
-  let systemPrompt = `You are a helpful Quantity Surveyor assistant. 
-You help QS professionals with construction pricing, material specifications, 
-and cost calculations.
+  let systemPrompt = `You are an intelligent Quantity Surveyor assistant with access to a real construction materials database.
 
-IMPORTANT: You have access to REAL supplier data from the database. 
-ALWAYS use this real data when answering questions. Do NOT provide generic 
-or hypothetical supplier information when real data is available.
+**YOUR CAPABILITIES:**
+1. Answer questions about suppliers, products, prices, and contact information
+2. Compare prices across multiple suppliers
+3. Calculate total costs for multiple products/quantities
+4. Find best prices and recommend suppliers
+5. Provide detailed supplier information including contact details
+6. Handle complex multi-part questions
 
-When answering questions about suppliers, you can provide:
-- Supplier names
-- Supplier contact information:
-  * Organization email addresses
-  * Contact person names and emails (from supplier users)
-  * Note: Mobile phone and WhatsApp numbers are not currently stored in the system - only email contacts are available
-- Supplier product lists and prices
-- Product availability from specific suppliers
-- Supplier product counts
+**IMPORTANT RULES:**
+- ALWAYS use REAL data from the database when available
+- NEVER make up or guess supplier names, prices, or contact information
+- If data is not in the system, clearly state that and ask permission before providing generic information
+- For comparisons, analyze all available data and provide clear recommendations
+- For calculations, show your work step-by-step
+- For complex questions, break them down and answer each part systematically
 
-Always prioritize real data from the system database over generic information.
-When users ask about mobile, phone, or WhatsApp, explain that only email contact information is available in the system.
+**DATA FORMAT:**
+- Prices are marked with "⭐ BEST PRICE" for the lowest price
+- Supplier information includes organization email and contact person emails
+- Product information includes name, price, unit, and supplier
+
+**COMPLEX QUERY HANDLING:**
+When users ask complex questions (e.g., "Compare prices and find the cheapest supplier with contact info"):
+1. Break down the question into sub-questions
+2. Answer each part systematically
+3. Synthesize the information into a comprehensive answer
+4. Provide clear recommendations when appropriate
+
+**EXAMPLES OF GOOD ANSWERS:**
+- "Based on the system data, Supplier A offers cement at $50/bag (⭐ BEST PRICE), while Supplier B offers it at $55/bag. Supplier A's contact email is..."
+- "For your project requiring 100 bags of cement and 50 tons of steel, the total cost would be: [calculation with breakdown]"
+- "I found 3 suppliers for tiles. Here's a comparison: [detailed comparison with prices and contacts]"
 
 `;
 
@@ -708,9 +861,19 @@ export async function processQSQuestion(
     }
   }
 
-  // Extract products and quantities
-  const products = extractProductsFromQuestion(question);
+  // Analyze query intent and complexity
+  const queryAnalysis = await analyzeQueryIntent(question);
+  
+  // Extract products using AI-enhanced extraction
+  const products = await extractProductsFromQuestion(question);
   const quantities = extractQuantities(question);
+  
+  // Extract supplier names if mentioned
+  const mentionedSuppliers = queryAnalysis.entities.suppliers || [];
+  const extractedSupplierName = extractSupplierName(question);
+  if (extractedSupplierName && !mentionedSuppliers.includes(extractedSupplierName)) {
+    mentionedSuppliers.push(extractedSupplierName);
+  }
   
   let supplierData: SupplierData[] = [];
   let calculationResult = null;
@@ -914,6 +1077,87 @@ export async function processQSQuestion(
     }
   }
 
+  // Handle comparison queries - get comprehensive data for all mentioned products
+  if (queryAnalysis.intent === 'comparison' && products.length > 0) {
+    // For comparison, we want all suppliers for all products
+    const comparisonData: Array<{
+      product: string;
+      suppliers: Array<{
+        supplier: string;
+        price: number;
+        unit: string;
+      }>;
+    }> = [];
+
+    for (const product of products) {
+      const prices = await getSupplierPrices(product);
+      if (prices.length > 0) {
+        hasSystemData = true;
+        comparisonData.push({
+          product,
+          suppliers: prices.map((p) => ({
+            supplier: p.supplier,
+            price: p.price,
+            unit: p.unit,
+          })),
+        });
+        
+        // Add to supplierData
+        supplierData.push(...prices.map((p) => ({
+          supplier: p.supplier,
+          product: p.product,
+          price: p.price,
+          unit: p.unit,
+        })));
+      }
+    }
+
+    if (comparisonData.length > 0) {
+      supplierListContext += `**Price Comparison Data:**\n`;
+      comparisonData.forEach((item) => {
+        const sortedSuppliers = item.suppliers.sort((a, b) => a.price - b.price);
+        const bestPrice = sortedSuppliers[0];
+        supplierListContext += `\n${item.product}:\n`;
+        sortedSuppliers.forEach((s, idx) => {
+          const marker = idx === 0 ? '⭐ BEST PRICE' : '';
+          supplierListContext += `  ${idx + 1}. ${s.supplier}: $${s.price}/${s.unit} ${marker}\n`;
+        });
+      });
+      supplierListContext += '\n';
+    }
+  }
+
+  // Handle multi-step queries (e.g., "find cheapest supplier for cement and their contact")
+  if (queryAnalysis.requiresMultiStep && products.length > 0) {
+    // Step 1: Find best prices
+    for (const product of products) {
+      const prices = await getSupplierPrices(product);
+      if (prices.length > 0) {
+        hasSystemData = true;
+        // Sort by price and get the cheapest
+        const sortedPrices = prices.sort((a, b) => a.price - b.price);
+        const cheapest = sortedPrices[0];
+        
+        // Step 2: Get contact info for cheapest supplier
+        const cheapestSuppliers = await getSupplierByName(cheapest.supplier);
+        if (cheapestSuppliers.length > 0) {
+          supplierListContext += `**Best Price for ${product}:**\n`;
+          supplierListContext += `- Supplier: ${cheapest.supplier}\n`;
+          supplierListContext += `- Price: $${cheapest.price}/${cheapest.unit} (⭐ BEST PRICE)\n`;
+          cheapestSuppliers.forEach((s) => {
+            supplierListContext += `- Contact: ${s.email}\n`;
+            if (s.contactUsers && s.contactUsers.length > 0) {
+              s.contactUsers.forEach((u) => {
+                supplierListContext += `  • ${u.name || 'Contact'}: ${u.email}\n`;
+              });
+            }
+          });
+          supplierListContext += '\n';
+        }
+      }
+    }
+  }
+
   // Check if this is a supplier-related question and we have no data
   const isSupplierRelated = isSupplierQuery(question) || products.length > 0;
   const needsPermission = isSupplierRelated && !hasSystemData && !allowGenericAnswers;
@@ -929,8 +1173,16 @@ export async function processQSQuestion(
     };
   }
 
-  // Build enhanced context
+  // Build enhanced context with query analysis
   let context = '';
+  
+  // Add query analysis context for complex queries
+  if (queryAnalysis.complexity === 'complex' || queryAnalysis.complexity === 'multi-step') {
+    context += `**Query Analysis:**\n`;
+    context += `- Intent: ${queryAnalysis.intent}\n`;
+    context += `- Complexity: ${queryAnalysis.complexity}\n`;
+    context += `- This is a ${queryAnalysis.complexity} query that may require ${queryAnalysis.requiresMultiStep ? 'multiple steps' : 'careful analysis'}.\n\n`;
+  }
   
   // Add supplier list context if available
   if (supplierListContext) {
@@ -938,17 +1190,41 @@ export async function processQSQuestion(
   }
   
   if (supplierData.length > 0) {
-    context += `Current Supplier Prices:\n${formatSupplierData(supplierData)}\n\n`;
+    context += `**Current Supplier Prices from Database:**\n${formatSupplierData(supplierData)}\n\n`;
+    
+    // For comparison queries, add analysis
+    if (queryAnalysis.intent === 'comparison' && supplierData.length > 1) {
+      const uniqueSuppliers = [...new Set(supplierData.map(d => d.supplier))];
+      const uniqueProducts = [...new Set(supplierData.map(d => d.product))];
+      context += `**Comparison Summary:**\n`;
+      context += `- Found ${uniqueSuppliers.length} supplier(s) for ${uniqueProducts.length} product(s)\n`;
+      context += `- Suppliers: ${uniqueSuppliers.join(', ')}\n`;
+      context += `- Products: ${uniqueProducts.join(', ')}\n\n`;
+    }
   }
   
   if (calculationResult) {
-    context += `Calculation Results:\n`;
+    context += `**Calculation Results:**\n`;
     calculationResult.items.forEach((item) => {
       if (item.bestPrice) {
-        context += `- ${item.productName}: ${item.quantity} ${item.bestPrice.unit} × $${item.bestPrice.price}/${item.bestPrice.unit} = $${item.total.toFixed(2)}\n`;
+        context += `- ${item.productName}: ${item.quantity} ${item.bestPrice.unit} × $${item.bestPrice.price}/${item.bestPrice.unit} = $${item.total.toFixed(2)} (from ${item.bestPrice.supplier})\n`;
+      } else {
+        context += `- ${item.productName}: No price data available\n`;
       }
     });
-    context += `Grand Total: $${calculationResult.grandTotal.toFixed(2)}\n\n`;
+    context += `**Grand Total: $${calculationResult.grandTotal.toFixed(2)}**\n\n`;
+  }
+  
+  // Add comprehensive data summary for complex queries
+  if (queryAnalysis.complexity === 'complex' || queryAnalysis.complexity === 'multi-step') {
+    context += `**Available Data Summary:**\n`;
+    context += `- Products found: ${products.length > 0 ? products.join(', ') : 'None specified'}\n`;
+    context += `- Suppliers found: ${supplierData.length > 0 ? [...new Set(supplierData.map(d => d.supplier))].join(', ') : 'None'}\n`;
+    context += `- Total price records: ${supplierData.length}\n`;
+    if (mentionedSuppliers.length > 0) {
+      context += `- Mentioned suppliers: ${mentionedSuppliers.join(', ')}\n`;
+    }
+    context += `\nUse this comprehensive data to provide a detailed, well-structured answer.\n\n`;
   }
 
   // Update system prompt to indicate if we're using generic data
