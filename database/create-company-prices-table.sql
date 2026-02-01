@@ -2,9 +2,9 @@
 -- This table stores company-specific pricing for products
 
 CREATE TABLE IF NOT EXISTS company_prices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID NOT NULL,
-  company_id UUID NOT NULL,
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  product_id TEXT NOT NULL,
+  company_id TEXT NOT NULL,
   price DECIMAL(12, 2) NOT NULL,
   effective_from TIMESTAMP NOT NULL DEFAULT NOW(),
   effective_until TIMESTAMP,
