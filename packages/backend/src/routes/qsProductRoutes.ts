@@ -97,6 +97,10 @@ router.get(
           type: 'supplier',
         },
       };
+      
+      // Log for debugging
+      console.log('[products/search] Query params:', { searchQuery, supplierId, page, limit });
+      console.log('[products/search] Where clause:', JSON.stringify(where, null, 2));
 
       if (supplierId) {
         where.supplierId = supplierId;
@@ -130,6 +134,8 @@ router.get(
         }),
         prisma.product.count({ where }),
       ]);
+      
+      console.log('[products/search] Found products:', products.length, 'Total:', total);
 
       // Get company-specific prices if user is from a company organization
       let companyPricesMap = new Map();
