@@ -91,40 +91,52 @@ router.get(
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      // Build where clause - filter by supplier type
-      // In the simplified schema, all products belong to suppliers (Organization with type='supplier')
+      console.log('[products/search] Starting query with params:', { searchQuery, supplierId, page, limit });
+      
+      // Build where clause - simplified approach
+      // First, get all supplier organizations
+      const suppliers = await prisma.organization.findMany({
+        where: { type: 'supplier' },
+        select: { id: true },
+      });
+      const supplierIds = suppliers.map(s => s.id);
+      
+      console.log('[products/search] Found supplier IDs:', supplierIds.length);
+      
+      if (supplierIds.length === 0) {
+        return res.json({
+          products: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        });
+      }
+
+      // Build where clause
       const where: any = {
-        supplier: {
-          type: 'supplier',
-        },
+        supplierId: { in: supplierIds },
       };
 
       if (supplierId) {
-        where.supplierId = supplierId;
-        // Keep supplier type filter even with supplierId to ensure it's a supplier
+        // Verify supplierId is in the list
+        if (supplierIds.includes(supplierId)) {
+          where.supplierId = supplierId;
+        } else {
+          return res.status(404).json({ error: 'Supplier not found' });
+        }
       }
 
       if (searchQuery) {
-        // Combine search with supplier filter using AND
-        where.AND = [
-          {
-            supplier: {
-              type: 'supplier',
-            },
-          },
-          {
-            OR: [
-              { name: { contains: searchQuery, mode: 'insensitive' } },
-              { sku: { contains: searchQuery, mode: 'insensitive' } },
-            ],
-          },
+        where.OR = [
+          { name: { contains: searchQuery, mode: 'insensitive' } },
+          { sku: { contains: searchQuery, mode: 'insensitive' } },
         ];
-        // Remove the top-level supplier filter since we're using AND
-        delete where.supplier;
       }
       
       // Log for debugging
-      console.log('[products/search] Query params:', { searchQuery, supplierId, page, limit });
       console.log('[products/search] Where clause:', JSON.stringify(where, null, 2));
 
       // Get products with suppliers

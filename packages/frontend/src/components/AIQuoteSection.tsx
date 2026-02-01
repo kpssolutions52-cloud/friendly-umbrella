@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Loader2, Zap, Package, TrendingUp, DollarSign, Lightbulb, AlertTriangle, Building2, BarChart3, ExternalLink, Phone, Mail, MapPin } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ProjectInsights {
   projectType?: string;
@@ -212,15 +214,70 @@ export function AIQuoteSection() {
                   : 'bg-white border border-gray-200 shadow-sm rounded-bl-sm'
               }`}
             >
-              <div className="whitespace-pre-wrap break-words text-sm md:text-base leading-relaxed">
-                {message.content}
+              <div className={`prose prose-sm max-w-none break-words text-sm md:text-base leading-relaxed ${
+                message.role === 'user'
+                  ? 'prose-invert prose-headings:text-white prose-p:text-white prose-strong:text-white prose-em:text-white prose-a:text-blue-200 prose-a:hover:text-blue-100 prose-code:text-white prose-pre:bg-blue-700 prose-pre:text-white'
+                  : 'prose-gray'
+              }`}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    em: ({ children }) => <em className="italic">{children}</em>,
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:no-underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    code: ({ children, className }) => {
+                      const isInline = !className;
+                      return isInline ? (
+                        <code className="bg-black/20 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                      ) : (
+                        <code className={className}>{children}</code>
+                      );
+                    },
+                    ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
               </div>
               
               {/* Reasoning (if available) */}
               {message.reasoning && (
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <p className="text-xs font-medium text-gray-500 mb-1">Why these results?</p>
-                  <p className="text-sm text-gray-600">{message.reasoning}</p>
+                  <div className="prose prose-sm max-w-none text-sm text-gray-600">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {message.reasoning}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
 
