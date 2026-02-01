@@ -116,10 +116,13 @@ BEGIN
             RAISE NOTICE 'Created default supplier organization: %', default_supplier_id;
         END IF;
         
-        -- Option 1: Assign orphaned products to default supplier
-        -- But first, handle duplicate SKUs by updating them to be unique
+        -- Option 1: Handle orphaned products
+        -- Strategy: For each orphaned product, either assign to default supplier (if SKU is unique)
+        -- or make SKU unique first, then assign
+        
+        -- Step 1: Make SKUs unique for orphaned products that would conflict
         UPDATE products p
-        SET sku = sku || '-' || SUBSTRING(p.id::text, 1, 8)
+        SET sku = sku || '-ORPHAN-' || SUBSTRING(p.id::text, 1, 8)
         WHERE p.supplier_id IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM organizations o 
@@ -130,41 +133,30 @@ BEGIN
               SELECT 1 FROM products p2
               WHERE p2.supplier_id = default_supplier_id
                 AND p2.sku = p.sku
-                AND p2.id != p.id
           );
         
-        -- Now assign orphaned products to default supplier
-        -- Use a subquery to avoid constraint violations
+        -- Step 2: Now assign all orphaned products to default supplier
+        -- (SKUs are now unique, so this should work)
         UPDATE products p
         SET supplier_id = default_supplier_id
         WHERE p.supplier_id IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM organizations o 
               WHERE o.id = p.supplier_id
-          )
-          AND NOT EXISTS (
-              -- Skip if this SKU already exists for the default supplier
-              SELECT 1 FROM products p2
-              WHERE p2.supplier_id = default_supplier_id
-                AND p2.sku = p.sku
-                AND p2.id != p.id
           );
         
-        -- For products that still couldn't be assigned (duplicate SKUs), delete them
-        -- or assign to a different supplier - let's delete duplicates to keep it simple
-        DELETE FROM products p
+        -- Step 3: Verify no orphaned products remain
+        SELECT COUNT(*) INTO orphaned_count
+        FROM products p
         WHERE p.supplier_id IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM organizations o 
               WHERE o.id = p.supplier_id
-          )
-          AND EXISTS (
-              -- Delete if this SKU already exists for the default supplier
-              SELECT 1 FROM products p2
-              WHERE p2.supplier_id = default_supplier_id
-                AND p2.sku = p.sku
-                AND p2.id != p.id
           );
+        
+        IF orphaned_count > 0 THEN
+            RAISE WARNING 'Still have % orphaned products after fix. These may need manual attention.', orphaned_count;
+        END IF;
         
         RAISE NOTICE 'Assigned orphaned products to default supplier organization (duplicates handled)';
         
