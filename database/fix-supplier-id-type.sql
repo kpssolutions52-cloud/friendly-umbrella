@@ -117,10 +117,10 @@ BEGIN
         END IF;
         
         -- Option 1: Handle orphaned products
-        -- Strategy: For each orphaned product, either assign to default supplier (if SKU is unique)
-        -- or make SKU unique first, then assign
+        -- Strategy: Make SKUs unique for ALL orphaned products first, then assign them
         
-        -- Step 1: Make SKUs unique for orphaned products that would conflict
+        -- Step 1: Make SKUs unique for orphaned products
+        -- Check against both: existing products in default supplier AND other orphaned products
         UPDATE products p
         SET sku = sku || '-ORPHAN-' || SUBSTRING(p.id::text, 1, 8)
         WHERE p.supplier_id IS NOT NULL
@@ -128,15 +128,29 @@ BEGIN
               SELECT 1 FROM organizations o 
               WHERE o.id = p.supplier_id
           )
-          AND EXISTS (
-              -- Check if this SKU already exists for the default supplier
-              SELECT 1 FROM products p2
-              WHERE p2.supplier_id = default_supplier_id
-                AND p2.sku = p.sku
+          AND (
+              -- SKU exists for default supplier
+              EXISTS (
+                  SELECT 1 FROM products p2
+                  WHERE p2.supplier_id = default_supplier_id
+                    AND p2.sku = p.sku
+              )
+              OR
+              -- SKU exists for another orphaned product (duplicate within orphaned set)
+              EXISTS (
+                  SELECT 1 FROM products p3
+                  WHERE p3.supplier_id IS NOT NULL
+                    AND NOT EXISTS (
+                        SELECT 1 FROM organizations o2 
+                        WHERE o2.id = p3.supplier_id
+                    )
+                    AND p3.sku = p.sku
+                    AND p3.id < p.id  -- Only update one of the duplicates
+              )
           );
         
         -- Step 2: Now assign all orphaned products to default supplier
-        -- (SKUs are now unique, so this should work)
+        -- (All SKUs are now unique, so this should work)
         UPDATE products p
         SET supplier_id = default_supplier_id
         WHERE p.supplier_id IS NOT NULL
