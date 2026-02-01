@@ -195,19 +195,26 @@ export async function processSupplierCommand(
   } else if (intent.intent === 'add_product' && intent.productName && intent.price !== undefined) {
     // Add new product - NEW SCHEMA ONLY
     // First, verify the supplier organization exists and is of type 'supplier'
+    console.log('[supplierAIService] Adding product with supplierId:', supplierId);
+    
     const supplierOrg = await prisma.organization.findUnique({
       where: { id: supplierId },
+      select: { id: true, type: true, name: true },
     });
 
+    console.log('[supplierAIService] Supplier organization lookup result:', supplierOrg);
+
     if (!supplierOrg) {
+      console.error('[supplierAIService] Organization not found:', supplierId);
       return {
         answer: `❌ Error: Your supplier organization (ID: ${supplierId}) was not found in the database. Please contact support.`,
       };
     }
 
     if (supplierOrg.type !== 'supplier') {
+      console.error('[supplierAIService] Organization type mismatch:', supplierOrg.type);
       return {
-        answer: `❌ Error: Your organization is of type "${supplierOrg.type}", but products can only be created for supplier organizations. Please contact support.`,
+        answer: `❌ Error: Your organization "${supplierOrg.name}" is of type "${supplierOrg.type}", but products can only be created for supplier organizations. Please contact support.`,
       };
     }
 
@@ -215,16 +222,26 @@ export async function processSupplierCommand(
     const productNamePrefix = intent.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
     const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
     
+    console.log('[supplierAIService] Creating product with data:', {
+      supplierId,
+      name: intent.productName,
+      sku,
+      price: intent.price,
+      unit: intent.unit || 'unit',
+    });
+    
     try {
       const newProduct = await prisma.product.create({
         data: {
-          supplierId,
+          supplierId: supplierOrg.id, // Use the verified organization ID
           name: intent.productName,
           sku,
           price: intent.price,
           unit: intent.unit || 'unit',
         },
       });
+      
+      console.log('[supplierAIService] Product created successfully:', newProduct.id);
 
     } catch (error: any) {
       console.error('Error creating product:', error);
@@ -239,8 +256,20 @@ export async function processSupplierCommand(
 
       // Handle foreign key constraint violation
       if (error.code === 'P2003') {
+        // Double-check the organization still exists
+        const recheckOrg = await prisma.organization.findUnique({
+          where: { id: supplierId },
+          select: { id: true, type: true, name: true },
+        });
+        
+        if (!recheckOrg) {
+          return {
+            answer: `❌ Error: Your supplier organization (ID: ${supplierId}) was not found. This may indicate a data inconsistency. Please contact support.`,
+          };
+        }
+        
         return {
-          answer: `❌ Error: Could not create product. Your supplier organization (ID: ${supplierId}) is not valid. Please contact support or try logging out and back in.`,
+          answer: `❌ Error: Could not create product due to a database constraint violation. Your organization "${recheckOrg.name}" (ID: ${supplierId}) exists but there may be a data issue. Please contact support or try logging out and back in.`,
         };
       }
 
