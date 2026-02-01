@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
-import { Plus, Edit2, Trash2, Loader2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Package, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from '@/components/Header';
+import { BulkPriceOverrideModal } from '@/components/supplier/BulkPriceOverrideModal';
 
 interface Product {
   id: string;
@@ -38,6 +39,10 @@ export default function SupplierProductsPage() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'updatedAt'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Price override modal state
+  const [priceOverrideProduct, setPriceOverrideProduct] = useState<Product | null>(null);
+  const [productDetails, setProductDetails] = useState<{ defaultPrice?: number; currency?: string } | null>(null);
 
   // Redirect if not authenticated or not supplier
   // Check both new schema (type) and old schema (tenant.type) for compatibility
@@ -141,6 +146,38 @@ export default function SupplierProductsPage() {
       console.error('Failed to delete product:', error);
       alert(error?.error?.message || 'Failed to delete product. Please try again.');
     }
+  };
+
+  const handleOpenPriceOverride = async (product: Product) => {
+    try {
+      // Fetch product details to get default price
+      const response = await apiGet<{ product: { defaultPrices?: Array<{ price: number | string; currency: string }> } }>(
+        `/api/v1/products/${product.id}`
+      );
+      const defaultPrice = response.product?.defaultPrices?.[0];
+      setProductDetails({
+        defaultPrice: defaultPrice ? (typeof defaultPrice.price === 'string' ? parseFloat(defaultPrice.price) : defaultPrice.price) : undefined,
+        currency: defaultPrice?.currency || 'USD',
+      });
+      setPriceOverrideProduct(product);
+    } catch (error: any) {
+      console.error('Failed to load product details:', error);
+      // Still open modal with basic info (use product.price as fallback)
+      setProductDetails({
+        defaultPrice: product.price,
+        currency: 'USD',
+      });
+      setPriceOverrideProduct(product);
+    }
+  };
+
+  const handleClosePriceOverride = () => {
+    setPriceOverrideProduct(null);
+    setProductDetails(null);
+  };
+
+  const handlePriceOverrideSuccess = () => {
+    loadProducts(); // Refresh products list
   };
 
   // Filtered and sorted products
@@ -444,6 +481,15 @@ export default function SupplierProductsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleOpenPriceOverride(product)}
+                        className="h-8 w-8 p-0 hover:bg-green-50"
+                        title="Override Price for Companies"
+                      >
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleEdit(product)}
                         className="h-8 w-8 p-0 hover:bg-blue-50"
                         title="Edit"
@@ -544,6 +590,15 @@ export default function SupplierProductsPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleOpenPriceOverride(product)}
+                            className="hover:bg-green-50 hover:border-green-300"
+                            title="Override Price for Companies"
+                          >
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleEdit(product)}
                             className="hover:bg-blue-50 hover:border-blue-300"
                             title="Edit"
@@ -570,6 +625,18 @@ export default function SupplierProductsPage() {
         )}
         </div>
       </div>
+
+      {/* Price Override Modal */}
+      {priceOverrideProduct && (
+        <BulkPriceOverrideModal
+          productId={priceOverrideProduct.id}
+          productName={priceOverrideProduct.name}
+          defaultPrice={productDetails?.defaultPrice}
+          defaultCurrency={productDetails?.currency}
+          onClose={handleClosePriceOverride}
+          onSuccess={handlePriceOverrideSuccess}
+        />
+      )}
     </div>
   );
 }
