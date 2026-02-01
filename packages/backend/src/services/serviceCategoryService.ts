@@ -46,6 +46,12 @@ export class ServiceCategoryService {
         where.isActive = true;
       }
 
+      // Check if serviceCategory model exists at runtime
+      if (!(prisma as any).serviceCategory) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      
       const categories = await (prisma as any).serviceCategory.findMany({
       where,
       select: {
@@ -122,6 +128,11 @@ export class ServiceCategoryService {
         where.isActive = true;
       }
 
+      // Check if serviceCategory model exists at runtime
+      if (!(prisma as any).serviceCategory) {
+        return [];
+      }
+      
       return await (prisma as any).serviceCategory.findMany({
         where,
         select: {
@@ -160,6 +171,11 @@ export class ServiceCategoryService {
         where.isActive = true;
       }
 
+      // Check if serviceCategory model exists at runtime
+      if (!(prisma as any).serviceCategory) {
+        return [];
+      }
+      
       return await (prisma as any).serviceCategory.findMany({
         where,
         select: {
@@ -413,6 +429,12 @@ export class ServiceCategoryService {
    */
   async getFlatCategories(includeInactive = false): Promise<Array<{ id: string; name: string; parentName?: string }>> {
     try {
+      // Check if serviceCategory model exists at runtime
+      if (!(prisma as any).serviceCategory) {
+        console.warn('ServiceCategory model not available, returning empty array');
+        return [];
+      }
+      
       const categories = await (prisma as any).serviceCategory.findMany({
         where: includeInactive ? {} : { isActive: true },
         include: {

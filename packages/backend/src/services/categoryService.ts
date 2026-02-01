@@ -46,6 +46,12 @@ export class CategoryService {
         where.isActive = true;
       }
 
+      // Check if productCategory model exists at runtime
+      if (!(prisma as any).productCategory) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      
       const categories = await (prisma as any).productCategory.findMany({
         where,
         include: {
@@ -102,6 +108,11 @@ export class CategoryService {
         where.isActive = true;
       }
 
+      // Check if productCategory model exists at runtime
+      if (!(prisma as any).productCategory) {
+        return [];
+      }
+      
       return await (prisma as any).productCategory.findMany({
         where,
         orderBy: [
@@ -129,6 +140,11 @@ export class CategoryService {
         where.isActive = true;
       }
 
+      // Check if productCategory model exists at runtime
+      if (!(prisma as any).productCategory) {
+        return [];
+      }
+      
       return await (prisma as any).productCategory.findMany({
         where,
         orderBy: [
@@ -371,6 +387,12 @@ export class CategoryService {
    */
   async getFlatCategories(includeInactive = false): Promise<Array<{ id: string; name: string; parentName?: string }>> {
     try {
+      // Check if productCategory model exists at runtime
+      if (!(prisma as any).productCategory) {
+        console.warn('ProductCategory model not available, returning empty array');
+        return [];
+      }
+      
       const categories = await (prisma as any).productCategory.findMany({
         where: includeInactive ? {} : { isActive: true },
         include: {

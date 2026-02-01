@@ -39,13 +39,13 @@ export function setupRoutes(app: Express) {
   // MVP 1: Simplified Product routes (for suppliers)
   app.use('/api/v1', simplifiedProductRoutes);
   
-  // Routes for QS professionals to browse products and suppliers
+  // Public routes for landing page (products, suppliers, service providers) - MUST be before authenticated routes
+  app.use('/api/v1', publicRoutes);
   app.use('/api/v1', publicCategoryRoutes);
   app.use('/api/v1', publicServiceCategoryRoutes);
-  app.use('/api/v1', qsProductRoutes);
   
-  // Public routes for landing page (products, suppliers, service providers)
-  app.use('/api/v1', publicRoutes);
+  // Routes for QS professionals to browse products and suppliers (requires authentication)
+  app.use('/api/v1', qsProductRoutes);
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);
