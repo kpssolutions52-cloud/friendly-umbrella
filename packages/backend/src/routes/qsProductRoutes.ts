@@ -91,19 +91,18 @@ router.get(
       const limit = parseInt(req.query.limit as string) || 20;
       const skip = (page - 1) * limit;
 
-      // Build where clause
-      const where: any = {
-        supplier: {
-          type: 'supplier',
-        },
-      };
+      // Build where clause - simplified to just filter by supplier type
+      const where: any = {};
       
-      // Log for debugging
-      console.log('[products/search] Query params:', { searchQuery, supplierId, page, limit });
-      console.log('[products/search] Where clause:', JSON.stringify(where, null, 2));
+      // Filter by supplier type using the relation
+      where.supplier = {
+        type: 'supplier',
+      };
 
       if (supplierId) {
         where.supplierId = supplierId;
+        // If supplierId is provided, we don't need the type filter
+        delete where.supplier;
       }
 
       if (searchQuery) {
@@ -112,6 +111,10 @@ router.get(
           { sku: { contains: searchQuery, mode: 'insensitive' } },
         ];
       }
+      
+      // Log for debugging
+      console.log('[products/search] Query params:', { searchQuery, supplierId, page, limit });
+      console.log('[products/search] Where clause:', JSON.stringify(where, null, 2));
 
       // Get products with suppliers
       const [products, total] = await Promise.all([
@@ -158,13 +161,13 @@ router.get(
       }
 
       // Combine products with prices
-      const productsWithPrices = products.map((product) => {
+      const productsWithPrices = products.map((product: any) => {
         const companyPrice = companyPricesMap.get(product.id);
         const defaultPrice = Number(product.price);
 
         return {
           id: product.id,
-          sku: product.sku,
+          sku: product.sku || '', // SKU exists in schema but TypeScript type might be outdated
           name: product.name,
           description: null,
           category: null,
