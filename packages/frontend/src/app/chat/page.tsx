@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
+import { ProductCard } from '@/components/ProductCard';
 import Link from 'next/link';
 
 interface Message {
@@ -51,6 +52,14 @@ export default function ChatPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
+  
+  // Products state
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [currentProductPage, setCurrentProductPage] = useState(1);
+  const [totalProductPages, setTotalProductPages] = useState(1);
+  const [showProducts, setShowProducts] = useState(true);
 
   // Redirect if not authenticated or not QS
   useEffect(() => {
@@ -107,6 +116,40 @@ export default function ChatPage() {
       setLoadingDashboard(false);
     }
   };
+
+  // Load products
+  const loadProducts = useCallback(async (page = 1, search = '') => {
+    setLoadingProducts(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) {
+        params.append('q', search);
+      }
+      params.append('page', page.toString());
+      params.append('limit', '12'); // Show 12 products in dashboard
+
+      const response = await apiGet<{ 
+        products: any[]; 
+        pagination: { page: number; totalPages: number; total: number } 
+      }>(`/api/v1/products/search?${params.toString()}`);
+      
+      setProducts(response.products || []);
+      setCurrentProductPage(response.pagination.page);
+      setTotalProductPages(response.pagination.totalPages);
+    } catch (error: any) {
+      console.error('Failed to load products:', error);
+      setProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  // Load products on mount
+  useEffect(() => {
+    if (isAuthenticated && user?.type === 'qs') {
+      loadProducts(1, '');
+    }
+  }, [isAuthenticated, user, loadProducts]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -520,17 +563,120 @@ export default function ChatPage() {
                   </div>
                 </div>
 
-                {/* Products Button */}
+                {/* Products Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <Link href="/company/products">
-                    <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
-                      <Package className="h-5 w-5 mr-2" />
-                      Browse Products
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Products
+                    </h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowProducts(!showProducts)}
+                      className="text-xs"
+                    >
+                      {showProducts ? 'Hide' : 'Show'}
                     </Button>
-                  </Link>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    View all products across suppliers with search and category filters
-                  </p>
+                  </div>
+                  
+                  {showProducts && (
+                    <>
+                      {/* Search Bar */}
+                      <div className="mb-3">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input
+                            type="text"
+                            placeholder="Search products..."
+                            value={productSearchQuery}
+                            onChange={(e) => setProductSearchQuery(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                loadProducts(1, productSearchQuery);
+                              }
+                            }}
+                            className="pl-8 h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Products Grid */}
+                      {loadingProducts ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                        </div>
+                      ) : products.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Package className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                          <p className="text-sm text-gray-500">No products found</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2 mb-3 max-h-[400px] overflow-y-auto">
+                            {products.slice(0, 6).map((product) => (
+                              <div
+                                key={product.id}
+                                onClick={() => console.log('View product:', product.id)}
+                                className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                              >
+                                <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                                  <p className="text-xs text-gray-500 truncate">{product.supplierName}</p>
+                                </div>
+                                <div className="flex-shrink-0 text-right">
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {product.price ? `${product.currency || 'USD'} ${product.price.toFixed(2)}` : 'N/A'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{product.unit}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Pagination */}
+                          {totalProductPages > 1 && (
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <span>
+                                Page {currentProductPage} of {totalProductPages}
+                              </span>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => loadProducts(currentProductPage - 1, productSearchQuery)}
+                                  disabled={currentProductPage === 1}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Prev
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => loadProducts(currentProductPage + 1, productSearchQuery)}
+                                  disabled={currentProductPage === totalProductPages}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Next
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <Link href="/company/products">
+                              <Button variant="outline" size="sm" className="w-full text-xs">
+                                View All Products
+                              </Button>
+                            </Link>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Recent Projects */}
