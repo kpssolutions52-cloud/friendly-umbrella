@@ -164,23 +164,31 @@ router.get(
       console.log('[products/search] Found products:', products.length, 'Total:', total);
 
       // Get company-specific prices if user is from a company organization
+      // Note: company_prices table may not exist in simplified schema
       let companyPricesMap = new Map();
       if (req.organizationType === 'company' && req.organizationId) {
-        const productIds = products.map((p) => p.id);
-        const companyPrices = await prisma.companyPrice.findMany({
-          where: {
-            productId: { in: productIds },
-            companyId: req.organizationId,
-            OR: [
-              { effectiveUntil: null },
-              { effectiveUntil: { gte: new Date() } },
-            ],
-          },
-          orderBy: { effectiveFrom: 'desc' },
-        });
-        companyPricesMap = new Map(
-          companyPrices.map((cp) => [cp.productId, cp])
-        );
+        try {
+          const productIds = products.map((p) => p.id);
+          if (productIds.length > 0) {
+            const companyPrices = await prisma.companyPrice.findMany({
+              where: {
+                productId: { in: productIds },
+                companyId: req.organizationId,
+                OR: [
+                  { effectiveUntil: null },
+                  { effectiveUntil: { gte: new Date() } },
+                ],
+              },
+              orderBy: { effectiveFrom: 'desc' },
+            });
+            companyPricesMap = new Map(
+              companyPrices.map((cp) => [cp.productId, cp])
+            );
+          }
+        } catch (error: any) {
+          // Company prices table doesn't exist - that's okay, just use default prices
+          console.warn('[products/search] Company prices table not available, using default prices only');
+        }
       }
 
       // Combine products with prices
