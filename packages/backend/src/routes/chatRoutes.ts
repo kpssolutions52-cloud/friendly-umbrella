@@ -20,7 +20,7 @@ router.post(
   requireQS,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { question, allowGenericAnswers } = req.body;
+      const { question, allowGenericAnswers, conversationHistory } = req.body;
 
       if (!question || typeof question !== 'string' || question.trim().length === 0) {
         return res.status(400).json({
@@ -28,10 +28,27 @@ router.post(
         });
       }
 
-      // Process question with AI and supplier data
+      // Validate conversation history format if provided
+      let history: Array<{ role: 'user' | 'assistant'; content: string }> | undefined;
+      if (conversationHistory) {
+        if (Array.isArray(conversationHistory)) {
+          history = conversationHistory.filter((msg: any) => 
+            msg && 
+            typeof msg === 'object' && 
+            (msg.role === 'user' || msg.role === 'assistant') &&
+            typeof msg.content === 'string'
+          ).map((msg: any) => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+        }
+      }
+
+      // Process question with AI and supplier data, including conversation history
       const response = await processQSQuestion(
         question.trim(),
-        allowGenericAnswers === true || allowGenericAnswers === 'true'
+        allowGenericAnswers === true || allowGenericAnswers === 'true',
+        history
       );
 
       res.json({

@@ -127,6 +127,12 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      // Prepare conversation history (last 10 messages for context)
+      const conversationHistory = messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
       const response = await apiPost<{ 
         answer: string; 
         requiresPermission?: boolean;
@@ -135,6 +141,7 @@ export default function ChatPage() {
       }>('/api/v1/chat', {
         question: questionText,
         allowGenericAnswers: false,
+        conversationHistory: conversationHistory,
       });
 
       const assistantMessage: Message = {

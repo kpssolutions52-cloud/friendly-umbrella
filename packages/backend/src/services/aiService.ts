@@ -319,6 +319,14 @@ export async function askQSQuestion(
 4. Find best prices and recommend suppliers
 5. Provide detailed supplier information including contact details
 6. Handle complex multi-part questions
+7. Understand context from previous conversation messages
+
+**CONVERSATION CONTEXT:**
+- You have access to the conversation history (previous messages in this chat)
+- Use this context to understand follow-up questions, references, and incomplete questions
+- If a user says "what about that supplier?" or "show me their contact", refer back to previous messages
+- For incomplete questions, use conversation context to understand what the user is asking
+- Maintain context across the conversation - remember what was discussed earlier
 
 **CRITICAL RULES:**
 - ALWAYS use REAL data from the database when available
@@ -330,6 +338,14 @@ export async function askQSQuestion(
 - For comparisons, analyze all available data and provide clear recommendations
 - For calculations, show your work step-by-step
 - For complex questions, break them down and answer each part systematically
+- Use conversation history to understand context and provide coherent, contextual answers
+
+**FOLLOW-UP QUESTIONS:**
+When users ask follow-up questions or incomplete questions:
+- Reference previous messages in the conversation
+- Use context to understand what "it", "that", "they", "them" refers to
+- If a question seems incomplete, use conversation history to complete it
+- Example: If user previously asked about "cement suppliers" and now asks "what about their contact?", understand "their" refers to those suppliers
 
 **DATA FORMAT:**
 - Prices are marked with "⭐ BEST PRICE" for the lowest price
@@ -872,20 +888,24 @@ export interface QSQuestionResponse {
  */
 export async function processQSQuestion(
   question: string,
-  allowGenericAnswers: boolean = false
+  allowGenericAnswers: boolean = false,
+  conversationHistory?: ConversationMessage[]
 ): Promise<QSQuestionResponse> {
-  // Check cache first
-  const cached = await getCachedResponse(question);
-  if (cached) {
-    // Parse cached response - it's stored as JSON string
-    try {
-      return JSON.parse(cached) as QSQuestionResponse;
-    } catch {
-      // If parsing fails, return as answer string
-      return {
-        answer: cached,
-        hasSystemData: false,
-      };
+  // Check cache first (but only if no conversation history, as context matters)
+  // For questions with conversation history, skip cache to ensure context is used
+  if (!conversationHistory || conversationHistory.length === 0) {
+    const cached = await getCachedResponse(question);
+    if (cached) {
+      // Parse cached response - it's stored as JSON string
+      try {
+        return JSON.parse(cached) as QSQuestionResponse;
+      } catch {
+        // If parsing fails, return as answer string
+        return {
+          answer: cached,
+          hasSystemData: false,
+        };
+      }
     }
   }
 
@@ -1261,8 +1281,8 @@ export async function processQSQuestion(
     additionalPromptContext = '\n\nCRITICAL: You are providing general information from your knowledge base because NO DATA was found in the system database. DO NOT make up specific supplier names, product names, or prices. Only provide general educational information about construction materials. NEVER invent supplier names like "Test Supplier Inc" or specific product prices. If asked about specific suppliers or products, clearly state that no data exists in the system database.';
   }
 
-  // Get AI response with enhanced context
-  const answer = await askQSQuestion(question, supplierData, context + additionalPromptContext);
+  // Get AI response with enhanced context and conversation history
+  const answer = await askQSQuestion(question, supplierData, context + additionalPromptContext, conversationHistory);
 
   // Cache the response
   await setCachedResponse(question, answer, 60); // 1 minute cache
