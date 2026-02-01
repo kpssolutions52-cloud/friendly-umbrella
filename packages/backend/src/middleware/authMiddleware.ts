@@ -63,19 +63,37 @@ export async function requireAuth(
     const organizationType = user.organization.type;
     const organization = user.organization;
 
+    // Verify organizationId is not null and matches the organization
+    if (!organizationId || organizationId !== organization.id) {
+      console.error('[requireAuth] Organization ID mismatch:', {
+        userOrganizationId: organizationId,
+        organizationId: organization.id,
+        userId: user.id,
+      });
+      throw createError(403, 'User organization mismatch');
+    }
+
     // Attach user info to request
     req.userId = decoded.userId;
     req.organizationId = organizationId;
     req.userType = userType;
     req.organizationType = organizationType;
     
-    // Also attach to req.user for compatibility
+    // Also attach to req.user for compatibility - use the verified organization ID
     (req as any).user = {
       id: user.id,
       email: user.email,
       type: userType,
-      organizationId: organizationId,
+      organizationId: organization.id, // Use the verified organization ID from the database
     };
+    
+    console.log('[requireAuth] User authenticated:', {
+      userId: user.id,
+      email: user.email,
+      userType,
+      organizationId: organization.id,
+      organizationType,
+    });
 
     next();
   } catch (error: any) {
