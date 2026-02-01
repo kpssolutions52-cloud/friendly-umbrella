@@ -148,9 +148,10 @@ export default function SupplierChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
       refreshProducts();
     } catch (error: any) {
+      const errorText = error?.error?.message || error?.error || error?.message || 'Failed to fetch products. Please try again.';
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Error: ${error?.error?.message || 'Failed to fetch products. Please try again.'}`,
+        content: `Error: ${errorText}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -314,9 +315,10 @@ export default function SupplierChatPage() {
         }, 500);
       }
     } catch (error: any) {
+      const errorText = error?.error?.message || error?.error || error?.message || 'Failed to process command. Please try again.';
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Error: ${error?.error?.message || 'Failed to process command. Please try again.'}`,
+        content: `Error: ${errorText}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);

@@ -27,13 +27,19 @@ router.post(
 
       if (!command || typeof command !== 'string' || command.trim().length === 0) {
         return res.status(400).json({
-          error: 'Command is required and must be a non-empty string',
+          error: {
+            message: 'Command is required and must be a non-empty string',
+            statusCode: 400,
+          },
         });
       }
 
       if (!organizationId) {
         return res.status(400).json({
-          error: 'Organization ID not found',
+          error: {
+            message: 'Organization ID not found',
+            statusCode: 400,
+          },
         });
       }
 
@@ -55,14 +61,20 @@ router.post(
       if (!organization) {
         console.error('[supplierChatRoutes] Organization not found:', organizationId);
         return res.status(400).json({
-          error: `Your supplier organization (ID: ${organizationId}) was not found in the database. Please contact support.`,
+          error: {
+            message: `Your supplier organization (ID: ${organizationId}) was not found in the database. Please contact support.`,
+            statusCode: 400,
+          },
         });
       }
 
       if (organization.type !== 'supplier') {
         console.error('[supplierChatRoutes] Organization type mismatch:', organization.type);
         return res.status(400).json({
-          error: `Your organization "${organization.name}" is of type "${organization.type}", but this endpoint requires a supplier organization. Please contact support.`,
+          error: {
+            message: `Your organization "${organization.name}" is of type "${organization.type}", but this endpoint requires a supplier organization. Please contact support.`,
+            statusCode: 400,
+          },
         });
       }
 
