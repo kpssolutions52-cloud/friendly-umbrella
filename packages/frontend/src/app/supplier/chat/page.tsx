@@ -19,6 +19,14 @@ interface Message {
   };
 }
 
+type QuestionFlowType = 'add_product' | 'update_product' | 'fetch_products' | null;
+
+interface QuestionFlow {
+  type: QuestionFlowType;
+  step: number;
+  data: Record<string, any>;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -36,6 +44,7 @@ export default function SupplierChatPage() {
   const [loading, setLoading] = useState(false);
   const [chatMinimized, setChatMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [questionFlow, setQuestionFlow] = useState<QuestionFlow | null>(null);
   
   // Dashboard state
   const [products, setProducts] = useState<Product[]>([]);
@@ -97,25 +106,181 @@ export default function SupplierChatPage() {
     }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  const startQuestionFlow = (type: QuestionFlowType) => {
+    setQuestionFlow({ type, step: 0, data: {} });
+    
+    let initialQuestion = '';
+    if (type === 'add_product') {
+      initialQuestion = 'What is the product name?';
+    } else if (type === 'update_product') {
+      initialQuestion = 'Which product would you like to update? (Enter product name)';
+    } else if (type === 'fetch_products') {
+      // Fetch products immediately
+      handleFetchProducts();
+      return;
+    }
 
-    const userMessage: Message = {
-      role: 'user',
-      content: input.trim(),
+    const assistantMessage: Message = {
+      role: 'assistant',
+      content: initialQuestion,
       timestamp: new Date().toISOString(),
     };
+    setMessages((prev) => [...prev, assistantMessage]);
+  };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+  const handleFetchProducts = async () => {
     setLoading(true);
-
     try {
       const response = await apiPost<{
         answer: string;
         action?: { type: string; data?: any };
       }>('/api/v1/supplier/chat', {
-        command: userMessage.content,
+        command: 'Show my products',
+      });
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: response.answer,
+        timestamp: new Date().toISOString(),
+        action: response.action,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+      refreshProducts();
+    } catch (error: any) {
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `Error: ${error?.error?.message || 'Failed to fetch products. Please try again.'}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+      setQuestionFlow(null);
+    }
+  };
+
+  const processQuestionFlow = async (userInput: string) => {
+    if (!questionFlow) return false;
+
+    const { type, step, data } = questionFlow;
+    let nextStep = step;
+    let updatedData = { ...data };
+    let nextQuestion = '';
+    let shouldExecute = false;
+    let command = '';
+
+    if (type === 'add_product') {
+      if (step === 0) {
+        // Product name
+        updatedData.productName = userInput.trim();
+        nextStep = 1;
+        nextQuestion = 'What is the price per unit? (e.g., 48)';
+      } else if (step === 1) {
+        // Price
+        const price = parseFloat(userInput.trim());
+        if (isNaN(price) || price <= 0) {
+          const errorMessage: Message = {
+            role: 'assistant',
+            content: 'Please enter a valid positive number for the price.',
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return true;
+        }
+        updatedData.price = price;
+        nextStep = 2;
+        nextQuestion = 'What is the unit? (e.g., bag, kg, gallon) - Press Enter to use "unit" as default';
+      } else if (step === 2) {
+        // Unit
+        updatedData.unit = userInput.trim() || 'unit';
+        shouldExecute = true;
+        command = `Add ${updatedData.productName} at $${updatedData.price} per ${updatedData.unit}`;
+      }
+    } else if (type === 'update_product') {
+      if (step === 0) {
+        // Product name
+        updatedData.productName = userInput.trim();
+        nextStep = 1;
+        nextQuestion = 'What would you like to update?\n1. Price\n2. Product Name\n3. Unit\n\nEnter the number or name (e.g., "1" or "price")';
+      } else if (step === 1) {
+        // Update type
+        const updateType = userInput.trim().toLowerCase();
+        if (updateType === '1' || updateType === 'price') {
+          updatedData.updateType = 'price';
+          nextStep = 2;
+          nextQuestion = 'What is the new price? (e.g., 50)';
+        } else if (updateType === '2' || updateType === 'name' || updateType === 'product name') {
+          updatedData.updateType = 'name';
+          nextStep = 2;
+          nextQuestion = 'What is the new product name?';
+        } else if (updateType === '3' || updateType === 'unit') {
+          updatedData.updateType = 'unit';
+          nextStep = 2;
+          nextQuestion = 'What is the new unit? (e.g., bag, kg, gallon)';
+        } else {
+          const errorMessage: Message = {
+            role: 'assistant',
+            content: 'Please enter 1, 2, or 3 (or "price", "name", or "unit")',
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return true;
+        }
+      } else if (step === 2) {
+        // Update value
+        if (updatedData.updateType === 'price') {
+          const price = parseFloat(userInput.trim());
+          if (isNaN(price) || price <= 0) {
+            const errorMessage: Message = {
+              role: 'assistant',
+              content: 'Please enter a valid positive number for the price.',
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            return true;
+          }
+          updatedData.price = price;
+          shouldExecute = true;
+          command = `Update ${updatedData.productName} price to $${updatedData.price}`;
+        } else if (updatedData.updateType === 'name') {
+          updatedData.newProductName = userInput.trim();
+          shouldExecute = true;
+          command = `Rename ${updatedData.productName} to ${updatedData.newProductName}`;
+        } else if (updatedData.updateType === 'unit') {
+          updatedData.unit = userInput.trim();
+          shouldExecute = true;
+          command = `Change ${updatedData.productName} unit to ${updatedData.unit}`;
+        }
+      }
+    }
+
+    // Update flow state
+    if (shouldExecute) {
+      setQuestionFlow(null);
+      // Execute the command
+      await executeCommand(command);
+    } else {
+      setQuestionFlow({ type, step: nextStep, data: updatedData });
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: nextQuestion,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    }
+
+    return true;
+  };
+
+  const executeCommand = async (command: string) => {
+    setLoading(true);
+    try {
+      const response = await apiPost<{
+        answer: string;
+        action?: { type: string; data?: any };
+      }>('/api/v1/supplier/chat', {
+        command,
       });
 
       const assistantMessage: Message = {
@@ -158,6 +323,29 @@ export default function SupplierChatPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: input.trim(),
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    const userInput = input.trim();
+    setInput('');
+
+    // Check if we're in a question flow
+    const handled = await processQuestionFlow(userInput);
+    if (handled) {
+      return;
+    }
+
+    // Otherwise, process as natural language command
+    await executeCommand(userInput);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -272,29 +460,102 @@ export default function SupplierChatPage() {
           </div>
 
           {/* Input */}
-          <div className="bg-white border-t border-gray-200 px-3 py-2">
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Enter a command..."
-                disabled={loading}
-                className="flex-1 text-sm"
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={loading || !input.trim()}
-                size="sm"
-                className="px-3 bg-green-600 hover:bg-green-700"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+          <div className="bg-white border-t border-gray-200">
+            {/* Action Tags */}
+            <div className="px-3 pt-2 pb-2 border-b border-gray-100">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startQuestionFlow('add_product')}
+                  disabled={loading || questionFlow !== null}
+                  className="text-xs h-7 px-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                >
+                  <Package className="h-3 w-3 mr-1" />
+                  Add Product
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startQuestionFlow('fetch_products')}
+                  disabled={loading || questionFlow !== null}
+                  className="text-xs h-7 px-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                >
+                  <Package className="h-3 w-3 mr-1" />
+                  Fetch Products
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startQuestionFlow('update_product')}
+                  disabled={loading || questionFlow !== null}
+                  className="text-xs h-7 px-2 bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                >
+                  <Edit2 className="h-3 w-3 mr-1" />
+                  Update Product
+                </Button>
+                {questionFlow && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setQuestionFlow(null);
+                      const cancelMessage: Message = {
+                        role: 'assistant',
+                        content: 'Question flow cancelled. You can start a new one or type a command.',
+                        timestamp: new Date().toISOString(),
+                      };
+                      setMessages((prev) => [...prev, cancelMessage]);
+                    }}
+                    className="text-xs h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Cancel
+                  </Button>
                 )}
-              </Button>
+              </div>
+            </div>
+            
+            {/* Input Field */}
+            <div className="px-3 py-2">
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={
+                    questionFlow
+                      ? questionFlow.type === 'add_product'
+                        ? questionFlow.step === 0
+                          ? 'Enter product name...'
+                          : questionFlow.step === 1
+                          ? 'Enter price...'
+                          : 'Enter unit (or press Enter for default)...'
+                        : questionFlow.type === 'update_product'
+                        ? questionFlow.step === 0
+                          ? 'Enter product name...'
+                          : questionFlow.step === 1
+                          ? 'Enter update type (1, 2, or 3)...'
+                          : 'Enter new value...'
+                        : 'Enter your response...'
+                      : 'Enter a command or use tags above...'
+                  }
+                  disabled={loading}
+                  className="flex-1 text-sm"
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={loading || !input.trim()}
+                  size="sm"
+                  className="px-3 bg-green-600 hover:bg-green-700"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
