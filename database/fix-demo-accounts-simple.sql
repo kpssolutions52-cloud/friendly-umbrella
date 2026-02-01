@@ -1,0 +1,63 @@
+-- Simple script to fix demo accounts - handles the "Default Organization" issue
+-- Run this if demo accounts are linked to wrong organizations
+
+-- Step 1: Get or create demo supplier organization
+INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+SELECT 
+    gen_random_uuid(),
+    'Demo Supplier Organization',
+    'supplier'::orgtype,
+    'demo-supplier@constructionguru.com',
+    NOW(),
+    NOW()
+WHERE NOT EXISTS (
+    SELECT 1 FROM organizations 
+    WHERE email = 'demo-supplier@constructionguru.com'
+);
+
+-- Step 2: Get or create demo company organization
+INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+SELECT 
+    gen_random_uuid(),
+    'Demo Company Organization',
+    'company'::orgtype,
+    'demo-company@constructionguru.com',
+    NOW(),
+    NOW()
+WHERE NOT EXISTS (
+    SELECT 1 FROM organizations 
+    WHERE email = 'demo-company@constructionguru.com'
+);
+
+-- Step 3: Fix demo supplier user - link to supplier organization
+UPDATE users
+SET 
+    organization_id = (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1),
+    type = 'supplier'::usertype
+WHERE email = 'demo.supplier@constructionguru.com'
+  AND (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1) IS NOT NULL;
+
+-- Step 4: Fix demo QS user - link to company organization
+UPDATE users
+SET 
+    organization_id = (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1),
+    type = 'qs'::usertype
+WHERE email = 'demo.qs@constructionguru.com'
+  AND (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1) IS NOT NULL;
+
+-- Step 5: Show results
+SELECT 
+    u.email,
+    u.type as user_type,
+    o.name as organization_name,
+    o.type as organization_type,
+    o.id as organization_id,
+    CASE 
+        WHEN u.type = 'supplier' AND o.type = 'supplier' THEN '✅ CORRECT'
+        WHEN u.type = 'qs' AND o.type = 'company' THEN '✅ CORRECT'
+        ELSE '❌ MISMATCH'
+    END as status
+FROM users u
+LEFT JOIN organizations o ON u.organization_id::text = o.id::text
+WHERE u.email IN ('demo.supplier@constructionguru.com', 'demo.qs@constructionguru.com')
+ORDER BY u.email;
