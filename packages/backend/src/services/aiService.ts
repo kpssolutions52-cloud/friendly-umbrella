@@ -170,6 +170,19 @@ IMPORTANT: You have access to REAL supplier data from the database.
 ALWAYS use this real data when answering questions. Do NOT provide generic 
 or hypothetical supplier information when real data is available.
 
+When answering questions about suppliers, you can provide:
+- Supplier names
+- Supplier contact information:
+  * Organization email addresses
+  * Contact person names and emails (from supplier users)
+  * Note: Mobile phone and WhatsApp numbers are not currently stored in the system - only email contacts are available
+- Supplier product lists and prices
+- Product availability from specific suppliers
+- Supplier product counts
+
+Always prioritize real data from the system database over generic information.
+When users ask about mobile, phone, or WhatsApp, explain that only email contact information is available in the system.
+
 `;
 
   if (supplierData && supplierData.length > 0) {
@@ -282,9 +295,52 @@ export function isSupplierQuery(question: string): boolean {
     'available suppliers',
     'which supplier',
     'which suppliers',
+    'supplier name',
+    'supplier contact',
+    'supplier location',
+    'supplier address',
+    'supplier email',
+    'supplier phone',
+    'supplier mobile',
+    'supplier whatsapp',
+    'supplier details',
+    'supplier information',
+    'what suppliers',
+    'tell me about suppliers',
+    'show me suppliers',
+    'contact info',
+    'contact information',
+    'phone number',
+    'mobile number',
+    'whatsapp number',
   ];
   const lowerQuestion = question.toLowerCase();
   return supplierKeywords.some((keyword) => lowerQuestion.includes(keyword));
+}
+
+/**
+ * Extract supplier name from question
+ */
+export function extractSupplierName(question: string): string | null {
+  // Patterns to match supplier names in questions
+  const patterns = [
+    /(?:supplier|from|by)\s+([A-Z][a-zA-Z\s&]+?)(?:\s|$|,|\.|\?)/,
+    /([A-Z][a-zA-Z\s&]+?)\s+(?:supplier|suppliers)/,
+    /(?:what|which|show|list|tell me about)\s+([A-Z][a-zA-Z\s&]+?)(?:\s+supplier|$)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = question.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Filter out common words that aren't supplier names
+      if (name.length > 2 && !['The', 'What', 'Which', 'Show', 'List', 'Tell'].includes(name)) {
+        return name;
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -339,13 +395,23 @@ export async function getSuppliersForProduct(productName: string): Promise<Array
 }
 
 /**
- * Get all suppliers in the system
+ * Get all suppliers in the system with full details including contact info
  */
 export async function getAllSuppliers(): Promise<Array<{
   id: string;
   name: string;
   email: string;
   productCount: number;
+  contactUsers?: Array<{
+    name: string | null;
+    email: string;
+  }>;
+  products?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    unit: string;
+  }>;
 }>> {
   try {
     const suppliers = await prisma.organization.findMany({
@@ -359,6 +425,21 @@ export async function getAllSuppliers(): Promise<Array<{
         products: {
           select: {
             id: true,
+            name: true,
+            price: true,
+            unit: true,
+          },
+          orderBy: {
+            name: 'asc',
+          },
+        },
+        users: {
+          where: {
+            type: 'supplier',
+          },
+          select: {
+            name: true,
+            email: true,
           },
         },
       },
@@ -372,11 +453,227 @@ export async function getAllSuppliers(): Promise<Array<{
       name: s.name,
       email: s.email,
       productCount: s.products?.length || 0,
+      contactUsers: s.users.map((u) => ({
+        name: u.name,
+        email: u.email,
+      })),
+      products: s.products?.map((p) => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price),
+        unit: p.unit,
+      })),
     }));
   } catch (error) {
     console.error('Error getting all suppliers:', error);
     return [];
   }
+}
+
+/**
+ * Get supplier by name (fuzzy search) with contact information
+ */
+export async function getSupplierByName(supplierName: string): Promise<Array<{
+  id: string;
+  name: string;
+  email: string;
+  productCount: number;
+  contactUsers?: Array<{
+    name: string | null;
+    email: string;
+  }>;
+  products: Array<{
+    id: string;
+    name: string;
+    price: number;
+    unit: string;
+  }>;
+}>> {
+  try {
+    const suppliers = await prisma.organization.findMany({
+      where: {
+        type: 'supplier',
+        name: {
+          contains: supplierName,
+          mode: 'insensitive',
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        products: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            unit: true,
+          },
+          orderBy: {
+            name: 'asc',
+          },
+        },
+        users: {
+          where: {
+            type: 'supplier',
+          },
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return suppliers.map((s) => ({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      productCount: s.products?.length || 0,
+      contactUsers: s.users.map((u) => ({
+        name: u.name,
+        email: u.email,
+      })),
+      products: s.products?.map((p) => ({
+        id: p.id,
+        name: p.name,
+        price: Number(p.price),
+        unit: p.unit,
+      })) || [],
+    }));
+  } catch (error) {
+    console.error('Error getting supplier by name:', error);
+    return [];
+  }
+}
+
+/**
+ * Get products for a specific supplier
+ */
+export async function getSupplierProducts(supplierId: string): Promise<Array<{
+  id: string;
+  name: string;
+  price: number;
+  unit: string;
+}>> {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        supplierId,
+        supplier: {
+          type: 'supplier',
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        unit: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      unit: p.unit,
+    }));
+  } catch (error) {
+    console.error('Error getting supplier products:', error);
+    return [];
+  }
+}
+
+/**
+ * Format supplier details for AI context including contact information
+ */
+function formatSupplierDetails(suppliers: Array<{
+  id: string;
+  name: string;
+  email: string;
+  productCount: number;
+  contactUsers?: Array<{
+    name: string | null;
+    email: string;
+  }>;
+  products?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    unit: string;
+  }>;
+}>): string {
+  if (!suppliers || suppliers.length === 0) {
+    return 'No suppliers found in the system.';
+  }
+
+  return suppliers.map((s) => {
+    let details = `**${s.name}**\n`;
+    
+    // Contact Information
+    details += `**Contact Information:**\n`;
+    details += `- Organization Email: ${s.email}\n`;
+    
+    if (s.contactUsers && s.contactUsers.length > 0) {
+      details += `- Contact Persons:\n`;
+      s.contactUsers.forEach((user) => {
+        details += `  • ${user.name || 'Contact'}: ${user.email}\n`;
+      });
+    }
+    
+    details += `\n**Products:** ${s.productCount} products available\n`;
+    
+    if (s.products && s.products.length > 0) {
+      details += `**Product List:**\n`;
+      s.products.slice(0, 10).forEach((p) => {
+        details += `  • ${p.name} - $${p.price}/${p.unit}\n`;
+      });
+      if (s.products.length > 10) {
+        details += `  ... and ${s.products.length - 10} more products\n`;
+      }
+    }
+    
+    return details;
+  }).join('\n\n');
+}
+
+/**
+ * Format supplier contact information specifically
+ */
+function formatSupplierContactInfo(suppliers: Array<{
+  id: string;
+  name: string;
+  email: string;
+  contactUsers?: Array<{
+    name: string | null;
+    email: string;
+  }>;
+}>): string {
+  if (!suppliers || suppliers.length === 0) {
+    return 'No suppliers found in the system.';
+  }
+
+  return suppliers.map((s) => {
+    let contact = `**${s.name}**\n`;
+    contact += `- Organization Email: ${s.email}\n`;
+    
+    if (s.contactUsers && s.contactUsers.length > 0) {
+      contact += `- Contact Persons:\n`;
+      s.contactUsers.forEach((user) => {
+        contact += `  • ${user.name || 'Contact'}: ${user.email}\n`;
+      });
+    }
+    
+    contact += `\nNote: Mobile phone and WhatsApp numbers are not currently stored in the system. Please contact via email.`;
+    
+    return contact;
+  }).join('\n\n');
 }
 
 /**
@@ -423,9 +720,49 @@ export async function processQSQuestion(
   let hasSystemData = false;
   let systemDataSummary = '';
 
-  // Handle supplier queries (e.g., "list cement suppliers")
+  // Handle supplier queries (e.g., "list cement suppliers", "show supplier contact", etc.)
   if (isSupplierQuery(question)) {
-    if (products.length > 0) {
+    // Check if asking about a specific supplier by name
+    const supplierName = extractSupplierName(question);
+    
+    if (supplierName) {
+      // User is asking about a specific supplier
+      const specificSuppliers = await getSupplierByName(supplierName);
+      if (specificSuppliers.length > 0) {
+        hasSystemData = true;
+        
+        // Check if specifically asking for contact info
+        const lowerQuestion = question.toLowerCase();
+        const wantsContactInfo = lowerQuestion.includes('contact') || 
+                                lowerQuestion.includes('email') || 
+                                lowerQuestion.includes('phone') || 
+                                lowerQuestion.includes('mobile') ||
+                                lowerQuestion.includes('whatsapp') ||
+                                lowerQuestion.includes('number');
+        
+        if (wantsContactInfo) {
+          supplierListContext += `Contact Information for ${supplierName}:\n${formatSupplierContactInfo(specificSuppliers)}\n\n`;
+        } else {
+          supplierListContext += `Supplier Details:\n${formatSupplierDetails(specificSuppliers)}\n\n`;
+        }
+        
+        systemDataSummary += `Found ${specificSuppliers.length} supplier(s) matching "${supplierName}" in the system database.\n`;
+        
+        // Also add products to supplierData
+        specificSuppliers.forEach((s) => {
+          if (s.products) {
+            supplierData.push(...s.products.map((p) => ({
+              supplier: s.name,
+              product: p.name,
+              price: p.price,
+              unit: p.unit,
+            })));
+          }
+        });
+      } else {
+        systemDataSummary += `No supplier found matching "${supplierName}" in the system database.\n`;
+      }
+    } else if (products.length > 0) {
       // User is asking for suppliers of a specific product
       for (const product of products) {
         const suppliers = await getSuppliersForProduct(product);
@@ -445,12 +782,49 @@ export async function processQSQuestion(
         }
       }
     } else {
-      // User is asking for all suppliers (no specific product)
+      // User is asking for all suppliers or general supplier information
+      // Check if asking about contact, location, or products
+      const lowerQuestion = question.toLowerCase();
+      const wantsContactInfo = lowerQuestion.includes('contact') || 
+                              lowerQuestion.includes('email') || 
+                              lowerQuestion.includes('phone') || 
+                              lowerQuestion.includes('mobile') ||
+                              lowerQuestion.includes('whatsapp') ||
+                              lowerQuestion.includes('number');
+      const wantsDetails = wantsContactInfo ||
+                          lowerQuestion.includes('location') || 
+                          lowerQuestion.includes('address') ||
+                          lowerQuestion.includes('products') ||
+                          lowerQuestion.includes('what') ||
+                          lowerQuestion.includes('details') ||
+                          lowerQuestion.includes('information');
+      
       const allSuppliers = await getAllSuppliers();
       if (allSuppliers.length > 0) {
         hasSystemData = true;
-        supplierListContext = `All suppliers in the system:\n${allSuppliers.map((s) => `- **${s.name}** (${s.productCount} products)`).join('\n')}\n\n`;
+        if (wantsContactInfo) {
+          // Focus on contact information
+          supplierListContext = `Supplier Contact Information:\n${formatSupplierContactInfo(allSuppliers)}\n\n`;
+        } else if (wantsDetails) {
+          // Include full details with contact info and products
+          supplierListContext = `All Suppliers in the System:\n${formatSupplierDetails(allSuppliers)}\n\n`;
+        } else {
+          // Just list names and product counts
+          supplierListContext = `All suppliers in the system:\n${allSuppliers.map((s) => `- **${s.name}** (${s.productCount} products, Email: ${s.email})`).join('\n')}\n\n`;
+        }
         systemDataSummary = `Found ${allSuppliers.length} supplier(s) in the system database.\n`;
+        
+        // Add all products to supplierData for comprehensive context
+        allSuppliers.forEach((s) => {
+          if (s.products) {
+            supplierData.push(...s.products.map((p) => ({
+              supplier: s.name,
+              product: p.name,
+              price: p.price,
+              unit: p.unit,
+            })));
+          }
+        });
       } else {
         systemDataSummary = `No suppliers found in the system database.\n`;
       }
@@ -516,6 +890,28 @@ export async function processQSQuestion(
       (item, index, self) =>
         index === self.findIndex((t) => t.product === item.product && t.supplier === item.supplier)
     );
+  }
+
+  // Handle questions about specific supplier's products (e.g., "what products does ABC have?")
+  const questionLower = question.toLowerCase();
+  if (questionLower.includes('products') && (questionLower.includes('does') || questionLower.includes('has') || questionLower.includes('sell'))) {
+    const supplierName = extractSupplierName(question);
+    if (supplierName) {
+      const suppliers = await getSupplierByName(supplierName);
+      if (suppliers.length > 0) {
+        hasSystemData = true;
+        suppliers.forEach((s) => {
+          if (s.products && s.products.length > 0) {
+            supplierListContext += `Products from ${s.name}:\n`;
+            s.products.forEach((p) => {
+              supplierListContext += `- ${p.name} - $${p.price}/${p.unit}\n`;
+            });
+            supplierListContext += '\n';
+            systemDataSummary += `Found ${s.products.length} product(s) from ${s.name} in the system database.\n`;
+          }
+        });
+      }
+    }
   }
 
   // Check if this is a supplier-related question and we have no data
