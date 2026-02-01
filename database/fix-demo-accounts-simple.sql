@@ -14,7 +14,7 @@ INSERT INTO organizations (id, name, type, email, created_at, updated_at)
 SELECT 
     gen_random_uuid(),
     'Demo Supplier Organization',
-    'supplier'::orgtype,
+    'supplier',
     'demo-supplier@constructionguru.com',
     NOW(),
     NOW()
@@ -28,7 +28,7 @@ INSERT INTO organizations (id, name, type, email, created_at, updated_at)
 SELECT 
     gen_random_uuid(),
     'Demo Company Organization',
-    'company'::orgtype,
+    'company',
     'demo-company@constructionguru.com',
     NOW(),
     NOW()
@@ -40,8 +40,12 @@ WHERE NOT EXISTS (
 -- Step 4: Create usertype enum if it doesn't exist
 DO $$
 BEGIN
+    -- Check if usertype exists (lowercase)
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'usertype') THEN
-        CREATE TYPE usertype AS ENUM ('qs', 'supplier');
+        -- Check if UserType exists (PascalCase)
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'UserType') THEN
+            CREATE TYPE usertype AS ENUM ('qs', 'supplier');
+        END IF;
     END IF;
 END $$;
 
@@ -49,7 +53,7 @@ END $$;
 UPDATE users
 SET 
     organization_id = (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1),
-    type = 'supplier'::usertype
+    type = 'supplier'
 WHERE email = 'demo.supplier@constructionguru.com'
   AND (SELECT id FROM organizations WHERE email = 'demo-supplier@constructionguru.com' LIMIT 1) IS NOT NULL;
 
@@ -57,7 +61,7 @@ WHERE email = 'demo.supplier@constructionguru.com'
 UPDATE users
 SET 
     organization_id = (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1),
-    type = 'qs'::usertype
+    type = 'qs'
 WHERE email = 'demo.qs@constructionguru.com'
   AND (SELECT id FROM organizations WHERE email = 'demo-company@constructionguru.com' LIMIT 1) IS NOT NULL;
 
