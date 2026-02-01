@@ -133,11 +133,17 @@ export default function ChatPage() {
         pagination: { page: number; totalPages: number; total: number } 
       }>(`/api/v1/products/search?${params.toString()}`);
       
+      console.log('[Products] Loaded products:', response.products?.length || 0, 'products');
       setProducts(response.products || []);
       setCurrentProductPage(response.pagination.page);
       setTotalProductPages(response.pagination.totalPages);
     } catch (error: any) {
       console.error('Failed to load products:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+      });
       setProducts([]);
     } finally {
       setLoadingProducts(false);
