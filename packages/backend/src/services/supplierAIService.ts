@@ -465,13 +465,6 @@ export async function processSupplierCommand(
           mode: 'insensitive',
         },
       },
-      include: {
-        defaultPrices: {
-          where: { isActive: true },
-          orderBy: { effectiveFrom: 'desc' },
-          take: 1,
-        },
-      },
     });
 
     if (!product) {
@@ -480,17 +473,9 @@ export async function processSupplierCommand(
       };
     }
 
-    // Get the current price (from defaultPrices if available, otherwise from product.price)
-    let unitPrice: number;
-    let currency: string = 'USD';
-
-    if (product.defaultPrices && product.defaultPrices.length > 0) {
-      unitPrice = Number(product.defaultPrices[0].price);
-      currency = product.defaultPrices[0].currency || 'USD';
-    } else {
-      // Fallback to product.price if no defaultPrices
-      unitPrice = Number(product.price) || 0;
-    }
+    // Get the current price from product.price
+    const unitPrice = Number(product.price) || 0;
+    const currency = 'USD'; // Default currency, can be extended later
 
     if (unitPrice <= 0) {
       return {

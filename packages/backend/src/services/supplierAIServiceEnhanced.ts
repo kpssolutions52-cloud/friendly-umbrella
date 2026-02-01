@@ -324,7 +324,19 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
 
   try {
     // Step 3: Initial AI call with function calling
-    let messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    let messages: Array<{
+      role: 'system' | 'user' | 'assistant' | 'tool';
+      content: string | null;
+      tool_call_id?: string;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>;
+    }> = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: command },
     ];
@@ -335,19 +347,19 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
     while (maxIterations > 0) {
       const response = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        messages,
-        tools,
+        messages: messages as any, // Type assertion for function calling support
+        tools: tools as any,
         tool_choice: 'auto', // Let AI decide when to use tools
         temperature: 0.3, // Lower temperature for more consistent results
       });
 
       const message = response.choices[0].message;
-      messages.push(message);
+      messages.push(message as any);
 
       // If AI wants to use a tool
-      if (message.tool_calls && message.tool_calls.length > 0) {
+      if ((message as any).tool_calls && (message as any).tool_calls.length > 0) {
         // Execute all tool calls
-        for (const toolCall of message.tool_calls) {
+        for (const toolCall of (message as any).tool_calls) {
           const toolName = toolCall.function.name;
           const args = JSON.parse(toolCall.function.arguments);
 
