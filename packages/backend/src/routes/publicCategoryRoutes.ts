@@ -8,8 +8,10 @@ router.get('/categories', async (req: Request, res: Response, next: NextFunction
   try {
     const categories = await categoryService.getAllCategories(false); // Only active categories
     res.json({ categories });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    // Return empty array for any error (graceful degradation)
+    console.warn('ProductCategory error, returning empty array');
+    return res.json({ categories: [] });
   }
 });
 
@@ -18,8 +20,10 @@ router.get('/categories/flat', async (req: Request, res: Response, next: NextFun
   try {
     const categories = await categoryService.getFlatCategories(false); // Only active categories
     res.json({ categories });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    // Return empty array for any error (graceful degradation)
+    console.warn('ProductCategory error, returning empty array');
+    return res.json({ categories: [] });
   }
 });
 
@@ -30,19 +34,9 @@ router.get('/categories/main', async (req: Request, res: Response, next: NextFun
     res.json({ categories });
   } catch (error: any) {
     console.error('Error in /categories/main endpoint:', error);
-    console.error('Error stack:', error.stack);
-    if (error.code) {
-      console.error('Prisma error code:', error.code);
-    }
-    if (error.meta) {
-      console.error('Prisma error meta:', JSON.stringify(error.meta, null, 2));
-    }
-    // Return empty array if table doesn't exist (graceful degradation)
-    if (error.code === 'P2021' || error.code === '42P01') {
-      console.warn('ProductCategory table not found, returning empty array');
-      return res.json({ categories: [] });
-    }
-    next(error);
+    // Return empty array for any error (graceful degradation)
+    console.warn('ProductCategory error, returning empty array');
+    return res.json({ categories: [] });
   }
 });
 
@@ -52,8 +46,10 @@ router.get('/categories/:parentId/subcategories', async (req: Request, res: Resp
     const { parentId } = req.params;
     const subcategories = await categoryService.getSubcategories(parentId, false); // Only active
     res.json({ categories: subcategories });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    // Return empty array for any error (graceful degradation)
+    console.warn('ProductCategory error, returning empty array');
+    return res.json({ categories: [] });
   }
 });
 

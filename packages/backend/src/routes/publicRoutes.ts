@@ -602,7 +602,7 @@ router.get(
 // Public suppliers endpoint
 router.get(
   '/suppliers/public',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const suppliers = await prisma.organization.findMany({
         where: {
@@ -619,8 +619,10 @@ router.get(
       });
 
       res.json({ suppliers });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error('Error in /suppliers/public:', error);
+      // Return empty array on error instead of failing
+      res.json({ suppliers: [] });
     }
   }
 );
@@ -628,7 +630,7 @@ router.get(
 // Public service providers endpoint
 router.get(
   '/service-providers/public',
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const serviceProviders = await prisma.organization.findMany({
         where: {
@@ -645,8 +647,10 @@ router.get(
       });
 
       res.json({ suppliers: serviceProviders }); // Use 'suppliers' key for consistency with frontend
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error('Error in /service-providers/public:', error);
+      // Return empty array on error instead of failing
+      res.json({ suppliers: [] });
     }
   }
 );

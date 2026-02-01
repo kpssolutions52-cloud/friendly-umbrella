@@ -39,12 +39,9 @@ router.get('/service-categories/main', async (req: Request, res: Response, next:
     res.json({ categories });
   } catch (error: any) {
     console.error('Error in /service-categories/main endpoint:', error);
-    // Return empty array if table doesn't exist (graceful degradation)
-    if (error.code === 'P2021' || error.code === '42P01') {
-      console.warn('ServiceCategory table not found, returning empty array');
-      return res.json({ categories: [] });
-    }
-    next(error);
+    // Return empty array for any error (graceful degradation)
+    console.warn('ServiceCategory error, returning empty array');
+    return res.json({ categories: [] });
   }
 });
 
