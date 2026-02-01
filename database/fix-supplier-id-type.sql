@@ -117,10 +117,10 @@ BEGIN
         END IF;
         
         -- Option 1: Handle orphaned products
-        -- Strategy: Make SKUs unique for ALL orphaned products first, then assign them
+        -- Strategy: Make ALL orphaned product SKUs unique first, then assign them
         
-        -- Step 1: Make SKUs unique for orphaned products
-        -- Check against both: existing products in default supplier AND other orphaned products
+        -- Step 1: Make SKUs unique for ALL orphaned products
+        -- This ensures no conflicts when assigning to default supplier
         UPDATE products p
         SET sku = sku || '-ORPHAN-' || SUBSTRING(p.id::text, 1, 8)
         WHERE p.supplier_id IS NOT NULL
@@ -129,7 +129,7 @@ BEGIN
               WHERE o.id = p.supplier_id
           )
           AND (
-              -- SKU exists for default supplier
+              -- SKU already exists for default supplier (will conflict)
               EXISTS (
                   SELECT 1 FROM products p2
                   WHERE p2.supplier_id = default_supplier_id
@@ -137,15 +137,37 @@ BEGIN
               )
               OR
               -- SKU exists for another orphaned product (duplicate within orphaned set)
-              EXISTS (
-                  SELECT 1 FROM products p3
-                  WHERE p3.supplier_id IS NOT NULL
+              -- Use row_number to only update duplicates (keep first one, update others)
+              p.id IN (
+                  SELECT p4.id
+                  FROM products p4
+                  WHERE p4.supplier_id IS NOT NULL
                     AND NOT EXISTS (
-                        SELECT 1 FROM organizations o2 
-                        WHERE o2.id = p3.supplier_id
+                        SELECT 1 FROM organizations o3 
+                        WHERE o3.id = p4.supplier_id
                     )
-                    AND p3.sku = p.sku
-                    AND p3.id < p.id  -- Only update one of the duplicates
+                    AND p4.sku IN (
+                        SELECT p5.sku
+                        FROM products p5
+                        WHERE p5.supplier_id IS NOT NULL
+                          AND NOT EXISTS (
+                              SELECT 1 FROM organizations o4 
+                              WHERE o4.id = p5.supplier_id
+                          )
+                        GROUP BY p5.sku
+                        HAVING COUNT(*) > 1
+                    )
+                    AND p4.id NOT IN (
+                        -- Keep the first product with each SKU (by id)
+                        SELECT DISTINCT ON (p6.sku) p6.id
+                        FROM products p6
+                        WHERE p6.supplier_id IS NOT NULL
+                          AND NOT EXISTS (
+                              SELECT 1 FROM organizations o5 
+                              WHERE o5.id = p6.supplier_id
+                          )
+                        ORDER BY p6.sku, p6.id
+                    )
               )
           );
         
