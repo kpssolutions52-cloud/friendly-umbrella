@@ -232,8 +232,13 @@ export default function Home() {
     try {
       const response = await apiGet<{ suppliers: Array<{ id: string; name: string; logoUrl: string | null }> }>('/api/v1/service-providers/public');
       setServiceProviders(response.suppliers || []);
-    } catch (error) {
-      console.error('Failed to load service providers:', error);
+    } catch (error: any) {
+      // Silently fail for MVP 1 - this endpoint doesn't exist yet
+      if (error?.error?.statusCode === 404 || error?.status === 404) {
+        console.log('Service providers public endpoint not available in MVP 1');
+      } else {
+        console.error('Failed to load service providers:', error);
+      }
       setServiceProviders([]);
     }
   }, []);
