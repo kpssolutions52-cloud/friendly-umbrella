@@ -157,7 +157,6 @@ Return JSON array only:`;
         { role: 'user', content: extractionPrompt },
       ],
       temperature: 0.3,
-      max_tokens: 200,
     });
 
     const content = response.choices[0].message.content?.trim();
@@ -222,7 +221,6 @@ Return JSON only:`;
         { role: 'user', content: analysisPrompt },
       ],
       temperature: 0.3,
-      max_tokens: 300,
     });
 
     const content = response.choices[0].message.content?.trim();

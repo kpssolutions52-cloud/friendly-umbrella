@@ -45,7 +45,7 @@ export class ServiceCategoryService {
       where.isActive = true;
     }
 
-    const categories = await prisma.serviceCategory.findMany({
+    const categories = await (prisma as any).serviceCategory.findMany({
       where,
       select: {
         id: true,
@@ -89,14 +89,14 @@ export class ServiceCategoryService {
     });
 
     // Organize into hierarchical structure
-    const mainCategories = categories.filter((cat) => !cat.parentId);
-    const subcategories = categories.filter((cat) => cat.parentId);
+    const mainCategories = categories.filter((cat: any) => !cat.parentId);
+    const subcategories = categories.filter((cat: any) => cat.parentId);
 
-    return mainCategories.map((mainCat) => ({
+    return mainCategories.map((mainCat: any) => ({
       ...mainCat,
       children: subcategories
-        .filter((sub) => sub.parentId === mainCat.id)
-        .map((sub) => ({
+        .filter((sub: any) => sub.parentId === mainCat.id)
+        .map((sub: any) => ({
           ...sub,
           children: [],
         })),
@@ -112,7 +112,7 @@ export class ServiceCategoryService {
       where.isActive = true;
     }
 
-    return prisma.serviceCategory.findMany({
+    return (prisma as any).serviceCategory.findMany({
       where,
       select: {
         id: true,
@@ -141,7 +141,7 @@ export class ServiceCategoryService {
       where.isActive = true;
     }
 
-    return prisma.serviceCategory.findMany({
+    return (prisma as any).serviceCategory.findMany({
       where,
       select: {
         id: true,
@@ -165,7 +165,7 @@ export class ServiceCategoryService {
    * Get service category by ID
    */
   async getCategoryById(categoryId: string) {
-    const category = await prisma.serviceCategory.findUnique({
+    const category = await (prisma as any).serviceCategory.findUnique({
       where: { id: categoryId },
       include: {
         parent: {
@@ -195,7 +195,7 @@ export class ServiceCategoryService {
   async createCategory(input: CreateServiceCategoryInput) {
     // Validate parent exists if parentId is provided
     if (input.parentId) {
-      const parent = await prisma.serviceCategory.findUnique({
+      const parent = await (prisma as any).serviceCategory.findUnique({
         where: { id: input.parentId },
       });
 
@@ -209,7 +209,7 @@ export class ServiceCategoryService {
     }
 
     // Check for duplicate name at the same level
-    const existing = await prisma.serviceCategory.findFirst({
+    const existing = await (prisma as any).serviceCategory.findFirst({
       where: {
         name: input.name.trim(),
         parentId: input.parentId || null,
@@ -223,14 +223,14 @@ export class ServiceCategoryService {
     // Get display order if not provided
     let displayOrder = input.displayOrder;
     if (displayOrder === undefined) {
-      const lastCategory = await prisma.serviceCategory.findFirst({
+      const lastCategory = await (prisma as any).serviceCategory.findFirst({
         where: { parentId: input.parentId || null },
         orderBy: { displayOrder: 'desc' },
       });
       displayOrder = lastCategory ? lastCategory.displayOrder + 1 : 0;
     }
 
-    return prisma.serviceCategory.create({
+    return (prisma as any).serviceCategory.create({
       data: {
         name: input.name.trim(),
         description: input.description?.trim(),
@@ -258,7 +258,7 @@ export class ServiceCategoryService {
 
     // Validate parent exists if parentId is being changed
     if (input.parentId !== undefined && input.parentId !== null) {
-      const parent = await prisma.serviceCategory.findUnique({
+      const parent = await (prisma as any).serviceCategory.findUnique({
         where: { id: input.parentId },
       });
 
@@ -285,7 +285,7 @@ export class ServiceCategoryService {
     // Check for duplicate name if name is being updated
     if (input.name) {
       const parentId = input.parentId !== undefined ? input.parentId : category.parentId;
-      const existing = await prisma.serviceCategory.findFirst({
+      const existing = await (prisma as any).serviceCategory.findFirst({
         where: {
           name: input.name.trim(),
           parentId: parentId || null,
@@ -297,7 +297,7 @@ export class ServiceCategoryService {
       }
     }
 
-    return prisma.serviceCategory.update({
+    return (prisma as any).serviceCategory.update({
       where: { id: categoryId },
       data: {
         ...(input.name && { name: input.name.trim() }),
@@ -330,7 +330,7 @@ export class ServiceCategoryService {
     const category = await this.getCategoryById(categoryId);
 
     // Check if category has children
-    const childCount = await prisma.serviceCategory.count({
+    const childCount = await (prisma as any).serviceCategory.count({
       where: { parentId: categoryId },
     });
 
@@ -340,14 +340,14 @@ export class ServiceCategoryService {
 
     // Check if category is used by any services
     const serviceCount = await prisma.product.count({
-      where: { serviceCategoryId: categoryId },
+      where: { serviceCategoryId: categoryId } as any,
     });
 
     if (serviceCount > 0) {
       throw createError(400, `Cannot delete category. It is used by ${serviceCount} service(s).`);
     }
 
-    await prisma.serviceCategory.delete({
+    await (prisma as any).serviceCategory.delete({
       where: { id: categoryId },
     });
   }
@@ -368,7 +368,7 @@ export class ServiceCategoryService {
 
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const category: { parentId: string | null } | null = await prisma.serviceCategory.findUnique({
+      const category: { parentId: string | null } | null = await (prisma as any).serviceCategory.findUnique({
         where: { id: currentId },
         select: { parentId: true },
       });
@@ -385,7 +385,7 @@ export class ServiceCategoryService {
    * Get flat list of all service categories (for dropdowns)
    */
   async getFlatCategories(includeInactive = false): Promise<Array<{ id: string; name: string; parentName?: string }>> {
-    const categories = await prisma.serviceCategory.findMany({
+    const categories = await (prisma as any).serviceCategory.findMany({
       where: includeInactive ? {} : { isActive: true },
       include: {
         parent: {
@@ -401,7 +401,7 @@ export class ServiceCategoryService {
       ],
     });
 
-    return categories.map((cat) => ({
+    return categories.map((cat: any) => ({
       id: cat.id,
       name: cat.parent ? `${cat.parent.name} > ${cat.name}` : cat.name,
       parentName: cat.parent?.name,
