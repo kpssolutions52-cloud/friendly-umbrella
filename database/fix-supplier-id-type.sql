@@ -75,7 +75,39 @@ BEGIN
     END IF;
 END $$;
 
--- Step 6: Create the correct foreign key constraint
+-- Step 6: Find and fix orphaned products (supplier_id doesn't exist in organizations)
+DO $$
+DECLARE
+    orphaned_count INTEGER;
+BEGIN
+    -- Count orphaned products
+    SELECT COUNT(*) INTO orphaned_count
+    FROM products p
+    WHERE p.supplier_id IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1 FROM organizations o 
+          WHERE o.id::text = p.supplier_id::text
+      );
+    
+    IF orphaned_count > 0 THEN
+        RAISE NOTICE 'Found % orphaned products. Setting supplier_id to NULL...', orphaned_count;
+        
+        -- Set supplier_id to NULL for orphaned products
+        UPDATE products p
+        SET supplier_id = NULL
+        WHERE p.supplier_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM organizations o 
+              WHERE o.id::text = p.supplier_id::text
+          );
+        
+        RAISE NOTICE 'Set supplier_id to NULL for % orphaned products', orphaned_count;
+    ELSE
+        RAISE NOTICE 'No orphaned products found';
+    END IF;
+END $$;
+
+-- Step 7: Create the correct foreign key constraint
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -83,6 +115,18 @@ BEGIN
         WHERE constraint_name = 'products_supplier_id_fkey'
         AND table_name = 'products'
     ) THEN
+        -- Verify no orphaned products exist before creating constraint
+        IF EXISTS (
+            SELECT 1 FROM products p
+            WHERE p.supplier_id IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM organizations o 
+                  WHERE o.id = p.supplier_id
+              )
+        ) THEN
+            RAISE EXCEPTION 'Cannot create foreign key: orphaned products still exist. Please fix them first.';
+        END IF;
+        
         ALTER TABLE products
         ADD CONSTRAINT products_supplier_id_fkey
         FOREIGN KEY (supplier_id)
@@ -95,7 +139,7 @@ BEGIN
     END IF;
 END $$;
 
--- Step 7: Verify the fix
+-- Step 8: Verify the fix
 SELECT
     tc.constraint_name,
     tc.table_name,
