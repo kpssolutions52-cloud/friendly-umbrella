@@ -42,8 +42,6 @@ export async function getSupplierPrices(
         contains: productName,
         mode: 'insensitive',
       },
-      price: { not: null },
-      supplierId: { not: null },
       supplier: {
         type: 'supplier',
       },
@@ -92,8 +90,6 @@ export async function searchProducts(query: string): Promise<SupplierPriceData[]
         contains: query,
         mode: 'insensitive',
       },
-      price: { not: null },
-      supplierId: { not: null },
       supplier: {
         type: 'supplier',
       },
@@ -133,7 +129,6 @@ export async function getSupplierProducts(supplierId: string) {
   const products = await prisma.product.findMany({
     where: {
       supplierId,
-      price: { not: null },
       supplier: {
         type: 'supplier',
       },

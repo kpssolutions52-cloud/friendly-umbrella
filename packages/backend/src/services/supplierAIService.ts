@@ -230,8 +230,9 @@ export async function processSupplierCommand(
       unit: intent.unit || 'unit',
     });
     
+    let newProduct;
     try {
-      const newProduct = await prisma.product.create({
+      newProduct = await prisma.product.create({
         data: {
           supplierId: supplierOrg.id, // Use the verified organization ID
           name: intent.productName,
@@ -243,6 +244,15 @@ export async function processSupplierCommand(
       
       console.log('[supplierAIService] Product created successfully:', newProduct.id);
 
+      return {
+        answer: `✅ Added new product: ${newProduct.name} at $${Number(newProduct.price).toFixed(2)}/${newProduct.unit}`,
+        action: {
+          type: 'product_added',
+          data: {
+            product: newProduct,
+          },
+        },
+      };
     } catch (error: any) {
       console.error('Error creating product:', error);
       console.error('Error details:', {
@@ -282,16 +292,6 @@ export async function processSupplierCommand(
 
       throw error; // Re-throw unexpected errors
     }
-
-    return {
-      answer: `✅ Added new product: ${newProduct.name} at $${Number(newProduct.price).toFixed(2)}/${newProduct.unit}`,
-      action: {
-        type: 'product_added',
-        data: {
-          product: newProduct,
-        },
-      },
-    };
   } else if (intent.intent === 'view_products') {
     // List all products - NEW SCHEMA ONLY
     const products = await prisma.product.findMany({
