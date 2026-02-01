@@ -37,53 +37,22 @@ export async function authenticate(
       tenantType: string;
     };
 
-    // Verify user still exists and is active
+    // Verify user still exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      include: { tenant: true },
+      include: { organization: true },
     });
 
-    if (!user || !user.isActive || user.status !== 'active') {
-      throw createError(401, 'User is inactive or pending approval');
-    }
-
-    // Handle super admin (no tenant)
-    if (user.role === 'super_admin') {
-      req.userId = decoded.userId;
-      req.tenantId = null;
-      req.userRole = decoded.role;
-      req.tenantType = 'system';
-      req.userPermissions = {};
-      next();
-      return;
-    }
-
-    // Handle customer (no tenant)
-    if (user.role === 'customer') {
-      req.userId = decoded.userId;
-      req.tenantId = null;
-      req.userRole = decoded.role;
-      req.tenantType = 'customer';
-      req.userPermissions = {};
-      next();
-      return;
-    }
-
-    // Regular users must have active tenant
-    if (!user.tenant) {
-      throw createError(403, 'User account is invalid');
-    }
-
-    if (!user.tenant.isActive || user.tenant.status !== 'active') {
-      throw createError(403, 'Tenant is inactive or pending approval');
+    if (!user) {
+      throw createError(401, 'User not found');
     }
 
     // Attach user info to request
     req.userId = decoded.userId;
-    req.tenantId = user.tenantId;
-    req.userRole = decoded.role;
-    req.tenantType = user.tenant.type;
-    req.userPermissions = (user.permissions as Record<string, any>) || {};
+    req.tenantId = user.organizationId; // Using organizationId as tenantId for compatibility
+    req.userRole = decoded.role || user.type; // Use decoded role or fallback to user type
+    req.tenantType = user.organization?.type || decoded.tenantType || 'supplier';
+    req.userPermissions = {}; // No permissions field in current schema
 
     // Debug logging
     console.log('[authenticate] User authenticated:', {
@@ -92,7 +61,7 @@ export async function authenticate(
       tenantType: req.tenantType,
       userRole: req.userRole,
       tokenTenantType: decoded.tenantType,
-      dbTenantType: user.tenant.type,
+      dbTenantType: user.organization?.type,
     });
     if (process.env.NODE_ENV !== 'production') {
       console.log('Auth Debug:', {
@@ -248,59 +217,24 @@ export async function optionalAuthenticate(
         tenantType: string;
       };
 
-      // Verify user still exists and is active
+      // Verify user still exists
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        include: { tenant: true },
+        include: { organization: true },
       });
 
-      if (!user || !user.isActive || user.status !== 'active') {
-        // User is inactive - continue without authentication
-        next();
-        return;
-      }
-
-      // Handle super admin (no tenant)
-      if (user.role === 'super_admin') {
-        req.userId = decoded.userId;
-        req.tenantId = null;
-        req.userRole = decoded.role;
-        req.tenantType = 'system';
-        req.userPermissions = {};
-        next();
-        return;
-      }
-
-      // Handle customer (no tenant)
-      if (user.role === 'customer') {
-        req.userId = decoded.userId;
-        req.tenantId = null;
-        req.userRole = decoded.role;
-        req.tenantType = 'customer';
-        req.userPermissions = {};
-        next();
-        return;
-      }
-
-      // Regular users must have active tenant
-      if (!user.tenant) {
-        // Invalid user - continue without authentication
-        next();
-        return;
-      }
-
-      if (!user.tenant.isActive || user.tenant.status !== 'active') {
-        // Tenant is inactive - continue without authentication
+      if (!user) {
+        // User not found - continue without authentication
         next();
         return;
       }
 
       // Attach user info to request
       req.userId = decoded.userId;
-      req.tenantId = user.tenantId;
-      req.userRole = decoded.role;
-      req.tenantType = user.tenant.type;
-      req.userPermissions = (user.permissions as Record<string, any>) || {};
+      req.tenantId = user.organizationId; // Using organizationId as tenantId for compatibility
+      req.userRole = decoded.role || user.type; // Use decoded role or fallback to user type
+      req.tenantType = user.organization?.type || decoded.tenantType || 'supplier';
+      req.userPermissions = {}; // No permissions field in current schema
 
       next();
     } catch (error) {

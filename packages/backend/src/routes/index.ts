@@ -27,7 +27,6 @@ import { publicCategoryRoutes } from './publicCategoryRoutes';
 import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
 import qsProductRoutes from './qsProductRoutes';
 import publicRoutes from './publicRoutes';
-import publicRoutes from './publicRoutes';
 
 export function setupRoutes(app: Express) {
   // MVP 1: Simplified auth routes (2-step registration)
