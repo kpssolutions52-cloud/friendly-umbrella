@@ -39,6 +39,23 @@ interface Product {
   unit: string;
   createdAt: string;
   updatedAt: string;
+  stockAvailability?: string | null;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface SpecialPriceEntry {
+  companyId: string;
+  priceType: 'price' | 'discount';
+  price?: string;
+  discountPercentage?: string;
+  currency: string;
+  notes?: string;
+  expiry?: PriceExpiryInputType;
 }
 
 export default function SupplierChatPage() {
@@ -72,6 +89,13 @@ export default function SupplierChatPage() {
   });
   const [defaultPriceExpiry, setDefaultPriceExpiry] = useState<PriceExpiryInputType | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Special Prices state
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
+  const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
+  const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
 
   // Redirect if not authenticated or not supplier
   useEffect(() => {
@@ -483,6 +507,8 @@ export default function SupplierChatPage() {
   const handleAddProduct = () => {
     setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
     setDefaultPriceExpiry(undefined);
+    setDraftSpecialPrice(null);
+    setIncludedSpecialPrices([]);
     setEditingProduct(null);
     setShowAddForm(true);
   };
@@ -495,6 +521,8 @@ export default function SupplierChatPage() {
       stockAvailability: (product as any).stockAvailability || '',
     });
     setDefaultPriceExpiry(undefined);
+    setDraftSpecialPrice(null);
+    setIncludedSpecialPrices([]);
     setEditingProduct(product);
     setShowAddForm(true);
   };
@@ -523,6 +551,18 @@ export default function SupplierChatPage() {
         };
       }
 
+      // Add special prices if any
+      if (includedSpecialPrices.length > 0) {
+        payload.specialPrices = includedSpecialPrices.map(sp => ({
+          companyId: sp.companyId,
+          price: sp.price ? parseFloat(sp.price) : undefined,
+          discountPercentage: sp.discountPercentage ? parseFloat(sp.discountPercentage) : undefined,
+          currency: sp.currency,
+          notes: sp.notes,
+          expiry: sp.expiry,
+        }));
+      }
+
       if (editingProduct) {
         // Update existing product
         await apiPut(`/api/v1/products/${editingProduct.id}`, payload);
@@ -534,6 +574,8 @@ export default function SupplierChatPage() {
       setEditingProduct(null);
       setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
       setDefaultPriceExpiry(undefined);
+      setDraftSpecialPrice(null);
+      setIncludedSpecialPrices([]);
       await loadProducts();
       
       // Add success message to chat
@@ -1045,6 +1087,175 @@ export default function SupplierChatPage() {
                     onChange={setDefaultPriceExpiry}
                     effectiveFrom={new Date()}
                   />
+                </div>
+
+                {/* Special Prices Section */}
+                <div className="border-t border-blue-200 pt-3 mt-3 bg-blue-50 -mx-4 px-4 py-3 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-900">Special Prices for Selected Companies</Label>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Set custom prices or discounts for specific companies.
+                      </p>
+                    </div>
+                    {!draftSpecialPrice && (
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="sm"
+                        onClick={() => setDraftSpecialPrice({
+                          companyId: '',
+                          priceType: 'price',
+                          price: '',
+                          currency: 'USD',
+                          notes: '',
+                        })}
+                        disabled={loadingCompanies}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                      >
+                        + Add
+                      </Button>
+                    )}
+                  </div>
+
+                  {draftSpecialPrice && (
+                    <div className="border rounded-lg p-3 bg-white mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-700">Add Company Price</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDraftSpecialPrice(null)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <Label className="text-xs">Company *</Label>
+                          <select
+                            value={draftSpecialPrice.companyId}
+                            onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, companyId: e.target.value })}
+                            className="w-full h-8 text-xs rounded border border-input bg-background px-2"
+                            required
+                          >
+                            <option value="">Select company...</option>
+                            {companies.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={draftSpecialPrice.priceType === 'price' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'price', discountPercentage: '' })}
+                            className="text-xs h-7"
+                          >
+                            Price
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={draftSpecialPrice.priceType === 'discount' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'discount', price: '' })}
+                            className="text-xs h-7"
+                          >
+                            Discount %
+                          </Button>
+                        </div>
+                        {draftSpecialPrice.priceType === 'price' ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs">Price *</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={draftSpecialPrice.price}
+                                onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, price: e.target.value })}
+                                className="h-7 text-xs"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Currency</Label>
+                              <select
+                                value={draftSpecialPrice.currency}
+                                onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, currency: e.target.value })}
+                                className="w-full h-7 text-xs rounded border border-input bg-background px-2"
+                              >
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="SGD">SGD</option>
+                              </select>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <Label className="text-xs">Discount % *</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={draftSpecialPrice.discountPercentage}
+                              onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, discountPercentage: e.target.value })}
+                              className="h-7 text-xs"
+                              required
+                            />
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            if (draftSpecialPrice.companyId && (draftSpecialPrice.price || draftSpecialPrice.discountPercentage)) {
+                              setIncludedSpecialPrices([...includedSpecialPrices, draftSpecialPrice]);
+                              setDraftSpecialPrice(null);
+                            }
+                          }}
+                          className="w-full text-xs h-7 bg-blue-600"
+                          disabled={!draftSpecialPrice.companyId || (!draftSpecialPrice.price && !draftSpecialPrice.discountPercentage)}
+                        >
+                          Add to List
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {includedSpecialPrices.length > 0 && (
+                    <div className="space-y-2">
+                      {includedSpecialPrices.map((sp, idx) => (
+                        <div key={idx} className="bg-white border rounded p-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{companies.find(c => c.id === sp.companyId)?.name || 'Unknown'}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIncludedSpecialPrices(includedSpecialPrices.filter((_, i) => i !== idx))}
+                              className="h-5 w-5 p-0 text-red-600"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                          <div className="text-gray-600 mt-1">
+                            {sp.priceType === 'price' 
+                              ? `${sp.currency} ${sp.price}` 
+                              : `${sp.discountPercentage}% discount`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {includedSpecialPrices.length === 0 && !draftSpecialPrice && (
+                    <p className="text-xs text-gray-500 text-center py-2">No special prices set yet</p>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
