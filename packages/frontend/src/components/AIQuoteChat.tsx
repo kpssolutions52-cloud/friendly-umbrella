@@ -206,38 +206,102 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                     : 'bg-white border border-gray-200 shadow-sm'
                 }`}
               >
-                <div className={`prose prose-sm max-w-none break-words ${
-                  message.role === 'user'
-                    ? 'prose-invert prose-headings:text-white prose-p:text-white prose-strong:text-white prose-em:text-white prose-a:text-blue-200 prose-a:hover:text-blue-100 prose-code:text-white prose-pre:bg-blue-700 prose-pre:text-white'
-                    : 'prose-gray'
-                }`}>
+                <div className="break-words">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
+                      p: ({ children }) => (
+                        <p className={`mb-2 last:mb-0 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {children}
+                        </p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className={`font-semibold ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className={`italic ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {children}
+                        </em>
+                      ),
                       a: ({ href, children }) => (
                         <a
                           href={href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline hover:no-underline"
+                          className={message.role === 'user' 
+                            ? 'text-blue-200 hover:text-blue-100 underline' 
+                            : 'text-blue-600 hover:text-blue-800 underline'
+                          }
                         >
                           {children}
                         </a>
                       ),
                       code: ({ children, className }) => {
                         const isInline = !className;
-                        return isInline ? (
-                          <code className="bg-black/20 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
-                        ) : (
-                          <code className={className}>{children}</code>
+                        if (isInline) {
+                          return (
+                            <code className={`px-1 py-0.5 rounded text-xs font-mono ${
+                              message.role === 'user' 
+                                ? 'bg-white/20 text-white' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {children}
+                            </code>
+                          );
+                        }
+                        return (
+                          <code className={className}>
+                            <pre className={`p-3 rounded-lg overflow-x-auto mb-2 text-xs ${
+                              message.role === 'user'
+                                ? 'bg-white/10 text-white'
+                                : 'bg-gray-900 text-gray-100'
+                            }`}>
+                              {children}
+                            </pre>
+                          </code>
                         );
                       },
-                      ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
-                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      ul: ({ children }) => (
+                        <ul className={`list-disc ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className={`list-decimal ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className={`mb-1 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                          {children}
+                        </li>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 className={`text-xl font-bold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className={`text-lg font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className={`text-base font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                          {children}
+                        </h3>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className={`border-l-4 pl-3 italic my-2 ${
+                          message.role === 'user' 
+                            ? 'border-white/30 text-white/90' 
+                            : 'border-gray-300 text-gray-700'
+                        }`}>
+                          {children}
+                        </blockquote>
+                      ),
                     }}
                   >
                     {message.content}
@@ -248,12 +312,12 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                 {message.reasoning && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <p className="text-xs font-medium text-gray-500 mb-1">Why these results?</p>
-                    <div className="prose prose-sm max-w-none text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 break-words">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
                           p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
                           em: ({ children }) => <em className="italic">{children}</em>,
                           a: ({ href, children }) => (
                             <a
