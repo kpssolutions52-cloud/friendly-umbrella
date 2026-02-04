@@ -46,11 +46,12 @@ export function setupRoutes(app: Express) {
   app.use('/api/v1', publicCategoryRoutes);
   app.use('/api/v1', publicServiceCategoryRoutes);
   
+  // Supplier profile routes - register before qsProductRoutes to avoid route conflicts
+  app.use('/api/v1', supplierProfileRoutes);
+  console.log('✅ Supplier profile routes registered at /api/v1/supplier/profile');
+  
   // Routes for QS professionals to browse products and suppliers (requires authentication)
   app.use('/api/v1', qsProductRoutes);
-  
-  // Supplier profile routes
-  app.use('/api/v1', supplierProfileRoutes);
   
   // Price routes (for private prices and companies list)
   app.use('/api/v1', priceRoutes);

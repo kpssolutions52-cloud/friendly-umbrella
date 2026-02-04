@@ -33,6 +33,13 @@ const upload = multer({
 // GET /api/v1/supplier/profile - Get supplier profile
 router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    console.log('[supplier/profile] Route hit:', {
+      method: req.method,
+      path: req.path,
+      tenantId: req.tenantId,
+      tenantType: req.tenantType,
+    });
+    
     if (!req.tenantId) {
       throw createError(403, 'Tenant ID not found');
     }
@@ -53,8 +60,30 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
       },
     });
 
+    // If tenant doesn't exist, return empty profile structure to allow creation
     if (!tenant) {
-      throw createError(404, 'Supplier profile not found');
+      // Get user's email for the empty profile
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { email: true },
+      });
+
+      // Return a minimal profile structure with the tenantId
+      res.json({ 
+        profile: {
+          id: req.tenantId!,
+          name: '',
+          email: user?.email || '',
+          phone: null,
+          address: null,
+          postalCode: null,
+          logoUrl: null,
+          metadata: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      });
+      return;
     }
 
     res.json({ profile: tenant });
