@@ -92,50 +92,6 @@ export interface UpdatePrivatePriceInput {
   isActive?: boolean;
 }
 
-/**
- * Calculate expiry date from duration or custom date range
- * Default: 1 year from now if no expiry specified
- */
-function calculateExpiryDate(
-  expiry?: PriceExpiryInput,
-  effectiveFrom?: Date
-): Date | null {
-  const fromDate = effectiveFrom || new Date();
-
-  // If custom date range is provided
-  if (expiry?.expiryUntil) {
-    return expiry.expiryUntil;
-  }
-
-  // If duration is provided
-  if (expiry?.expiryDuration) {
-    const { value, unit } = expiry.expiryDuration;
-    const expiryDate = new Date(fromDate);
-
-    switch (unit) {
-      case 'minutes':
-        expiryDate.setMinutes(expiryDate.getMinutes() + value);
-        break;
-      case 'hours':
-        expiryDate.setHours(expiryDate.getHours() + value);
-        break;
-      case 'days':
-        expiryDate.setDate(expiryDate.getDate() + value);
-        break;
-      case 'months':
-        expiryDate.setMonth(expiryDate.getMonth() + value);
-        break;
-    }
-
-    return expiryDate;
-  }
-
-  // Default: 1 year from effectiveFrom or now
-  const defaultExpiry = new Date(fromDate);
-  defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
-  return defaultExpiry;
-}
-
 export class PriceService {
   /**
    * Update or create default price for a product
