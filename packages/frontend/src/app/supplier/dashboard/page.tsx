@@ -2546,11 +2546,43 @@ function DashboardContent() {
       {/* Old Edit Product Modal - Removed, now using inline edit form above */}
 
       {/* Delete Confirmation Modal */}
-                  <div>
-                    <Label htmlFor="edit-mainCategoryId">Main Category</Label>
-                    <select
-                      id="edit-mainCategoryId"
-                      name="mainCategoryId"
+      {deleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Delete Product</h2>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this product? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeleteConfirm(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDeleteProduct(deleteConfirm)}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
                       value={formData.mainCategoryId}
                       onChange={handleInputChange}
                       disabled={isSubmitting || loadingCategories}
