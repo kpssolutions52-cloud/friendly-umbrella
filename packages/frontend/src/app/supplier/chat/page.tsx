@@ -1103,27 +1103,44 @@ export default function SupplierChatPage() {
 
           {/* Add/Edit Form */}
           {showAddForm && (
-            <div className="bg-white border-b border-gray-200 px-4 py-4">
-              <h2 className="text-base font-semibold mb-3">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-              </h2>
-              <form onSubmit={handleSubmitProduct} className="space-y-3">
-                <div>
-                  <Label htmlFor="dashboard-name" className="text-sm">Product Name *</Label>
-                  <Input
-                    id="dashboard-name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                    placeholder="e.g., Cement"
-                    className="mt-1"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white border-b border-gray-200 px-4 py-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold">
+                  {editingProduct ? 'Edit Product' : 'Add New Product'}
+                </h2>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingProduct(null);
+                    setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+                    setDefaultPriceExpiry(undefined);
+                    setDraftSpecialPrice(null);
+                    setIncludedSpecialPrices([]);
+                  }}
+                  className="h-6 w-6 p-0"
+                >
+                  ×
+                </Button>
+              </div>
+              <form onSubmit={handleSubmitProduct} className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-3">
+                    <Label htmlFor="dashboard-name" className="text-xs">Product Name *</Label>
+                    <Input
+                      id="dashboard-name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      required
+                      className="h-8 text-sm mt-0.5"
+                    />
+                  </div>
                   <div>
-                    <Label htmlFor="dashboard-price" className="text-sm">Price *</Label>
+                    <Label htmlFor="dashboard-price" className="text-xs">Price *</Label>
                     <Input
                       id="dashboard-price"
                       type="number"
@@ -1133,12 +1150,11 @@ export default function SupplierChatPage() {
                         setFormData({ ...formData, price: e.target.value })
                       }
                       required
-                      placeholder="48.00"
-                      className="mt-1"
+                      className="h-8 text-sm mt-0.5"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="dashboard-unit" className="text-sm">Unit *</Label>
+                    <Label htmlFor="dashboard-unit" className="text-xs">Unit *</Label>
                     <Input
                       id="dashboard-unit"
                       value={formData.unit}
@@ -1146,57 +1162,39 @@ export default function SupplierChatPage() {
                         setFormData({ ...formData, unit: e.target.value })
                       }
                       required
-                      placeholder="e.g., bag, ton, kg"
-                      className="mt-1"
+                      className="h-8 text-sm mt-0.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dashboard-stockAvailability" className="text-xs">Stock</Label>
+                    <Input
+                      id="dashboard-stockAvailability"
+                      value={formData.stockAvailability}
+                      onChange={(e) =>
+                        setFormData({ ...formData, stockAvailability: e.target.value })
+                      }
+                      placeholder="in_stock"
+                      className="h-8 text-sm mt-0.5"
                     />
                   </div>
                 </div>
 
-                {/* Stock Availability */}
-                <div className="border-t border-green-200 pt-3 mt-3 bg-green-50 -mx-4 px-4 py-3 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <Label htmlFor="dashboard-stockAvailability" className="text-sm font-semibold text-gray-900">Stock Availability</Label>
+                {/* Price Expiry - Compact */}
+                <div className="border-t pt-2 mt-2">
+                  <Label className="text-xs">Price Expiry (Optional)</Label>
+                  <div className="mt-1">
+                    <PriceExpiryInput
+                      value={defaultPriceExpiry}
+                      onChange={setDefaultPriceExpiry}
+                      effectiveFrom={new Date()}
+                    />
                   </div>
-                  <Input
-                    id="dashboard-stockAvailability"
-                    value={formData.stockAvailability}
-                    onChange={(e) =>
-                      setFormData({ ...formData, stockAvailability: e.target.value })
-                    }
-                    placeholder="in_stock, out_of_stock, low_stock, etc."
-                    className="mt-1 bg-white"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
                 </div>
 
-                {/* Price Expiry */}
-                <div className="border-t border-blue-200 pt-3 mt-3 bg-blue-50 -mx-4 px-4 py-3 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <Label className="text-sm font-semibold text-gray-900">Default Price Expiry (Optional)</Label>
-                  </div>
-                  <p className="text-xs text-gray-600 mb-2">Set when this default price will expire. Leave as default for 1 year expiry.</p>
-                  <PriceExpiryInput
-                    value={defaultPriceExpiry}
-                    onChange={setDefaultPriceExpiry}
-                    effectiveFrom={new Date()}
-                  />
-                </div>
-
-                {/* Special Prices Section */}
-                <div className="border-t border-blue-200 pt-3 mt-3 bg-blue-50 -mx-4 px-4 py-3 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <Label className="text-sm font-semibold text-gray-900">Special Prices for Selected Companies</Label>
-                      <p className="text-xs text-gray-600 mt-1">
-                        Set custom prices or discounts for specific companies.
-                      </p>
-                    </div>
+                {/* Special Prices Section - Compact */}
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold">Special Prices</Label>
                     {!draftSpecialPrice && (
                       <Button
                         type="button"
@@ -1210,7 +1208,7 @@ export default function SupplierChatPage() {
                           notes: '',
                         })}
                         disabled={loadingCompanies}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-6 px-2"
                       >
                         + Add
                       </Button>
@@ -1218,41 +1216,41 @@ export default function SupplierChatPage() {
                   </div>
 
                   {draftSpecialPrice && (
-                    <div className="border rounded-lg p-3 bg-white mb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-700">Add Company Price</span>
+                    <div className="border rounded p-2 bg-gray-50 mb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium">Add Company Price</span>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => setDraftSpecialPrice(null)}
-                          className="h-6 px-2 text-xs"
+                          className="h-5 w-5 p-0 text-xs"
                         >
-                          Cancel
+                          ×
                         </Button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <div>
                           <Label className="text-xs">Company *</Label>
                           <select
                             value={draftSpecialPrice.companyId}
                             onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, companyId: e.target.value })}
-                            className="w-full h-8 text-xs rounded border border-input bg-background px-2"
+                            className="w-full h-7 text-xs rounded border border-input bg-background px-2"
                             required
                           >
-                            <option value="">Select company...</option>
+                            <option value="">Select...</option>
                             {companies.map((c) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                           </select>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             type="button"
                             variant={draftSpecialPrice.priceType === 'price' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'price', discountPercentage: '' })}
-                            className="text-xs h-7"
+                            className="text-xs h-6 flex-1"
                           >
                             Price
                           </Button>
@@ -1261,13 +1259,13 @@ export default function SupplierChatPage() {
                             variant={draftSpecialPrice.priceType === 'discount' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'discount', price: '' })}
-                            className="text-xs h-7"
+                            className="text-xs h-6 flex-1"
                           >
                             Discount %
                           </Button>
                         </div>
                         {draftSpecialPrice.priceType === 'price' ? (
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-1.5">
                             <div>
                               <Label className="text-xs">Price *</Label>
                               <Input
@@ -1317,35 +1315,35 @@ export default function SupplierChatPage() {
                               setDraftSpecialPrice(null);
                             }
                           }}
-                          className="w-full text-xs h-7 bg-blue-600"
+                          className="w-full text-xs h-6 bg-blue-600"
                           disabled={!draftSpecialPrice.companyId || (!draftSpecialPrice.price && !draftSpecialPrice.discountPercentage)}
                         >
-                          Add to List
+                          Add
                         </Button>
                       </div>
                     </div>
                   )}
 
                   {includedSpecialPrices.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {includedSpecialPrices.map((sp, idx) => (
-                        <div key={idx} className="bg-white border rounded p-2 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{companies.find(c => c.id === sp.companyId)?.name || 'Unknown'}</span>
+                        <div key={idx} className="bg-white border rounded p-1.5 text-xs flex items-center justify-between">
+                          <span className="font-medium">{companies.find(c => c.id === sp.companyId)?.name || 'Unknown'}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600">
+                              {sp.priceType === 'price' 
+                                ? `${sp.currency} ${sp.price}` 
+                                : `${sp.discountPercentage}%`}
+                            </span>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => setIncludedSpecialPrices(includedSpecialPrices.filter((_, i) => i !== idx))}
-                              className="h-5 w-5 p-0 text-red-600"
+                              className="h-4 w-4 p-0 text-red-600"
                             >
                               ×
                             </Button>
-                          </div>
-                          <div className="text-gray-600 mt-1">
-                            {sp.priceType === 'price' 
-                              ? `${sp.currency} ${sp.price}` 
-                              : `${sp.discountPercentage}% discount`}
                           </div>
                         </div>
                       ))}
@@ -1353,11 +1351,11 @@ export default function SupplierChatPage() {
                   )}
 
                   {includedSpecialPrices.length === 0 && !draftSpecialPrice && (
-                    <p className="text-xs text-gray-500 text-center py-2">No special prices set yet</p>
+                    <p className="text-xs text-gray-400 text-center py-1">None</p>
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2 border-t mt-2">
                   <Button 
                     type="submit" 
                     disabled={submitting}
