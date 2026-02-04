@@ -4,11 +4,70 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { broadcastPriceUpdate } from '../websocket/handlers/priceUpdates';
 import { getSocketIO } from '../utils/socket';
 
+/**
+ * Calculate expiry date from duration or custom date range
+ * Default: 1 year from now if no expiry specified
+ */
+export function calculateExpiryDate(
+  expiry?: PriceExpiryInput,
+  effectiveFrom?: Date
+): Date | null {
+  const fromDate = effectiveFrom || new Date();
+
+  // If custom date range is provided
+  if (expiry?.expiryUntil) {
+    return expiry.expiryUntil;
+  }
+
+  // If duration is provided
+  if (expiry?.expiryDuration) {
+    const { value, unit } = expiry.expiryDuration;
+    const expiryDate = new Date(fromDate);
+
+    switch (unit) {
+      case 'minutes':
+        expiryDate.setMinutes(expiryDate.getMinutes() + value);
+        break;
+      case 'hours':
+        expiryDate.setHours(expiryDate.getHours() + value);
+        break;
+      case 'days':
+        expiryDate.setDate(expiryDate.getDate() + value);
+        break;
+      case 'months':
+        expiryDate.setMonth(expiryDate.getMonth() + value);
+        break;
+    }
+
+    return expiryDate;
+  }
+
+  // Default: 1 year from effectiveFrom or now
+  const defaultExpiry = new Date(fromDate);
+  defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
+  return defaultExpiry;
+}
+
+export type ExpiryDurationUnit = 'minutes' | 'hours' | 'days' | 'months';
+
+export interface ExpiryDuration {
+  value: number;
+  unit: ExpiryDurationUnit;
+}
+
+export interface PriceExpiryInput {
+  // Either use duration or custom date range
+  expiryDuration?: ExpiryDuration; // e.g., { value: 30, unit: 'days' }
+  expiryFrom?: Date; // Custom date range start
+  expiryUntil?: Date; // Custom date range end
+}
+
 export interface UpdateDefaultPriceInput {
   price: number;
   currency?: string;
   effectiveFrom?: Date;
   effectiveUntil?: Date | null;
+  expiry?: PriceExpiryInput; // New expiry input
 }
 
 export interface CreatePrivatePriceInput {
@@ -18,6 +77,7 @@ export interface CreatePrivatePriceInput {
   currency?: string;
   effectiveFrom?: Date;
   effectiveUntil?: Date | null;
+  expiry?: PriceExpiryInput; // New expiry input
   notes?: string;
 }
 
@@ -27,8 +87,53 @@ export interface UpdatePrivatePriceInput {
   currency?: string;
   effectiveFrom?: Date;
   effectiveUntil?: Date | null;
+  expiry?: PriceExpiryInput; // New expiry input
   notes?: string;
   isActive?: boolean;
+}
+
+/**
+ * Calculate expiry date from duration or custom date range
+ * Default: 1 year from now if no expiry specified
+ */
+function calculateExpiryDate(
+  expiry?: PriceExpiryInput,
+  effectiveFrom?: Date
+): Date | null {
+  const fromDate = effectiveFrom || new Date();
+
+  // If custom date range is provided
+  if (expiry?.expiryUntil) {
+    return expiry.expiryUntil;
+  }
+
+  // If duration is provided
+  if (expiry?.expiryDuration) {
+    const { value, unit } = expiry.expiryDuration;
+    const expiryDate = new Date(fromDate);
+
+    switch (unit) {
+      case 'minutes':
+        expiryDate.setMinutes(expiryDate.getMinutes() + value);
+        break;
+      case 'hours':
+        expiryDate.setHours(expiryDate.getHours() + value);
+        break;
+      case 'days':
+        expiryDate.setDate(expiryDate.getDate() + value);
+        break;
+      case 'months':
+        expiryDate.setMonth(expiryDate.getMonth() + value);
+        break;
+    }
+
+    return expiryDate;
+  }
+
+  // Default: 1 year from effectiveFrom or now
+  const defaultExpiry = new Date(fromDate);
+  defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
+  return defaultExpiry;
 }
 
 export class PriceService {
@@ -77,14 +182,22 @@ export class PriceService {
         });
       }
 
+      // Calculate expiry date
+      const effectiveFromDate = input.effectiveFrom || new Date();
+      const effectiveUntil = input.effectiveUntil !== undefined 
+        ? input.effectiveUntil 
+        : (input.expiry 
+            ? calculateExpiryDate(input.expiry, effectiveFromDate)
+            : calculateExpiryDate(undefined, effectiveFromDate)); // Default 1 year
+
       // Create new price entry
       const defaultPrice = await tx.defaultPrice.create({
         data: {
           productId,
           price: new Decimal(newPrice),
           currency: input.currency || 'USD',
-          effectiveFrom: input.effectiveFrom || new Date(),
-          effectiveUntil: input.effectiveUntil || null,
+          effectiveFrom: effectiveFromDate,
+          effectiveUntil: effectiveUntil,
           isActive: true,
         },
       });
@@ -195,6 +308,14 @@ export class PriceService {
         });
       }
 
+      // Calculate expiry date
+      const effectiveFromDate = input.effectiveFrom || new Date();
+      const effectiveUntil = input.effectiveUntil !== undefined 
+        ? input.effectiveUntil 
+        : (input.expiry 
+            ? calculateExpiryDate(input.expiry, effectiveFromDate)
+            : calculateExpiryDate(undefined, effectiveFromDate)); // Default 1 year
+
       // Create new private price
       const privatePrice = await tx.privatePrice.create({
         data: {
@@ -203,8 +324,8 @@ export class PriceService {
           price: input.price ? new Decimal(input.price) : null,
           discountPercentage: input.discountPercentage !== undefined ? new Decimal(input.discountPercentage) : null,
           currency: input.currency || 'USD',
-          effectiveFrom: input.effectiveFrom || new Date(),
-          effectiveUntil: input.effectiveUntil || null,
+          effectiveFrom: effectiveFromDate,
+          effectiveUntil: effectiveUntil,
           notes: input.notes,
           isActive: true,
         },
@@ -508,7 +629,7 @@ export class PriceService {
         isActive: true,
       },
       include: {
-        company: {
+        tenant: {
           select: {
             id: true,
             name: true,
@@ -543,12 +664,11 @@ export class PriceService {
         productId,
       },
       include: {
-        changedByUser: {
+        user: {
           select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
+            name: true,
           },
         },
       },
@@ -556,6 +676,102 @@ export class PriceService {
         changedAt: 'desc',
       },
       take: 100, // Limit to last 100 changes
+    });
+  }
+
+  /**
+   * Clean up expired prices and revert to default prices
+   * This should be called by a scheduled job
+   */
+  async cleanupExpiredPrices() {
+    const now = new Date();
+    
+    return prisma.$transaction(async (tx) => {
+      // Find all expired private prices
+      const expiredPrivatePrices = await tx.privatePrice.findMany({
+        where: {
+          isActive: true,
+          effectiveUntil: {
+            lt: now,
+          },
+        },
+        include: {
+          product: {
+            include: {
+              defaultPrices: {
+                where: {
+                  isActive: true,
+                  OR: [
+                    { effectiveUntil: null },
+                    { effectiveUntil: { gte: now } },
+                  ],
+                },
+                orderBy: { effectiveFrom: 'desc' },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+
+      // Deactivate expired private prices
+      const expiredIds = expiredPrivatePrices.map(p => p.id);
+      if (expiredIds.length > 0) {
+        await tx.privatePrice.updateMany({
+          where: {
+            id: { in: expiredIds },
+          },
+          data: {
+            isActive: false,
+          },
+        });
+
+        // Log the cleanup
+        for (const expiredPrice of expiredPrivatePrices) {
+          const defaultPrice = expiredPrice.product.defaultPrices[0];
+          if (defaultPrice) {
+            await tx.priceAuditLog.create({
+              data: {
+                productId: expiredPrice.productId,
+                priceType: 'private',
+                companyId: expiredPrice.companyId,
+                oldPrice: expiredPrice.price,
+                newPrice: defaultPrice.price,
+                changedBy: 'system',
+                changeReason: `Private price expired and reverted to default price`,
+              },
+            }).catch(() => {
+              // Ignore audit log errors
+            });
+          }
+        }
+      }
+
+      // Find all expired default prices (shouldn't happen often, but handle it)
+      const expiredDefaultPrices = await tx.defaultPrice.findMany({
+        where: {
+          isActive: true,
+          effectiveUntil: {
+            lt: now,
+          },
+        },
+      });
+
+      if (expiredDefaultPrices.length > 0) {
+        await tx.defaultPrice.updateMany({
+          where: {
+            id: { in: expiredDefaultPrices.map(p => p.id) },
+          },
+          data: {
+            isActive: false,
+          },
+        });
+      }
+
+      return {
+        expiredPrivatePrices: expiredIds.length,
+        expiredDefaultPrices: expiredDefaultPrices.length,
+      };
     });
   }
 }

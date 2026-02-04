@@ -47,15 +47,7 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
         address: true,
         postalCode: true,
         logoUrl: true,
-        registrationNumber: true,
-        contactPerson: true,
-        website: true,
-        taxId: true,
-        businessLicense: true,
-        description: true,
-        city: true,
-        state: true,
-        country: true,
+        metadata: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -126,20 +118,30 @@ router.put(
         country
       } = req.body;
 
+      // Get current tenant to preserve existing metadata
+      const currentTenant = await prisma.tenant.findUnique({
+        where: { id: req.tenantId },
+        select: { metadata: true },
+      });
+
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (phone !== undefined) updateData.phone = phone;
       if (address !== undefined) updateData.address = address;
       if (postalCode !== undefined) updateData.postalCode = postalCode;
-      if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber;
-      if (contactPerson !== undefined) updateData.contactPerson = contactPerson;
-      if (website !== undefined) updateData.website = website;
-      if (taxId !== undefined) updateData.taxId = taxId;
-      if (businessLicense !== undefined) updateData.businessLicense = businessLicense;
-      if (description !== undefined) updateData.description = description;
-      if (city !== undefined) updateData.city = city;
-      if (state !== undefined) updateData.state = state;
-      if (country !== undefined) updateData.country = country;
+
+      // Store extra fields in metadata JSON
+      const metadata = (currentTenant?.metadata as Record<string, any>) || {};
+      if (registrationNumber !== undefined) metadata.registrationNumber = registrationNumber;
+      if (contactPerson !== undefined) metadata.contactPerson = contactPerson;
+      if (website !== undefined) metadata.website = website;
+      if (taxId !== undefined) metadata.taxId = taxId;
+      if (businessLicense !== undefined) metadata.businessLicense = businessLicense;
+      if (description !== undefined) metadata.description = description;
+      if (city !== undefined) metadata.city = city;
+      if (state !== undefined) metadata.state = state;
+      if (country !== undefined) metadata.country = country;
+      updateData.metadata = metadata;
 
       const updated = await prisma.tenant.update({
         where: { id: req.tenantId },
@@ -152,15 +154,7 @@ router.put(
           address: true,
           postalCode: true,
           logoUrl: true,
-          registrationNumber: true,
-          contactPerson: true,
-          website: true,
-          taxId: true,
-          businessLicense: true,
-          description: true,
-          city: true,
-          state: true,
-          country: true,
+          metadata: true,
           updatedAt: true,
         },
       });
