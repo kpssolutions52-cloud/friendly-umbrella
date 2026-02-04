@@ -18,6 +18,15 @@ interface SupplierProfile {
   address: string | null;
   postalCode: string | null;
   logoUrl: string | null;
+  registrationNumber: string | null;
+  contactPerson: string | null;
+  website: string | null;
+  taxId: string | null;
+  businessLicense: string | null;
+  description: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +55,15 @@ function ProfileContent() {
     phone: '',
     address: '',
     postalCode: '',
+    registrationNumber: '',
+    contactPerson: '',
+    website: '',
+    taxId: '',
+    businessLicense: '',
+    description: '',
+    city: '',
+    state: '',
+    country: '',
   });
 
   useEffect(() => {
@@ -63,6 +81,15 @@ function ProfileContent() {
         phone: response.profile.phone || '',
         address: response.profile.address || '',
         postalCode: response.profile.postalCode || '',
+        registrationNumber: response.profile.registrationNumber || '',
+        contactPerson: response.profile.contactPerson || '',
+        website: response.profile.website || '',
+        taxId: response.profile.taxId || '',
+        businessLicense: response.profile.businessLicense || '',
+        description: response.profile.description || '',
+        city: response.profile.city || '',
+        state: response.profile.state || '',
+        country: response.profile.country || '',
       });
       setPreviewUrl(response.profile.logoUrl);
     } catch (err: any) {
@@ -300,66 +327,193 @@ function ProfileContent() {
 
             {/* Profile Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="name">Company Name *</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="mt-1"
-                  />
-                </div>
+              <div className="border-b border-gray-200 pb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="name">Company Name *</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile?.email || ''}
-                    disabled
-                    className="mt-1 bg-gray-50"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
-                </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile?.email || ''}
+                      disabled
+                      className="mt-1 bg-gray-50"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+                  </div>
 
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-1"
-                    placeholder="+1234567890"
-                  />
-                </div>
+                  <div>
+                    <Label htmlFor="registrationNumber">Registration Number</Label>
+                    <Input
+                      id="registrationNumber"
+                      type="text"
+                      value={formData.registrationNumber}
+                      onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                      className="mt-1"
+                      placeholder="Company registration number"
+                    />
+                  </div>
 
-                <div>
-                  <Label htmlFor="postalCode">Postal Code</Label>
-                  <Input
-                    id="postalCode"
-                    type="text"
-                    value={formData.postalCode}
-                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    className="mt-1"
-                    placeholder="12345"
-                  />
+                  <div>
+                    <Label htmlFor="contactPerson">Contact Person</Label>
+                    <Input
+                      id="contactPerson"
+                      type="text"
+                      value={formData.contactPerson}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      className="mt-1"
+                      placeholder="Primary contact person name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="mt-1"
+                      placeholder="+1234567890"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="website">Website</Label>
+                    <Input
+                      id="website"
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      className="mt-1"
+                      placeholder="https://www.example.com"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-gray-200 pb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <textarea
+                      id="address"
+                      rows={3}
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      placeholder="Street address"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="mt-1"
+                      placeholder="City"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="state">State/Province</Label>
+                    <Input
+                      id="state"
+                      type="text"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                      className="mt-1"
+                      placeholder="State or Province"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      type="text"
+                      value={formData.postalCode}
+                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                      className="mt-1"
+                      placeholder="12345"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      type="text"
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      className="mt-1"
+                      placeholder="Country"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-gray-200 pb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="taxId">Tax ID</Label>
+                    <Input
+                      id="taxId"
+                      type="text"
+                      value={formData.taxId}
+                      onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                      className="mt-1"
+                      placeholder="Tax identification number"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="businessLicense">Business License</Label>
+                    <Input
+                      id="businessLicense"
+                      type="text"
+                      value={formData.businessLicense}
+                      onChange={(e) => setFormData({ ...formData, businessLicense: e.target.value })}
+                      className="mt-1"
+                      placeholder="Business license number"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="address">Address</Label>
-                <textarea
-                  id="address"
-                  rows={3}
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Street address"
-                />
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Company Description</h2>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <textarea
+                    id="description"
+                    rows={5}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="Brief description of your company and services..."
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    This description will be visible to QS professionals when they view your supplier profile.
+                  </p>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3">

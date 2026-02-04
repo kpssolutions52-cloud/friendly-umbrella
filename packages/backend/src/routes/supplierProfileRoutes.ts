@@ -47,6 +47,15 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
         address: true,
         postalCode: true,
         logoUrl: true,
+        registrationNumber: true,
+        contactPerson: true,
+        website: true,
+        taxId: true,
+        businessLicense: true,
+        description: true,
+        city: true,
+        state: true,
+        country: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -71,6 +80,24 @@ router.put(
     body('phone').optional().isString().isLength({ max: 50 }),
     body('address').optional().isString(),
     body('postalCode').optional().isString().isLength({ max: 20 }),
+    body('registrationNumber').optional().isString().isLength({ max: 100 }),
+    body('contactPerson').optional().isString().isLength({ max: 255 }),
+    body('website').optional().custom((value) => {
+      if (!value || value === '') return true; // Allow empty string
+      // Validate URL format if provided
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error('Website must be a valid URL');
+      }
+    }),
+    body('taxId').optional().isString().isLength({ max: 100 }),
+    body('businessLicense').optional().isString().isLength({ max: 100 }),
+    body('description').optional().isString(),
+    body('city').optional().isString().isLength({ max: 100 }),
+    body('state').optional().isString().isLength({ max: 100 }),
+    body('country').optional().isString().isLength({ max: 100 }),
   ],
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -83,13 +110,36 @@ router.put(
         throw createError(403, 'Tenant ID not found');
       }
 
-      const { name, phone, address, postalCode } = req.body;
+      const { 
+        name, 
+        phone, 
+        address, 
+        postalCode,
+        registrationNumber,
+        contactPerson,
+        website,
+        taxId,
+        businessLicense,
+        description,
+        city,
+        state,
+        country
+      } = req.body;
 
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (phone !== undefined) updateData.phone = phone;
       if (address !== undefined) updateData.address = address;
       if (postalCode !== undefined) updateData.postalCode = postalCode;
+      if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber;
+      if (contactPerson !== undefined) updateData.contactPerson = contactPerson;
+      if (website !== undefined) updateData.website = website;
+      if (taxId !== undefined) updateData.taxId = taxId;
+      if (businessLicense !== undefined) updateData.businessLicense = businessLicense;
+      if (description !== undefined) updateData.description = description;
+      if (city !== undefined) updateData.city = city;
+      if (state !== undefined) updateData.state = state;
+      if (country !== undefined) updateData.country = country;
 
       const updated = await prisma.tenant.update({
         where: { id: req.tenantId },
@@ -102,6 +152,15 @@ router.put(
           address: true,
           postalCode: true,
           logoUrl: true,
+          registrationNumber: true,
+          contactPerson: true,
+          website: true,
+          taxId: true,
+          businessLicense: true,
+          description: true,
+          city: true,
+          state: true,
+          country: true,
           updatedAt: true,
         },
       });

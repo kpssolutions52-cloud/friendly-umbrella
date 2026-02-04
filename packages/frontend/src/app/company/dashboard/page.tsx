@@ -46,9 +46,17 @@ interface SearchProduct {
 interface SupplierInfo {
   id: string;
   name: string;
+  email: string | null;
   phone: string | null;
   address: string | null;
   logoUrl: string | null;
+  registrationNumber: string | null;
+  contactPerson: string | null;
+  website: string | null;
+  description: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
 }
 
 interface ProductImage {
