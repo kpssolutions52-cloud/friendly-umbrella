@@ -410,9 +410,17 @@ function DashboardContent() {
         newMap.set(productKey, {
           id: product.supplierId,
           name: product.supplierName,
+          email: null,
           phone: null,
           address: null,
           logoUrl: null,
+          registrationNumber: null,
+          contactPerson: null,
+          website: null,
+          description: null,
+          city: null,
+          state: null,
+          country: null,
         });
         return newMap;
       });

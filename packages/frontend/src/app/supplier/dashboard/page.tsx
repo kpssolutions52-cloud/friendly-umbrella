@@ -45,6 +45,7 @@ interface Product {
     } | null;
   } | null;
   unit: string;
+  stockAvailability: string | null;
   isActive: boolean;
   defaultPrices: Array<{
     id: string;
@@ -114,6 +115,7 @@ function DashboardContent() {
     categoryId: string;
     mainCategoryId: string;
     unit: string;
+    stockAvailability: string;
     defaultPrice: string;
     currency: string;
   }>({
@@ -123,6 +125,7 @@ function DashboardContent() {
     categoryId: '',
     mainCategoryId: '',
     unit: '',
+    stockAvailability: '',
     defaultPrice: '',
     currency: 'USD',
   });
@@ -521,6 +524,7 @@ function DashboardContent() {
         categoryId: '',
         mainCategoryId: '',
         unit: '',
+        stockAvailability: '',
         defaultPrice: '',
         currency: 'USD',
       });
@@ -563,6 +567,7 @@ function DashboardContent() {
         categoryId: '',
         mainCategoryId: '',
         unit: '',
+        stockAvailability: '',
         defaultPrice: '',
         currency: 'USD',
       });
@@ -707,6 +712,7 @@ function DashboardContent() {
         categoryId: subCategoryId,
         mainCategoryId: mainCategoryId,
         unit: fullProduct.unit,
+        stockAvailability: fullProduct.stockAvailability || '',
         defaultPrice: fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0 
           ? fullProduct.defaultPrices[0].price.toString() 
           : '',
@@ -806,6 +812,7 @@ function DashboardContent() {
         description: formData.description || undefined,
         categoryId: finalCategoryId,
         unit: formData.unit,
+        stockAvailability: formData.stockAvailability || undefined,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
 
@@ -836,6 +843,7 @@ function DashboardContent() {
         categoryId: '',
         mainCategoryId: '',
         unit: '',
+        stockAvailability: '',
         defaultPrice: '',
         currency: 'USD',
       });
@@ -1175,6 +1183,9 @@ function DashboardContent() {
                         Price
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stock Availability
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1209,6 +1220,15 @@ function DashboardContent() {
                             </span>
                           ) : (
                             <span className="text-gray-400">No price</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {product.stockAvailability ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                              {product.stockAvailability}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1303,6 +1323,14 @@ function DashboardContent() {
                             )}
                           </span>
                         </div>
+                        {product.stockAvailability && (
+                          <div className="col-span-2">
+                            <span className="text-gray-500">Stock:</span>
+                            <span className="ml-1 inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                              {product.stockAvailability}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col gap-2">
                         <Button
@@ -1997,6 +2025,18 @@ function DashboardContent() {
                       disabled={isSubmitting}
                       placeholder="piece, kg, m, etc."
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
+                    <Input
+                      id="edit-stockAvailability"
+                      name="stockAvailability"
+                      value={formData.stockAvailability}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      placeholder="in_stock, out_of_stock, low_stock, etc."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
                   </div>
                 </div>
 

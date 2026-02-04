@@ -113,8 +113,33 @@ const tools = [
             type: 'string',
             description: 'Optional: The unit of measurement (e.g., "bag", "ton", "kg")',
           },
+          stockAvailability: {
+            type: 'string',
+            description: 'Optional: Stock availability status (e.g., "in_stock", "out_of_stock", "low_stock", or specific quantity/status info)',
+          },
         },
         required: ['productName', 'price'],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'update_product_stock',
+      description: 'Update the stock availability of an existing product. Use this when user wants to change stock status (e.g., "Set cement stock to in stock", "Update steel availability to out of stock", "Mark paint as low stock").',
+      parameters: {
+        type: 'object',
+        properties: {
+          productName: {
+            type: 'string',
+            description: 'The name of the product to update (can be partial match)',
+          },
+          stockAvailability: {
+            type: 'string',
+            description: 'Stock availability status (e.g., "in_stock", "out_of_stock", "low_stock", or specific quantity/status information)',
+          },
+        },
+        required: ['productName', 'stockAvailability'],
       },
     },
   },
@@ -183,6 +208,7 @@ async function executeTool(
           unit: product.unit,
           price: unitPrice,
           currency: currency,
+          stockAvailability: product.stockAvailability || null,
         },
       };
     }
@@ -247,6 +273,7 @@ async function executeTool(
           unit: p.unit,
           price,
           currency,
+          stockAvailability: p.stockAvailability || null,
         };
       });
 
@@ -339,11 +366,19 @@ async function executeTool(
       if (args.unit) {
         updateData.unit = args.unit;
       }
+      if (args.stockAvailability) {
+        updateData.stockAvailability = args.stockAvailability;
+      }
 
       const updatedProduct = await prisma.product.update({
         where: { id: product.id },
         data: updateData,
       });
+
+      let message = `Updated ${updatedProduct.name} price to $${args.price}/${updatedProduct.unit}`;
+      if (args.stockAvailability) {
+        message += ` and stock availability to ${args.stockAvailability}`;
+      }
 
       return {
         success: true,
@@ -352,8 +387,45 @@ async function executeTool(
           name: updatedProduct.name,
           unit: updatedProduct.unit,
           price: Number(updatedProduct.price),
+          stockAvailability: updatedProduct.stockAvailability,
         },
-        message: `Updated ${updatedProduct.name} price to $${args.price}/${updatedProduct.unit}`,
+        message,
+      };
+    }
+
+    case 'update_product_stock': {
+      const product = await prisma.product.findFirst({
+        where: {
+          supplierId,
+          name: {
+            contains: args.productName,
+            mode: 'insensitive',
+          },
+        },
+      });
+
+      if (!product) {
+        return {
+          success: false,
+          error: `Product "${args.productName}" not found in your inventory.`,
+        };
+      }
+
+      const updatedProduct = await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          stockAvailability: args.stockAvailability,
+        },
+      });
+
+      return {
+        success: true,
+        product: {
+          id: updatedProduct.id,
+          name: updatedProduct.name,
+          stockAvailability: updatedProduct.stockAvailability,
+        },
+        message: `Updated ${updatedProduct.name} stock availability to ${args.stockAvailability}`,
       };
     }
 
@@ -415,7 +487,8 @@ export async function processSupplierCommandEnhanced(
     .map((p) => {
       const price = Number(p.price) || 0;
       const currency = 'USD'; // Default currency
-      return `- ${p.name}: ${currency} ${price.toFixed(2)}/${p.unit}`;
+      const stockInfo = p.stockAvailability ? ` (Stock: ${p.stockAvailability})` : '';
+      return `- ${p.name}: ${currency} ${price.toFixed(2)}/${p.unit}${stockInfo}`;
     })
     .join('\n');
 
@@ -428,10 +501,14 @@ You have access to the following tools:
 - list_products: List all products
 - calculate_multi_product_total: Calculate total for multiple different products
 - update_product_price: ✅ UPDATE the price of an existing product (e.g., "Update steel price to $500")
+- update_product_stock: ✅ UPDATE the stock availability of an existing product (e.g., "Set cement stock to in stock", "Mark steel as out of stock")
 - add_product: ✅ ADD a new product to inventory (e.g., "Add paint at $25 per gallon")
 
-IMPORTANT: You CAN and SHOULD update product prices! If a supplier asks to update a price, use the update_product_price tool.
-If they ask "why can't you update prices", explain that you CAN update prices and use the tool to do it.
+IMPORTANT: You CAN and SHOULD update product prices and stock availability! 
+- If a supplier asks to update a price, use the update_product_price tool.
+- If a supplier asks to update stock availability, use the update_product_stock tool.
+- You can also update both price and stock in a single update_product_price call if both are mentioned.
+If they ask "why can't you update prices/stock", explain that you CAN update them and use the appropriate tool.
 
 Your product inventory:
 ${productContext || 'No products yet'}
@@ -439,11 +516,12 @@ ${productContext || 'No products yet'}
 When answering questions:
 1. Use tools to get accurate, up-to-date information
 2. For price updates, use update_product_price tool
-3. For adding products, use add_product tool
-4. Perform calculations step by step
-5. Provide clear, formatted responses
-6. If a product isn't found, suggest similar products or ask for clarification
-7. For complex queries involving multiple products, use calculate_multi_product_total
+3. For stock availability updates, use update_product_stock tool (or update_product_price if updating both)
+4. For adding products, use add_product tool
+5. Perform calculations step by step
+6. Provide clear, formatted responses
+7. If a product isn't found, suggest similar products or ask for clarification
+8. For complex queries involving multiple products, use calculate_multi_product_total
 
 Be helpful, accurate, and concise. Always use tools to get real data rather than guessing.`;
 
@@ -527,8 +605,8 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
         type: 'products_listed',
         data: { products: allProducts },
       };
-    } else if (toolsUsed.includes('update_product_price')) {
-      // Find the tool result for update_product_price
+    } else if (toolsUsed.includes('update_product_price') || toolsUsed.includes('update_product_stock')) {
+      // Find the tool result for update_product_price or update_product_stock
       const updateToolCall = messages
         .filter((m) => m.role === 'tool')
         .map((m) => {
@@ -541,13 +619,24 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
         .find((result) => result?.success && result?.product);
 
       if (updateToolCall?.product) {
-        action = {
-          type: 'price_updated',
-          data: {
-            product: updateToolCall.product,
-            price: updateToolCall.product.price,
-          },
-        };
+        if (toolsUsed.includes('update_product_stock')) {
+          action = {
+            type: 'product_updated',
+            data: {
+              product: updateToolCall.product,
+              stockAvailability: updateToolCall.product.stockAvailability,
+            },
+          };
+        } else {
+          action = {
+            type: 'price_updated',
+            data: {
+              product: updateToolCall.product,
+              price: updateToolCall.product.price,
+              stockAvailability: updateToolCall.product.stockAvailability,
+            },
+          };
+        }
       }
     } else if (toolsUsed.includes('add_product')) {
       // Find the tool result for add_product

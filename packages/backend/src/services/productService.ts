@@ -35,6 +35,7 @@ export interface UpdateProductInput {
   categoryId?: string | null; // Reference to ProductCategory (for products)
   serviceCategoryId?: string | null; // Reference to ServiceCategory (for services)
   unit?: string;
+  stockAvailability?: string | null; // Stock availability status or quantity info
   // Service-specific pricing
   ratePerHour?: number | null; // For services: hourly rate
   rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null; // Pricing type for services
@@ -453,6 +454,7 @@ export class ProductService {
         ...(input.name && { name: input.name }),
         ...(input.description !== undefined && { description: input.description }),
         ...(input.unit && { unit: input.unit }),
+        ...(input.stockAvailability !== undefined && { stockAvailability: input.stockAvailability }),
         ...(input.isActive !== undefined && { isActive: input.isActive }),
         ...(input.metadata !== undefined && { metadata: input.metadata }),
       };
