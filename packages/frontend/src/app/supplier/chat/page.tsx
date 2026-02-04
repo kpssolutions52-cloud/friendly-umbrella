@@ -58,6 +58,29 @@ interface SpecialPriceEntry {
   expiry?: PriceExpiryInputType;
 }
 
+interface SupplierProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  address: string | null;
+  postalCode: string | null;
+  logoUrl: string | null;
+  metadata: {
+    registrationNumber?: string | null;
+    contactPerson?: string | null;
+    website?: string | null;
+    taxId?: string | null;
+    businessLicense?: string | null;
+    description?: string | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function SupplierChatPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
@@ -96,6 +119,29 @@ export default function SupplierChatPage() {
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
+  
+  // Profile state
+  const [showProfile, setShowProfile] = useState(false);
+  const [profile, setProfile] = useState<SupplierProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    postalCode: '',
+    registrationNumber: '',
+    contactPerson: '',
+    website: '',
+    taxId: '',
+    businessLicense: '',
+    description: '',
+    city: '',
+    state: '',
+    country: '',
+  });
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
   // Redirect if not authenticated or not supplier
   useEffect(() => {
@@ -1066,18 +1112,24 @@ export default function SupplierChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link href="/supplier/profile">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 border-0"
-                >
-                  <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Profile
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!showProfile) {
+                    setShowProfile(true);
+                    await loadProfile();
+                  } else {
+                    setShowProfile(false);
+                  }
+                }}
+                className={showProfile ? "bg-blue-600 text-white hover:bg-blue-700 border-0" : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 border-0"}
+              >
+                <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profile
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1391,7 +1443,7 @@ export default function SupplierChatPage() {
           )}
 
           {/* Search and Filter Bar - Hide when editing */}
-          {products.length > 0 && !showAddForm && (
+          {products.length > 0 && !showAddForm && !showProfile && (
             <div className="bg-white border-b border-gray-200 px-4 py-3">
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Search */}
