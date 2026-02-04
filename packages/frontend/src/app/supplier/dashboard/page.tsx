@@ -1140,31 +1140,27 @@ function DashboardContent() {
           </div>
 
           <Link href="/supplier/profile">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg border-2 border-blue-300 hover:border-blue-500">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-semibold text-blue-900 truncate">
-                        Supplier Profile
-                      </dt>
-                      <dd className="text-xs text-blue-700 mt-1">
-                        Manage profile & settings
-                      </dd>
-                    </dl>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg transform hover:-translate-y-1 flex items-center justify-between p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-8 w-8 text-blue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium truncate">
+                      Supplier Profile
+                    </dt>
+                    <dd className="text-xs mt-1 opacity-90">
+                      Manage your company details & settings
+                    </dd>
+                  </dl>
                 </div>
               </div>
+              <svg className="h-5 w-5 text-blue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </Link>
         </div>
@@ -1173,7 +1169,10 @@ function DashboardContent() {
         {showEditProductModal && editingProduct && (
           <div className="mt-8 bg-white shadow rounded-lg p-6 border-2 border-blue-200">
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
+                <p className="text-sm text-gray-500 mt-1">Scroll down to see all fields including Stock Availability, Price Expiry, and Special Prices</p>
+              </div>
               <button
                 onClick={handleCloseModal}
                 disabled={isSubmitting}
@@ -1198,7 +1197,71 @@ function DashboardContent() {
             )}
 
             <form onSubmit={handleUpdateProduct} className="space-y-4">
-              {/* Category Selection - Moved to Top */}
+              {/* Main Product Fields - Most Important First */}
+              <div>
+                <Label htmlFor="edit-name">Product Name *</Label>
+                <Input
+                  id="edit-name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isSubmitting}
+                  placeholder="Steel Beam 10x10"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-defaultPrice">Price *</Label>
+                  <Input
+                    id="edit-defaultPrice"
+                    name="defaultPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.defaultPrice}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    placeholder="150.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-unit">Unit *</Label>
+                  <Input
+                    id="edit-unit"
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    placeholder="piece, kg, m, etc."
+                  />
+                </div>
+              </div>
+
+              {/* Stock Availability - Prominently Displayed */}
+              <div className="border-t border-green-200 pt-4 mt-4 bg-green-50 -mx-6 px-6 py-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <Label htmlFor="edit-stockAvailability" className="text-base font-semibold text-gray-900">Stock Availability</Label>
+                </div>
+                <Input
+                  id="edit-stockAvailability"
+                  name="stockAvailability"
+                  value={formData.stockAvailability}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  placeholder="in_stock, out_of_stock, low_stock, etc."
+                  className="bg-white"
+                />
+                <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+              </div>
+
+              {/* Category Selection */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-mainCategoryId">Main Category</Label>
@@ -1255,62 +1318,16 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-sku">SKU *</Label>
-                  <Input
-                    id="edit-sku"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isSubmitting}
-                    placeholder="PROD-001"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-unit">Unit *</Label>
-                  <Input
-                    id="edit-unit"
-                    name="unit"
-                    value={formData.unit}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isSubmitting}
-                    placeholder="piece, kg, m, etc."
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-green-200 pt-4 mt-4 bg-green-50 -mx-6 px-6 py-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  <Label htmlFor="edit-stockAvailability" className="text-base font-semibold text-gray-900">Stock Availability</Label>
-                </div>
-                <Input
-                  id="edit-stockAvailability"
-                  name="stockAvailability"
-                  value={formData.stockAvailability}
-                  onChange={handleInputChange}
-                  disabled={isSubmitting}
-                  placeholder="in_stock, out_of_stock, low_stock, etc."
-                  className="bg-white"
-                />
-                <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
-              </div>
-
               <div>
-                <Label htmlFor="edit-name">Product Name *</Label>
+                <Label htmlFor="edit-sku">SKU *</Label>
                 <Input
-                  id="edit-name"
-                  name="name"
-                  value={formData.name}
+                  id="edit-sku"
+                  name="sku"
+                  value={formData.sku}
                   onChange={handleInputChange}
                   required
                   disabled={isSubmitting}
-                  placeholder="Steel Beam 10x10"
+                  placeholder="PROD-001"
                 />
               </div>
 
@@ -1328,40 +1345,24 @@ function DashboardContent() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-currency">Currency</Label>
-                  <select
-                    id="edit-currency"
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="SGD">SGD</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="edit-defaultPrice">Default Price</Label>
-                  <Input
-                    id="edit-defaultPrice"
-                    name="defaultPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.defaultPrice}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    placeholder="150.00"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="edit-currency">Currency</Label>
+                <select
+                  id="edit-currency"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="SGD">SGD</option>
+                </select>
               </div>
               
-              {/* Default Price Expiry - Always visible */}
+              {/* Default Price Expiry - Prominently Displayed */}
               <div className="border-t border-blue-200 pt-4 mt-4 bg-blue-50 -mx-6 px-6 py-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2218,9 +2219,14 @@ function DashboardContent() {
                 </div>
                 
                 {/* Default Price Expiry - Always visible */}
-                <div className="border-t pt-4 mt-4">
-                  <Label className="text-base font-semibold mb-2 block">Default Price Expiry (Optional)</Label>
-                  <p className="text-sm text-gray-500 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
+                <div className="border-t border-blue-200 pt-4 mt-4 bg-blue-50 -mx-6 px-6 py-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <Label className="text-base font-semibold text-gray-900">Default Price Expiry (Optional)</Label>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
                   <PriceExpiryInput
                     value={defaultPriceExpiry}
                     onChange={setDefaultPriceExpiry}
@@ -2228,8 +2234,13 @@ function DashboardContent() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="stockAvailability">Stock Availability</Label>
+                <div className="border-t border-green-200 pt-4 mt-4 bg-green-50 -mx-6 px-6 py-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <Label htmlFor="stockAvailability" className="text-base font-semibold text-gray-900">Stock Availability</Label>
+                  </div>
                   <Input
                     id="stockAvailability"
                     name="stockAvailability"
@@ -2237,8 +2248,9 @@ function DashboardContent() {
                     onChange={handleInputChange}
                     disabled={isSubmitting}
                     placeholder="in_stock, out_of_stock, low_stock, etc."
+                    className="bg-white"
                   />
-                  <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+                  <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
                 </div>
 
                 {/* Special Prices Section */}
