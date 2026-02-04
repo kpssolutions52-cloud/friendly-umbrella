@@ -303,10 +303,11 @@ export default function SupplierChatPage() {
       const response = await apiGet<{ products: Product[] }>(
         '/api/v1/products?supplier=true'
       );
-      // Ensure price is always a number
+      // Ensure price is always a number and include defaultPrices
       const normalizedProducts = (response.products || []).map(product => ({
         ...product,
         price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price) || 0,
+        defaultPrices: (product as any).defaultPrices || [],
       }));
       setProducts(normalizedProducts);
     } catch (error: any) {
