@@ -1153,8 +1153,192 @@ export default function SupplierChatPage() {
             </div>
           </div>
 
+          {/* Profile Form */}
+          {showProfile && (
+            <div className="bg-white border-b border-gray-200 px-4 py-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold">Supplier Profile</h2>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowProfile(false);
+                    setProfileError(null);
+                    setProfileSuccess(null);
+                  }}
+                  className="h-6 w-6 p-0"
+                >
+                  ×
+                </Button>
+              </div>
+              
+              {loadingProfile ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-sm text-gray-600">Loading profile...</span>
+                </div>
+              ) : (
+                <form onSubmit={handleSaveProfile} className="space-y-2">
+                  {profileError && (
+                    <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-800">
+                      {profileError}
+                    </div>
+                  )}
+                  {profileSuccess && (
+                    <div className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-800">
+                      {profileSuccess}
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Company Name *</Label>
+                      <Input
+                        value={profileFormData.name}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, name: e.target.value })}
+                        required
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Email</Label>
+                      <Input
+                        value={profile?.email || ''}
+                        disabled
+                        className="h-8 text-sm mt-0.5 bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input
+                        value={profileFormData.phone}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, phone: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Registration #</Label>
+                      <Input
+                        value={profileFormData.registrationNumber}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, registrationNumber: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Contact Person</Label>
+                      <Input
+                        value={profileFormData.contactPerson}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, contactPerson: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Website</Label>
+                      <Input
+                        value={profileFormData.website}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, website: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Address</Label>
+                      <textarea
+                        value={profileFormData.address}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, address: e.target.value })}
+                        rows={2}
+                        className="w-full h-16 text-sm rounded-md border border-input bg-background px-2 py-1 mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">City</Label>
+                      <Input
+                        value={profileFormData.city}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, city: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">State</Label>
+                      <Input
+                        value={profileFormData.state}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, state: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Postal Code</Label>
+                      <Input
+                        value={profileFormData.postalCode}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, postalCode: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Country</Label>
+                      <Input
+                        value={profileFormData.country}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, country: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Tax ID</Label>
+                      <Input
+                        value={profileFormData.taxId}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, taxId: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Business License</Label>
+                      <Input
+                        value={profileFormData.businessLicense}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, businessLicense: e.target.value })}
+                        className="h-8 text-sm mt-0.5"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Description</Label>
+                      <textarea
+                        value={profileFormData.description}
+                        onChange={(e) => setProfileFormData({ ...profileFormData, description: e.target.value })}
+                        rows={3}
+                        className="w-full h-20 text-sm rounded-md border border-input bg-background px-2 py-1 mt-0.5"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2 border-t mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowProfile(false);
+                        setProfileError(null);
+                        setProfileSuccess(null);
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={savingProfile}
+                      className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                    >
+                      {savingProfile ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
           {/* Add/Edit Form */}
-          {showAddForm && (
+          {showAddForm && !showProfile && (
             <div className="bg-white border-b border-gray-200 px-4 py-3 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-sm font-semibold">
