@@ -1281,6 +1281,8 @@ export default function SupplierChatPage() {
                       setEditingProduct(null);
                       setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
                       setDefaultPriceExpiry(undefined);
+                      setDraftSpecialPrice(null);
+                      setIncludedSpecialPrices([]);
                     }}
                     size="sm"
                   >
@@ -1291,8 +1293,8 @@ export default function SupplierChatPage() {
             </div>
           )}
 
-          {/* Search and Filter Bar */}
-          {products.length > 0 && (
+          {/* Search and Filter Bar - Hide when editing */}
+          {products.length > 0 && !showAddForm && (
             <div className="bg-white border-b border-gray-200 px-4 py-3">
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Search */}
