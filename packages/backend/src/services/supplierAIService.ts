@@ -6,6 +6,8 @@
 import OpenAI from 'openai';
 import { prisma } from '../utils/prisma';
 import { getCachedResponse, setCachedResponse } from './cacheService';
+import { priceService } from './priceService';
+import { PriceExpiryInput } from './priceService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,6 +22,10 @@ interface PriceUpdateIntent {
   companyId?: string; // For company-specific pricing
   productId?: string; // For delete/update operations
   quantity?: number; // For price calculations
+  expiryDuration?: {
+    value: number;
+    unit: 'minutes' | 'hours' | 'days' | 'months';
+  }; // For price expiry (e.g., { value: 2, unit: 'days' })
 }
 
 /**
@@ -48,12 +54,16 @@ Return JSON with this structure:
   "price": 48.50 (if price mentioned),
   "unit": "bag" (if unit mentioned),
   "companyId": "uuid" (if company-specific price mentioned),
-  "quantity": 10 (if quantity mentioned for calculations)
+  "quantity": 10 (if quantity mentioned for calculations),
+  "expiryDuration": {"value": 2, "unit": "days"} (if expiry mentioned, unit can be "minutes", "hours", "days", or "months")
 }
 
 Examples:
 - "Update cement price to $48" → {"intent": "update_price", "productName": "cement", "price": 48}
 - "Set steel price to $500 per ton" → {"intent": "update_price", "productName": "steel", "price": 500, "unit": "ton"}
+- "Set Ambuja Cement price expiry 2 days from now" → {"intent": "update_price", "productName": "Ambuja Cement", "expiryDuration": {"value": 2, "unit": "days"}}
+- "Update cement price to $48 with expiry in 30 days" → {"intent": "update_price", "productName": "cement", "price": 48, "expiryDuration": {"value": 30, "unit": "days"}}
+- "Set cement price expiry to 3 months" → {"intent": "update_price", "productName": "cement", "expiryDuration": {"value": 3, "unit": "months"}}
 - "Add new product: paint at $25 per gallon" → {"intent": "add_product", "productName": "paint", "price": 25, "unit": "gallon"}
 - "Show my products" → {"intent": "view_products"}
 - "Delete cement product" → {"intent": "delete_product", "productName": "cement"}
@@ -96,7 +106,8 @@ Return only valid JSON, no other text.`;
  */
 export async function processSupplierCommand(
   command: string,
-  supplierId: string
+  supplierId: string,
+  userId?: string
 ): Promise<{
   answer: string;
   action?: {
@@ -108,8 +119,8 @@ export async function processSupplierCommand(
   const intent = await extractPriceUpdateIntent(command);
 
   // Handle different intents
-  if (intent.intent === 'update_price' && intent.productName && intent.price !== undefined) {
-    // Update existing product price - NEW SCHEMA ONLY
+  if (intent.intent === 'update_price' && intent.productName && (intent.price !== undefined || intent.expiryDuration)) {
+    // Update existing product price or expiry - NEW SCHEMA ONLY
     const product = await prisma.product.findFirst({
       where: {
         supplierId,
@@ -126,14 +137,64 @@ export async function processSupplierCommand(
       };
     }
 
-    // Update price - NEW SCHEMA ONLY
-    const updatedProduct = await prisma.product.update({
-      where: { id: product.id },
-      data: {
-        price: intent.price,
-        ...(intent.unit && { unit: intent.unit }),
+    // Get current default price to preserve price if only updating expiry
+    const currentDefaultPrice = await prisma.defaultPrice.findFirst({
+      where: {
+        productId: product.id,
+        isActive: true,
       },
+      orderBy: { effectiveFrom: 'desc' },
     });
+
+    const priceToUse = intent.price !== undefined ? intent.price : (currentDefaultPrice ? Number(currentDefaultPrice.price) : Number(product.price));
+
+    // Build expiry input if provided
+    let expiryInput: PriceExpiryInput | undefined;
+    if (intent.expiryDuration) {
+      expiryInput = {
+        expiryDuration: {
+          value: intent.expiryDuration.value,
+          unit: intent.expiryDuration.unit,
+        },
+      };
+    }
+
+    // Update product price in product table if price changed
+    if (intent.price !== undefined) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          price: intent.price,
+          ...(intent.unit && { unit: intent.unit }),
+        },
+      });
+    } else if (intent.unit) {
+      // Update unit only if no price change
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { unit: intent.unit },
+      });
+    }
+
+    // Update default price using price service (supports expiry)
+    // Use provided userId or fallback to supplierId (for audit logging)
+    const effectiveUserId = userId || supplierId;
+    
+    try {
+      await priceService.updateDefaultPrice(
+        product.id,
+        supplierId,
+        {
+          price: priceToUse,
+          currency: currentDefaultPrice?.currency || 'USD',
+          expiry: expiryInput,
+        },
+        effectiveUserId
+      );
+    } catch (error: any) {
+      console.error('Error updating default price with expiry:', error);
+      // If price service fails, at least the product price was updated
+    }
 
     // Handle company-specific pricing if companyId is provided
     if (intent.companyId) {
@@ -149,7 +210,7 @@ export async function processSupplierCommand(
           data: {
             productId: product.id,
             companyId: intent.companyId,
-            price: intent.price,
+            price: priceToUse,
             effectiveFrom: new Date(),
           },
         }).catch(async (error) => {
@@ -166,7 +227,7 @@ export async function processSupplierCommand(
             if (existing) {
               await prisma.companyPrice.update({
                 where: { id: existing.id },
-                data: { price: intent.price },
+                data: { price: priceToUse },
               });
             }
           } else {
@@ -174,27 +235,43 @@ export async function processSupplierCommand(
           }
         });
 
+        const expiryMsg = intent.expiryDuration 
+          ? ` with expiry in ${intent.expiryDuration.value} ${intent.expiryDuration.unit}`
+          : '';
+        
         return {
-          answer: `✅ Updated ${updatedProduct.name} price to $${intent.price}/${updatedProduct.unit} for ${company.name}. This special price is now active.`,
+          answer: `✅ Updated ${product.name} price to $${priceToUse}/${product.unit}${expiryMsg} for ${company.name}. This special price is now active.`,
           action: {
             type: 'price_updated',
             data: {
-              product: updatedProduct,
+              product: product,
               company: company,
-              price: intent.price,
+              price: priceToUse,
             },
           },
         };
       }
     }
 
+    // Build response message
+    let answerMsg = '';
+    if (intent.price !== undefined && intent.expiryDuration) {
+      answerMsg = `✅ Updated ${product.name} price to $${priceToUse}/${product.unit} with expiry in ${intent.expiryDuration.value} ${intent.expiryDuration.unit}. All companies will see this new price and expiry date.`;
+    } else if (intent.price !== undefined) {
+      answerMsg = `✅ Updated ${product.name} price to $${priceToUse}/${product.unit}. All companies will see this new price.`;
+    } else if (intent.expiryDuration) {
+      answerMsg = `✅ Updated ${product.name} price expiry to ${intent.expiryDuration.value} ${intent.expiryDuration.unit} from now. The current price of $${priceToUse}/${product.unit} will expire on the new date.`;
+    } else {
+      answerMsg = `✅ Updated ${product.name}.`;
+    }
+
     return {
-      answer: `✅ Updated ${updatedProduct.name} price to $${intent.price}/${updatedProduct.unit}. All companies will see this new price.`,
+      answer: answerMsg,
       action: {
         type: 'price_updated',
         data: {
-          product: updatedProduct,
-          price: intent.price,
+          product: product,
+          price: priceToUse,
         },
       },
     };
@@ -511,23 +588,30 @@ export async function processSupplierCommand(
     const systemPrompt = `You are a helpful assistant for suppliers managing their product inventory and prices.
 You CAN and SHOULD help suppliers:
 - ✅ Update product prices (e.g., "Update steel price to $500" or "Update cement price to $48")
+- ✅ Set price expiry dates (e.g., "Set Ambuja Cement price expiry 2 days from now" or "Update cement price expiry to 30 days")
+- ✅ Update price and expiry together (e.g., "Update cement price to $48 with expiry in 30 days")
 - ✅ Add new products (e.g., "Add paint at $25 per gallon")
 - ✅ View their product list (e.g., "Show my products")
 - ✅ Delete products (e.g., "Delete steel product")
 - ✅ Update product names and units (e.g., "Rename cement to Portland Cement")
 - ✅ Calculate total prices for quantities of products (e.g., "How much is 10 bags of cement?")
 
-IMPORTANT: You CAN update prices! If a supplier asks to update a price, guide them to use the correct format:
+IMPORTANT: You CAN update prices AND set expiry dates! If a supplier asks to update a price or set expiry, guide them to use the correct format:
 - "Update [product name] price to $[amount]"
 - "Set [product name] price to $[amount] per [unit]"
+- "Set [product name] price expiry [X] days/months from now"
+- "Update [product name] price to $[amount] with expiry in [X] days"
 - "Change [product name] price to $[amount]"
 
-If they ask "why can't you update prices" or similar, explain that you CAN update prices and show them the correct command format.
+If they ask "why can't you update prices" or "can you set expiry", explain that you CAN do both and show them the correct command format.
 
 Be concise and helpful. Always guide suppliers to use the correct command format.
 Examples of commands:
 - "Add cement at $48 per bag"
 - "Update cement price to $50"
+- "Set Ambuja Cement price expiry 2 days from now"
+- "Update cement price to $48 with expiry in 30 days"
+- "Set steel price expiry to 3 months"
 - "Update steel price to $500 per ton"
 - "Delete steel product"
 - "Rename cement to Portland Cement"

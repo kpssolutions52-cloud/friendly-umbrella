@@ -86,8 +86,8 @@ router.post(
       console.log('[supplierChatRoutes] Processing command with verified organizationId:', organization.id, 'Enhanced AI:', useEnhancedAI);
       
       const result = useEnhancedAI
-        ? await processSupplierCommandEnhanced(command.trim(), organization.id)
-        : await processSupplierCommand(command.trim(), organization.id);
+        ? await processSupplierCommandEnhanced(command.trim(), organization.id, userId)
+        : await processSupplierCommand(command.trim(), organization.id, userId);
 
       const processingTime = Date.now() - startTime;
       console.log('[supplierChatRoutes] Command processed in', processingTime, 'ms');

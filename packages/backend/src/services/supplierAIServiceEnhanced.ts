@@ -468,6 +468,10 @@ async function executeTool(
  */
 export async function processSupplierCommandEnhanced(
   command: string,
+  supplierId: string,
+  userId?: string
+): Promise<{
+  command: string,
   supplierId: string
 ): Promise<{
   answer: string;
