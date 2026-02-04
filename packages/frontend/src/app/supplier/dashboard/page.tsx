@@ -1165,9 +1165,9 @@ function DashboardContent() {
           </Link>
         </div>
 
-        {/* Edit Product Inline Section */}
+        {/* Edit Product Inline Section - Expanded when editing, hides product grid */}
         {showEditProductModal && editingProduct && (
-          <div className="mt-8 bg-white shadow rounded-lg p-6 border-2 border-blue-200">
+          <div className="mt-8 bg-white shadow-xl rounded-lg p-8 border-2 border-blue-300">
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
@@ -1676,8 +1676,8 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Product List Section - Show below edit form when editing, or standalone when not editing */}
-        {activeFilter && (
+        {/* Product List Section - Hide when editing product, show when not editing */}
+        {activeFilter && !showEditProductModal && (
           <div className="mt-8 bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">
