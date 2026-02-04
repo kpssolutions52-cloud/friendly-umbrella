@@ -1625,6 +1625,19 @@ function DashboardContent() {
                   </div>
                 </div>
 
+                <div>
+                  <Label htmlFor="stockAvailability">Stock Availability</Label>
+                  <Input
+                    id="stockAvailability"
+                    name="stockAvailability"
+                    value={formData.stockAvailability}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                    placeholder="in_stock, out_of_stock, low_stock, etc."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+                </div>
+
                 {/* Special Prices Section */}
                 <div className="border-t pt-4 mt-4">
                   <div className="flex items-center justify-between mb-4">
@@ -2026,18 +2039,19 @@ function DashboardContent() {
                       placeholder="piece, kg, m, etc."
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
-                    <Input
-                      id="edit-stockAvailability"
-                      name="stockAvailability"
-                      value={formData.stockAvailability}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      placeholder="in_stock, out_of_stock, low_stock, etc."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
-                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
+                  <Input
+                    id="edit-stockAvailability"
+                    name="stockAvailability"
+                    value={formData.stockAvailability}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                    placeholder="in_stock, out_of_stock, low_stock, etc."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
                 </div>
 
                 <div>
