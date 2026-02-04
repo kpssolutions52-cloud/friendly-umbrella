@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search, Zap, ChevronDown, X } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
@@ -54,8 +54,6 @@ export default function ChatPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [recentQueries, setRecentQueries] = useState<string[]>([]);
-  const [showActionsList, setShowActionsList] = useState(false);
-  const actionsListRef = useRef<HTMLDivElement>(null);
   
   // Products state
   const [products, setProducts] = useState<any[]>([]);
@@ -90,22 +88,44 @@ export default function ChatPage() {
     }
   }, [isAuthenticated, user]);
 
-  // Close actions list when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionsListRef.current && !actionsListRef.current.contains(event.target as Node)) {
-        setShowActionsList(false);
-      }
-    };
+  const showAvailableActions = () => {
+    const actionsMessage: Message = {
+      role: 'assistant',
+      content: `## Available Actions
 
-    if (showActionsList) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+### Product & Pricing:
+- **Get Product Price** - Retrieve price details for a specific product
+  *Example: "What is the price of cement?"*
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+- **Calculate Total Price** - Calculate the total cost for a specific quantity
+  *Example: "Calculate total for 10 bags of cement"*
+
+- **List Products** - List all products in the inventory
+  *Example: "Show me all available products"*
+
+- **Calculate Multi Product Total** - Calculate total price for multiple products with different quantities
+  *Example: "Calculate total for 10 bags cement and 5 gallons paint"*
+
+### Project Management:
+- **Create Project** - Create a new construction project
+  *Example: "Create a project called Office Building"*
+
+- **Request Quote** - Request quotes for project materials
+  *Example: "Request quotes for Office Building project"*
+
+- **View Projects** - View all your projects
+  *Example: "Show me all my projects"*
+
+### General:
+- **Search Suppliers** - Find suppliers for specific products or services
+  *Example: "Find suppliers for concrete"*
+
+- **Compare Prices** - Compare prices from different suppliers
+  *Example: "Compare cement prices from all suppliers"*`,
+      timestamp: new Date().toISOString(),
     };
-  }, [showActionsList]);
+    setMessages((prev) => [...prev, actionsMessage]);
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -565,90 +585,16 @@ export default function ChatPage() {
             {/* Action Tags */}
             <div className="px-3 pt-2 pb-2 border-b border-gray-100">
               <div className="flex flex-wrap gap-2">
-                <div className="relative" ref={actionsListRef}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowActionsList(!showActionsList)}
-                    disabled={loading}
-                    className="text-xs h-7 px-2 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
-                  >
-                    <Zap className="h-3 w-3 mr-1" />
-                    Actions
-                    <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showActionsList ? 'rotate-180' : ''}`} />
-                  </Button>
-                  {showActionsList && (
-                    <div className="absolute bottom-full left-0 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3 max-h-96 overflow-y-auto">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-900">Available Actions</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowActionsList(false)}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        <div className="text-xs text-gray-600 mb-2 font-medium">Product & Pricing:</div>
-                        <div className="space-y-1 text-xs">
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Get Product Price</div>
-                            <div className="text-gray-600 mt-0.5">Retrieve price details for a specific product</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "What is the price of cement?"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Calculate Total Price</div>
-                            <div className="text-gray-600 mt-0.5">Calculate the total cost for a specific quantity</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Calculate total for 10 bags of cement"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">List Products</div>
-                            <div className="text-gray-600 mt-0.5">List all products in the inventory</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Show me all available products"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Calculate Multi Product Total</div>
-                            <div className="text-gray-600 mt-0.5">Calculate total price for multiple products with different quantities</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Calculate total for 10 bags cement and 5 gallons paint"</div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-600 mb-2 font-medium mt-3">Project Management:</div>
-                        <div className="space-y-1 text-xs">
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Create Project</div>
-                            <div className="text-gray-600 mt-0.5">Create a new construction project</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Create a project called Office Building"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Request Quote</div>
-                            <div className="text-gray-600 mt-0.5">Request quotes for project materials</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Request quotes for Office Building project"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">View Projects</div>
-                            <div className="text-gray-600 mt-0.5">View all your projects</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Show me all my projects"</div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-600 mb-2 font-medium mt-3">General:</div>
-                        <div className="space-y-1 text-xs">
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Search Suppliers</div>
-                            <div className="text-gray-600 mt-0.5">Find suppliers for specific products or services</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Find suppliers for concrete"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Compare Prices</div>
-                            <div className="text-gray-600 mt-0.5">Compare prices from different suppliers</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Compare cement prices from all suppliers"</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={showAvailableActions}
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Actions
+                </Button>
               </div>
             </div>
             

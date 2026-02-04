@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, ChevronDown, X } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,8 +68,6 @@ export default function SupplierChatPage() {
     unit: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [showActionsList, setShowActionsList] = useState(false);
-  const actionsListRef = useRef<HTMLDivElement>(null);
 
   // Redirect if not authenticated or not supplier
   useEffect(() => {
@@ -101,22 +99,27 @@ export default function SupplierChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Close actions list when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionsListRef.current && !actionsListRef.current.contains(event.target as Node)) {
-        setShowActionsList(false);
-      }
-    };
+  const showAvailableActions = () => {
+    const actionsMessage: Message = {
+      role: 'assistant',
+      content: `## Available Actions
 
-    if (showActionsList) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+### Product Management:
+- **Add Product** - Add a new product to your inventory
+  *Example: "Add cement at $48 per bag"*
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+- **Update Product Price** - Update the price of an existing product
+  *Example: "Update cement price to $50"*
+
+- **List Products** - View all products in your inventory
+  *Example: "Show my products"*
+
+- **Get Product Price** - Retrieve price details for a specific product
+  *Example: "What is the price of cement?"*`,
+      timestamp: new Date().toISOString(),
     };
-  }, [showActionsList]);
+    setMessages((prev) => [...prev, actionsMessage]);
+  };
 
   const loadProducts = async () => {
     try {
@@ -805,59 +808,16 @@ export default function SupplierChatPage() {
                   <Edit2 className="h-3 w-3 mr-1" />
                   Update Product
                 </Button>
-                <div className="relative" ref={actionsListRef}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowActionsList(!showActionsList)}
-                    disabled={loading || questionFlow !== null}
-                    className="text-xs h-7 px-2 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
-                  >
-                    <Zap className="h-3 w-3 mr-1" />
-                    Actions
-                    <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${showActionsList ? 'rotate-180' : ''}`} />
-                  </Button>
-                  {showActionsList && (
-                    <div className="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3 max-h-96 overflow-y-auto">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-900">Available Actions</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowActionsList(false)}
-                          className="h-5 w-5 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        <div className="text-xs text-gray-600 mb-2 font-medium">Product Management:</div>
-                        <div className="space-y-1 text-xs">
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Add Product</div>
-                            <div className="text-gray-600 mt-0.5">Add a new product to your inventory</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Add cement at $48 per bag"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Update Product Price</div>
-                            <div className="text-gray-600 mt-0.5">Update the price of an existing product</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Update cement price to $50"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">List Products</div>
-                            <div className="text-gray-600 mt-0.5">View all products in your inventory</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "Show my products"</div>
-                          </div>
-                          <div className="p-2 bg-gray-50 rounded hover:bg-gray-100">
-                            <div className="font-semibold text-gray-900">Get Product Price</div>
-                            <div className="text-gray-600 mt-0.5">Retrieve price details for a specific product</div>
-                            <div className="text-gray-500 mt-1 italic">Example: "What is the price of cement?"</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={showAvailableActions}
+                  disabled={loading || questionFlow !== null}
+                  className="text-xs h-7 px-2 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
+                >
+                  <Zap className="h-3 w-3 mr-1" />
+                  Actions
+                </Button>
                 {questionFlow && (
                   <Button
                     variant="ghost"
