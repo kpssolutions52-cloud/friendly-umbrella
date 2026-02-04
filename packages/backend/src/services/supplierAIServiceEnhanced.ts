@@ -471,9 +471,6 @@ export async function processSupplierCommandEnhanced(
   supplierId: string,
   userId?: string
 ): Promise<{
-  command: string,
-  supplierId: string
-): Promise<{
   answer: string;
   action?: {
     type: 'price_updated' | 'product_added' | 'products_listed' | 'product_deleted' | 'product_updated';
