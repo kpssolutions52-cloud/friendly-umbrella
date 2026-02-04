@@ -42,8 +42,8 @@ interface Product {
   stockAvailability?: string | null;
   defaultPrices?: Array<{
     id: string;
-    effectiveFrom: string;
-    effectiveUntil: string | null;
+    effectiveFrom: Date | string;
+    effectiveUntil: Date | string | null;
     price: number;
     currency: string;
   }>;
@@ -311,11 +311,15 @@ export default function SupplierChatPage() {
       const response = await apiGet<{ products: Product[] }>(
         '/api/v1/products?supplier=true'
       );
-      // Ensure price is always a number and include defaultPrices
+      // Ensure price is always a number and include defaultPrices with parsed dates
       const normalizedProducts = (response.products || []).map(product => ({
         ...product,
         price: typeof product.price === 'string' ? parseFloat(product.price) : Number(product.price) || 0,
-        defaultPrices: (product as any).defaultPrices || [],
+        defaultPrices: ((product as any).defaultPrices || []).map((dp: any) => ({
+          ...dp,
+          effectiveFrom: dp.effectiveFrom ? new Date(dp.effectiveFrom) : null,
+          effectiveUntil: dp.effectiveUntil ? new Date(dp.effectiveUntil) : null,
+        })),
       }));
       setProducts(normalizedProducts);
     } catch (error: any) {
@@ -629,10 +633,10 @@ export default function SupplierChatPage() {
           }, 3000);
         }
         
-        // Small delay to ensure backend has processed the change
+        // Small delay to ensure backend has processed the change (increased for expiry updates)
         setTimeout(() => {
           refreshProducts();
-        }, 500);
+        }, 1000);
       }
     } catch (error: any) {
       const errorText = error?.error?.message || error?.error || error?.message || 'Failed to process command. Please try again.';
@@ -1796,6 +1800,16 @@ export default function SupplierChatPage() {
                                   </div>
                                 </div>
                               )}
+                              <div>
+                                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                  Price Expiry (Optional)
+                                </Label>
+                                <PriceExpiryInput
+                                  value={draftSpecialPrice.expiry}
+                                  onChange={(expiry) => setDraftSpecialPrice({ ...draftSpecialPrice, expiry })}
+                                  effectiveFrom={new Date()}
+                                />
+                              </div>
                               <Button
                                 type="button"
                                 size="sm"
