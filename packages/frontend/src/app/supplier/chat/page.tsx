@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -126,6 +126,14 @@ export default function SupplierChatPage() {
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
+  
+  // Form section collapse state
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,
+    pricing: true,
+    expiry: false,
+    specialPrices: false,
+  });
   
   // Profile state
   const [showProfile, setShowProfile] = useState(false);
@@ -1442,278 +1450,24 @@ export default function SupplierChatPage() {
             </div>
           )}
 
-          {/* Add/Edit Form */}
+          {/* Add/Edit Form - Modern Design */}
           {showAddForm && !showProfile && (
-            <div className="bg-white border-b border-gray-200 px-4 py-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold">
-                  {editingProduct ? 'Edit Product' : 'Add New Product'}
-                </h2>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingProduct(null);
-                    setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
-                    setDefaultPriceExpiry(undefined);
-                    setDraftSpecialPrice(null);
-                    setIncludedSpecialPrices([]);
-                  }}
-                  className="h-6 w-6 p-0"
-                >
-                  ×
-                </Button>
-              </div>
-              <form onSubmit={handleSubmitProduct} className="space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-3">
-                    <Label htmlFor="dashboard-name" className="text-xs">Product Name *</Label>
-                    <Input
-                      id="dashboard-name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      required
-                      className="h-8 text-sm mt-0.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="dashboard-price" className="text-xs">Price *</Label>
-                    <Input
-                      id="dashboard-price"
-                      type="number"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) =>
-                        setFormData({ ...formData, price: e.target.value })
-                      }
-                      required
-                      className="h-8 text-sm mt-0.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="dashboard-unit" className="text-xs">Unit *</Label>
-                    <Input
-                      id="dashboard-unit"
-                      value={formData.unit}
-                      onChange={(e) =>
-                        setFormData({ ...formData, unit: e.target.value })
-                      }
-                      required
-                      className="h-8 text-sm mt-0.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="dashboard-stockAvailability" className="text-xs">Stock</Label>
-                    <Input
-                      id="dashboard-stockAvailability"
-                      value={formData.stockAvailability}
-                      onChange={(e) =>
-                        setFormData({ ...formData, stockAvailability: e.target.value })
-                      }
-                      placeholder="in_stock"
-                      className="h-8 text-sm mt-0.5"
-                    />
-                  </div>
+            <div className="bg-white border-b border-gray-200 flex flex-col h-[calc(100vh-200px)]">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {editingProduct ? 'Update product details and pricing' : 'Create a new product for your inventory'}
+                  </p>
                 </div>
-
-                {/* Price Expiry - Compact */}
-                <div className="border-t pt-2 mt-2">
-                  <Label className="text-xs">Price Expiry (Optional)</Label>
-                  <div className="mt-1">
-                    <PriceExpiryInput
-                      value={defaultPriceExpiry}
-                      onChange={setDefaultPriceExpiry}
-                      effectiveFrom={new Date()}
-                    />
-                  </div>
-                </div>
-
-                {/* Special Prices Section - Compact */}
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="text-xs font-semibold">Special Prices</Label>
-                    {!draftSpecialPrice && (
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        onClick={() => setDraftSpecialPrice({
-                          companyId: '',
-                          priceType: 'price',
-                          price: '',
-                          currency: 'USD',
-                          notes: '',
-                        })}
-                        disabled={loadingCompanies}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-6 px-2"
-                      >
-                        + Add
-                      </Button>
-                    )}
-                  </div>
-
-                  {draftSpecialPrice && (
-                    <div className="border rounded p-2 bg-gray-50 mb-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">Add Company Price</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDraftSpecialPrice(null)}
-                          className="h-5 w-5 p-0 text-xs"
-                        >
-                          ×
-                        </Button>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div>
-                          <Label className="text-xs">Company *</Label>
-                          <select
-                            value={draftSpecialPrice.companyId}
-                            onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, companyId: e.target.value })}
-                            className="w-full h-7 text-xs rounded border border-input bg-background px-2"
-                            required
-                          >
-                            <option value="">Select...</option>
-                            {companies.map((c) => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            type="button"
-                            variant={draftSpecialPrice.priceType === 'price' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'price', discountPercentage: '' })}
-                            className="text-xs h-6 flex-1"
-                          >
-                            Price
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={draftSpecialPrice.priceType === 'discount' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'discount', price: '' })}
-                            className="text-xs h-6 flex-1"
-                          >
-                            Discount %
-                          </Button>
-                        </div>
-                        {draftSpecialPrice.priceType === 'price' ? (
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div>
-                              <Label className="text-xs">Price *</Label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={draftSpecialPrice.price}
-                                onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, price: e.target.value })}
-                                className="h-7 text-xs"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs">Currency</Label>
-                              <select
-                                value={draftSpecialPrice.currency}
-                                onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, currency: e.target.value })}
-                                className="w-full h-7 text-xs rounded border border-input bg-background px-2"
-                              >
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
-                                <option value="GBP">GBP</option>
-                                <option value="SGD">SGD</option>
-                              </select>
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <Label className="text-xs">Discount % *</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              max="100"
-                              value={draftSpecialPrice.discountPercentage}
-                              onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, discountPercentage: e.target.value })}
-                              className="h-7 text-xs"
-                              required
-                            />
-                          </div>
-                        )}
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            if (draftSpecialPrice.companyId && (draftSpecialPrice.price || draftSpecialPrice.discountPercentage)) {
-                              setIncludedSpecialPrices([...includedSpecialPrices, draftSpecialPrice]);
-                              setDraftSpecialPrice(null);
-                            }
-                          }}
-                          className="w-full text-xs h-6 bg-blue-600"
-                          disabled={!draftSpecialPrice.companyId || (!draftSpecialPrice.price && !draftSpecialPrice.discountPercentage)}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {includedSpecialPrices.length > 0 && (
-                    <div className="space-y-1">
-                      {includedSpecialPrices.map((sp, idx) => (
-                        <div key={idx} className="bg-white border rounded p-1.5 text-xs flex items-center justify-between">
-                          <span className="font-medium">{companies.find(c => c.id === sp.companyId)?.name || 'Unknown'}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-600">
-                              {sp.priceType === 'price' 
-                                ? `${sp.currency} ${sp.price}` 
-                                : `${sp.discountPercentage}%`}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setIncludedSpecialPrices(includedSpecialPrices.filter((_, i) => i !== idx))}
-                              className="h-4 w-4 p-0 text-red-600"
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {includedSpecialPrices.length === 0 && !draftSpecialPrice && (
-                    <p className="text-xs text-gray-400 text-center py-1">None</p>
-                  )}
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t mt-2">
-                  <Button 
-                    type="submit" 
-                    disabled={submitting}
-                    size="sm"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Saving...
-                      </>
-                    ) : (
-                      editingProduct ? 'Update Product' : 'Add Product'
-                    )}
-                  </Button>
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
+                    size="sm"
                     onClick={() => {
                       setShowAddForm(false);
                       setEditingProduct(null);
@@ -1721,13 +1475,389 @@ export default function SupplierChatPage() {
                       setDefaultPriceExpiry(undefined);
                       setDraftSpecialPrice(null);
                       setIncludedSpecialPrices([]);
+                      setExpandedSections({ basic: true, pricing: true, expiry: false, specialPrices: false });
                     }}
-                    size="sm"
+                    className="h-9"
                   >
+                    <X className="h-4 w-4 mr-1" />
                     Cancel
                   </Button>
+                  <Button
+                    type="submit"
+                    form="product-form"
+                    size="sm"
+                    disabled={submitting}
+                    className="h-9 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {editingProduct ? 'Save Changes' : 'Create Product'}
+                      </>
+                    )}
+                  </Button>
                 </div>
-              </form>
+              </div>
+
+              {/* Scrollable Form Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <form id="product-form" onSubmit={handleSubmitProduct} className="space-y-6 max-w-4xl">
+                  {/* Basic Information Section */}
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSections({ ...expandedSections, basic: !expandedSections.basic })}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Package className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-sm font-semibold text-gray-900">Basic Information</h3>
+                          <p className="text-xs text-gray-500">Product name, pricing, and stock details</p>
+                        </div>
+                      </div>
+                      {expandedSections.basic ? (
+                        <ChevronUp className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    {expandedSections.basic && (
+                      <div className="px-5 py-4 bg-white border-t border-gray-200 space-y-4">
+                        <div>
+                          <Label htmlFor="dashboard-name" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                            Product Name <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="dashboard-name"
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            required
+                            placeholder="e.g., Premium Cement 50kg"
+                            className="h-10 text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="dashboard-price" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                              Price <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                              <Input
+                                id="dashboard-price"
+                                type="number"
+                                step="0.01"
+                                value={formData.price}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, price: e.target.value })
+                                }
+                                required
+                                placeholder="0.00"
+                                className="h-10 text-sm pl-8"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="dashboard-unit" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                              Unit <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="dashboard-unit"
+                              value={formData.unit}
+                              onChange={(e) =>
+                                setFormData({ ...formData, unit: e.target.value })
+                              }
+                              required
+                              placeholder="e.g., bag, kg, ton"
+                              className="h-10 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="dashboard-stockAvailability" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                              Stock Availability
+                            </Label>
+                            <Input
+                              id="dashboard-stockAvailability"
+                              value={formData.stockAvailability}
+                              onChange={(e) =>
+                                setFormData({ ...formData, stockAvailability: e.target.value })
+                              }
+                              placeholder="in_stock, out_of_stock, low_stock"
+                              className="h-10 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price Expiry Section */}
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSections({ ...expandedSections, expiry: !expandedSections.expiry })}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 rounded-lg">
+                          <DollarSign className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-sm font-semibold text-gray-900">Price Expiry</h3>
+                          <p className="text-xs text-gray-500">Set when the default price expires (optional)</p>
+                        </div>
+                      </div>
+                      {expandedSections.expiry ? (
+                        <ChevronUp className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    {expandedSections.expiry && (
+                      <div className="px-5 py-4 bg-white border-t border-gray-200">
+                        <PriceExpiryInput
+                          value={defaultPriceExpiry}
+                          onChange={setDefaultPriceExpiry}
+                          effectiveFrom={new Date()}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Special Prices Section */}
+                  <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedSections({ ...expandedSections, specialPrices: !expandedSections.specialPrices })}
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Tag className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-900">Special Prices</h3>
+                            {includedSpecialPrices.length > 0 && (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                                {includedSpecialPrices.length}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">Set custom prices or discounts for specific companies</p>
+                        </div>
+                      </div>
+                      {expandedSections.specialPrices ? (
+                        <ChevronUp className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    {expandedSections.specialPrices && (
+                      <div className="px-5 py-4 bg-white border-t border-gray-200 space-y-4">
+                        {!draftSpecialPrice && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDraftSpecialPrice({
+                                companyId: '',
+                                priceType: 'price',
+                                price: '',
+                                currency: 'USD',
+                                notes: '',
+                              });
+                              loadCompanies();
+                            }}
+                            disabled={loadingCompanies}
+                            className="w-full border-dashed border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Company Price
+                          </Button>
+                        )}
+
+                        {draftSpecialPrice && (
+                          <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-semibold text-gray-900">Add Company Price</h4>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDraftSpecialPrice(null)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="space-y-4">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                  Company <span className="text-red-500">*</span>
+                                </Label>
+                                <select
+                                  value={draftSpecialPrice.companyId}
+                                  onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, companyId: e.target.value })}
+                                  className="w-full h-10 text-sm rounded-md border border-input bg-background px-3"
+                                  required
+                                >
+                                  <option value="">Select a company...</option>
+                                  {companies.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-700 mb-2 block">Price Type</Label>
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant={draftSpecialPrice.priceType === 'price' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'price', discountPercentage: '' })}
+                                    className="flex-1 h-10"
+                                  >
+                                    Fixed Price
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant={draftSpecialPrice.priceType === 'discount' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDraftSpecialPrice({ ...draftSpecialPrice, priceType: 'discount', price: '' })}
+                                    className="flex-1 h-10"
+                                  >
+                                    Discount %
+                                  </Button>
+                                </div>
+                              </div>
+                              {draftSpecialPrice.priceType === 'price' ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                      Price <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="relative">
+                                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={draftSpecialPrice.price}
+                                        onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, price: e.target.value })}
+                                        className="h-10 text-sm pl-8"
+                                        required
+                                        placeholder="0.00"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700 mb-1.5 block">Currency</Label>
+                                    <select
+                                      value={draftSpecialPrice.currency}
+                                      onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, currency: e.target.value })}
+                                      className="w-full h-10 text-sm rounded-md border border-input bg-background px-3"
+                                    >
+                                      <option value="USD">USD</option>
+                                      <option value="EUR">EUR</option>
+                                      <option value="GBP">GBP</option>
+                                      <option value="SGD">SGD</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                                    Discount Percentage <span className="text-red-500">*</span>
+                                  </Label>
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      value={draftSpecialPrice.discountPercentage}
+                                      onChange={(e) => setDraftSpecialPrice({ ...draftSpecialPrice, discountPercentage: e.target.value })}
+                                      className="h-10 text-sm pr-8"
+                                      required
+                                      placeholder="0.00"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                                  </div>
+                                </div>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  if (draftSpecialPrice.companyId && (draftSpecialPrice.price || draftSpecialPrice.discountPercentage)) {
+                                    setIncludedSpecialPrices([...includedSpecialPrices, draftSpecialPrice]);
+                                    setDraftSpecialPrice(null);
+                                  }
+                                }}
+                                className="w-full h-10 bg-blue-600 hover:bg-blue-700"
+                                disabled={!draftSpecialPrice.companyId || (!draftSpecialPrice.price && !draftSpecialPrice.discountPercentage)}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add to List
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {includedSpecialPrices.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700">Added Special Prices</Label>
+                            <div className="space-y-2">
+                              {includedSpecialPrices.map((sp, idx) => (
+                                <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between hover:border-blue-300 transition-colors">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-sm text-gray-900">
+                                      {companies.find(c => c.id === sp.companyId)?.name || 'Unknown Company'}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      {sp.priceType === 'price' 
+                                        ? `Fixed: ${sp.currency} ${sp.price}` 
+                                        : `Discount: ${sp.discountPercentage}%`}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIncludedSpecialPrices(includedSpecialPrices.filter((_, i) => i !== idx))}
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {includedSpecialPrices.length === 0 && !draftSpecialPrice && (
+                          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                            <Tag className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">No special prices added yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Click "Add Company Price" to set custom pricing</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 
