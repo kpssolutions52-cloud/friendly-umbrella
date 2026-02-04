@@ -18,15 +18,17 @@ interface SupplierProfile {
   address: string | null;
   postalCode: string | null;
   logoUrl: string | null;
-  registrationNumber: string | null;
-  contactPerson: string | null;
-  website: string | null;
-  taxId: string | null;
-  businessLicense: string | null;
-  description: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
+  metadata: {
+    registrationNumber?: string | null;
+    contactPerson?: string | null;
+    website?: string | null;
+    taxId?: string | null;
+    businessLicense?: string | null;
+    description?: string | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,20 +78,21 @@ function ProfileContent() {
       setError(null);
       const response = await apiGet<{ profile: SupplierProfile }>('/api/v1/supplier/profile');
       setProfile(response.profile);
+      const metadata = response.profile.metadata || {};
       setFormData({
         name: response.profile.name || '',
         phone: response.profile.phone || '',
         address: response.profile.address || '',
         postalCode: response.profile.postalCode || '',
-        registrationNumber: response.profile.registrationNumber || '',
-        contactPerson: response.profile.contactPerson || '',
-        website: response.profile.website || '',
-        taxId: response.profile.taxId || '',
-        businessLicense: response.profile.businessLicense || '',
-        description: response.profile.description || '',
-        city: response.profile.city || '',
-        state: response.profile.state || '',
-        country: response.profile.country || '',
+        registrationNumber: metadata.registrationNumber || '',
+        contactPerson: metadata.contactPerson || '',
+        website: metadata.website || '',
+        taxId: metadata.taxId || '',
+        businessLicense: metadata.businessLicense || '',
+        description: metadata.description || '',
+        city: metadata.city || '',
+        state: metadata.state || '',
+        country: metadata.country || '',
       });
       setPreviewUrl(response.profile.logoUrl);
     } catch (err: any) {

@@ -1138,6 +1138,30 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+
+          <Link href="/supplier/profile">
+            <div className="bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg border-2 border-dashed border-gray-300 hover:border-blue-500">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-700 truncate">
+                        Supplier Profile
+                      </dt>
+                      <dd className="text-xs text-gray-500 mt-1">
+                        Manage profile & settings
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Product List Section */}
