@@ -52,7 +52,7 @@ export function setupRoutes(app: Express) {
   // Supplier profile routes
   app.use('/api/v1', supplierProfileRoutes);
   
-  // Price routes (for private prices and company list)
+  // Price routes (for private prices and companies list)
   app.use('/api/v1', priceRoutes);
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
