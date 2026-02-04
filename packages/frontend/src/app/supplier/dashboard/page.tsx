@@ -1707,19 +1707,22 @@ function DashboardContent() {
                 </div>
 
                 {/* Special Prices Section */}
-                <div className="border-t pt-4 mt-4">
+                <div className="border-t pt-4 mt-4 bg-blue-50 -mx-6 px-6 py-4 rounded-lg">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <Label className="text-base font-semibold">Special Prices (Optional)</Label>
-                      <p className="text-sm text-gray-500 mt-1">Add company-specific prices for this product</p>
+                      <Label className="text-base font-semibold text-gray-900">Special Prices for Selected Companies</Label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Set custom prices or discounts for specific companies. Each company can have a special price or discount percentage.
+                      </p>
                     </div>
                     {!draftSpecialPrice && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={handleAddSpecialPrice}
                         disabled={isSubmitting || loadingCompanies}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         + Add Company Price
                       </Button>
@@ -1970,8 +1973,10 @@ function DashboardContent() {
                   )}
 
                   {!draftSpecialPrice && includedSpecialPrices.length === 0 && !loadingCompanies && (
-                    <div className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
-                      No special prices included. Click &quot;Add Company Price&quot; to add one.
+                    <div className="text-sm text-gray-600 py-6 text-center border-2 border-dashed border-blue-300 rounded-lg bg-white">
+                      <p className="font-medium text-gray-700 mb-1">No special prices set yet</p>
+                      <p className="text-gray-500 mb-3">Click &quot;+ Add Company Price&quot; above to set custom pricing for specific companies</p>
+                      <p className="text-xs text-gray-400">You can add multiple companies, each with their own special price or discount</p>
                     </div>
                   )}
                 </div>
@@ -2209,19 +2214,22 @@ function DashboardContent() {
                 </div>
 
                 {/* Special Prices Section for Edit */}
-                <div className="border-t pt-4 mt-4">
+                <div className="border-t pt-4 mt-4 bg-blue-50 -mx-6 px-6 py-4 rounded-lg">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <Label className="text-base font-semibold">Special Prices (Optional)</Label>
-                      <p className="text-sm text-gray-500 mt-1">Add or update company-specific prices for this product</p>
+                      <Label className="text-base font-semibold text-gray-900">Special Prices for Selected Companies</Label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Set custom prices or discounts for specific companies. Each company can have a special price or discount percentage.
+                      </p>
                     </div>
                     {!editDraftSpecialPrice && (
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         onClick={handleAddEditSpecialPrice}
                         disabled={isSubmitting || loadingCompanies}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         + Add Company Price
                       </Button>
@@ -2472,8 +2480,10 @@ function DashboardContent() {
                   )}
 
                   {!editDraftSpecialPrice && editIncludedSpecialPrices.length === 0 && !loadingCompanies && (
-                    <div className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
-                      No special prices included. Click &quot;Add Company Price&quot; to add one.
+                    <div className="text-sm text-gray-600 py-6 text-center border-2 border-dashed border-blue-300 rounded-lg bg-white">
+                      <p className="font-medium text-gray-700 mb-1">No special prices set yet</p>
+                      <p className="text-gray-500 mb-3">Click &quot;+ Add Company Price&quot; above to set custom pricing for specific companies</p>
+                      <p className="text-xs text-gray-400">You can add multiple companies, each with their own special price or discount</p>
                     </div>
                   )}
                 </div>
