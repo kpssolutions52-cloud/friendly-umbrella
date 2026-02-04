@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +24,7 @@ interface Message {
   };
 }
 
-type QuestionFlowType = 'add_product' | 'update_product' | 'fetch_products' | null;
+type QuestionFlowType = 'add_product' | 'update_product' | 'fetch_products' | 'set_special_price' | null;
 
 interface QuestionFlow {
   type: QuestionFlowType;
@@ -190,6 +190,8 @@ export default function SupplierChatPage() {
       // Fetch products immediately
       handleFetchProducts();
       return;
+    } else if (type === 'set_special_price') {
+      initialQuestion = 'Which product should have a special price? (Enter product name)';
     }
 
     const assistantMessage: Message = {
@@ -325,6 +327,93 @@ export default function SupplierChatPage() {
           updatedData.unit = userInput.trim();
           shouldExecute = true;
           command = `Change ${updatedData.productName} unit to ${updatedData.unit}`;
+        }
+      }
+    } else if (type === 'set_special_price') {
+      if (step === 0) {
+        // Product name
+        const productName = userInput.trim();
+        const product = products.find(p => p.name.toLowerCase() === productName.toLowerCase());
+        if (!product) {
+          const errorMessage: Message = {
+            role: 'assistant',
+            content: `Product "${productName}" not found. Please enter a valid product name from your inventory.`,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return true;
+        }
+        updatedData.productId = product.id;
+        updatedData.productName = product.name;
+        nextStep = 1;
+        nextQuestion = `Which company should receive the special price for "${product.name}"? (Enter company name)`;
+      } else if (step === 1) {
+        // Company name
+        const companyName = userInput.trim();
+        const company = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+        if (!company) {
+          const errorMessage: Message = {
+            role: 'assistant',
+            content: `Company "${companyName}" not found. Please enter a valid company name.`,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return true;
+        }
+        updatedData.companyId = company.id;
+        updatedData.companyName = company.name;
+        nextStep = 2;
+        nextQuestion = 'What type of special pricing?\n1. Special Price (fixed amount)\n2. Discount Percentage\n\nEnter 1 or 2';
+      } else if (step === 2) {
+        // Price type
+        const priceType = userInput.trim();
+        if (priceType === '1') {
+          updatedData.priceType = 'price';
+          nextStep = 3;
+          nextQuestion = 'What is the special price? (e.g., 45.00)';
+        } else if (priceType === '2') {
+          updatedData.priceType = 'discount';
+          nextStep = 3;
+          nextQuestion = 'What is the discount percentage? (e.g., 10 for 10%)';
+        } else {
+          const errorMessage: Message = {
+            role: 'assistant',
+            content: 'Please enter 1 for Special Price or 2 for Discount Percentage',
+            timestamp: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return true;
+        }
+      } else if (step === 3) {
+        // Price or discount value
+        if (updatedData.priceType === 'price') {
+          const price = parseFloat(userInput.trim());
+          if (isNaN(price) || price <= 0) {
+            const errorMessage: Message = {
+              role: 'assistant',
+              content: 'Please enter a valid positive number for the price.',
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            return true;
+          }
+          updatedData.price = price;
+          shouldExecute = true;
+          command = `Set special price of $${updatedData.price} for ${updatedData.companyName} on product ${updatedData.productName}`;
+        } else {
+          const discount = parseFloat(userInput.trim());
+          if (isNaN(discount) || discount < 0 || discount > 100) {
+            const errorMessage: Message = {
+              role: 'assistant',
+              content: 'Please enter a valid discount percentage between 0 and 100.',
+              timestamp: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+            return true;
+          }
+          updatedData.discountPercentage = discount;
+          shouldExecute = true;
+          command = `Set ${updatedData.discountPercentage}% discount for ${updatedData.companyName} on product ${updatedData.productName}`;
         }
       }
     }
@@ -865,6 +954,16 @@ export default function SupplierChatPage() {
                 >
                   <Edit2 className="h-3 w-3 mr-1" />
                   Update Product
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startQuestionFlow('set_special_price')}
+                  disabled={loading || questionFlow !== null}
+                  className="text-xs h-7 px-2 bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700"
+                >
+                  <Tag className="h-3 w-3 mr-1" />
+                  Set Special Price
                 </Button>
                 <Button
                   variant="outline"
