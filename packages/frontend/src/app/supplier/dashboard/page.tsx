@@ -1140,23 +1140,28 @@ function DashboardContent() {
           </div>
 
           <Link href="/supplier/profile">
-            <div className="bg-white overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg border-2 border-dashed border-gray-300 hover:border-blue-500">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden shadow rounded-lg cursor-pointer transition-all hover:shadow-lg border-2 border-blue-300 hover:border-blue-500">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-700 truncate">
+                      <dt className="text-sm font-semibold text-blue-900 truncate">
                         Supplier Profile
                       </dt>
-                      <dd className="text-xs text-gray-500 mt-1">
+                      <dd className="text-xs text-blue-700 mt-1">
                         Manage profile & settings
                       </dd>
                     </dl>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -2039,7 +2044,7 @@ function DashboardContent() {
           onClick={handleCloseModal}
         >
           <div 
-            className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -2153,8 +2158,13 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
+                <div className="border-t border-green-200 pt-4 mt-4 bg-green-50 -mx-6 px-6 py-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <Label htmlFor="edit-stockAvailability" className="text-base font-semibold text-gray-900">Stock Availability</Label>
+                  </div>
                   <Input
                     id="edit-stockAvailability"
                     name="stockAvailability"
@@ -2162,8 +2172,9 @@ function DashboardContent() {
                     onChange={handleInputChange}
                     disabled={isSubmitting}
                     placeholder="in_stock, out_of_stock, low_stock, etc."
+                    className="bg-white"
                   />
-                  <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+                  <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
                 </div>
 
                 <div>
@@ -2227,9 +2238,14 @@ function DashboardContent() {
                 </div>
                 
                 {/* Default Price Expiry - Always visible */}
-                <div className="border-t pt-4 mt-4">
-                  <Label className="text-base font-semibold mb-2 block">Default Price Expiry (Optional)</Label>
-                  <p className="text-sm text-gray-500 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
+                <div className="border-t border-blue-200 pt-4 mt-4 bg-blue-50 -mx-6 px-6 py-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <Label className="text-base font-semibold text-gray-900">Default Price Expiry (Optional)</Label>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
                   <PriceExpiryInput
                     value={defaultPriceExpiry}
                     onChange={setDefaultPriceExpiry}
