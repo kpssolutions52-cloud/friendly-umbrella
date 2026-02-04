@@ -1682,16 +1682,16 @@ function DashboardContent() {
                   </div>
                 </div>
                 
-                {/* Default Price Expiry */}
-                {formData.defaultPrice && (
-                  <div>
-                    <PriceExpiryInput
-                      value={defaultPriceExpiry}
-                      onChange={setDefaultPriceExpiry}
-                      effectiveFrom={new Date()}
-                    />
-                  </div>
-                )}
+                {/* Default Price Expiry - Always visible */}
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-base font-semibold mb-2 block">Default Price Expiry (Optional)</Label>
+                  <p className="text-sm text-gray-500 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
+                  <PriceExpiryInput
+                    value={defaultPriceExpiry}
+                    onChange={setDefaultPriceExpiry}
+                    effectiveFrom={new Date()}
+                  />
+                </div>
 
                 <div>
                   <Label htmlFor="stockAvailability">Stock Availability</Label>
@@ -2197,16 +2197,16 @@ function DashboardContent() {
                   </div>
                 </div>
                 
-                {/* Default Price Expiry */}
-                {formData.defaultPrice && (
-                  <div>
-                    <PriceExpiryInput
-                      value={defaultPriceExpiry}
-                      onChange={setDefaultPriceExpiry}
-                      effectiveFrom={new Date()}
-                    />
-                  </div>
-                )}
+                {/* Default Price Expiry - Always visible */}
+                <div className="border-t pt-4 mt-4">
+                  <Label className="text-base font-semibold mb-2 block">Default Price Expiry (Optional)</Label>
+                  <p className="text-sm text-gray-500 mb-3">Set when this default price will expire. Leave as default for 1 year expiry.</p>
+                  <PriceExpiryInput
+                    value={defaultPriceExpiry}
+                    onChange={setDefaultPriceExpiry}
+                    effectiveFrom={new Date()}
+                  />
+                </div>
 
                 {/* Special Prices Section for Edit */}
                 <div className="border-t pt-4 mt-4">
