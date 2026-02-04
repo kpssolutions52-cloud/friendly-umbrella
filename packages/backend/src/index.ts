@@ -14,6 +14,7 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 import { setupRoutes } from './routes';
 import { setupWebSocket } from './websocket';
 import { setSocketIO } from './utils/socket';
+import { startPriceExpiryCleanupJob } from './jobs/priceExpiryCleanup';
 
 // Validate required environment variables (warn but don't exit - let server start)
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
@@ -110,6 +111,15 @@ try {
 } catch (error) {
   console.error('❌ Error setting up WebSocket:', error);
   // Continue anyway - HTTP endpoints will still work
+}
+
+// Start scheduled jobs
+try {
+  startPriceExpiryCleanupJob();
+  console.log('✅ Scheduled jobs started');
+} catch (error) {
+  console.error('❌ Error starting scheduled jobs:', error);
+  // Continue anyway - main functionality will still work
 }
 
 // Error handling middleware (must be last)
