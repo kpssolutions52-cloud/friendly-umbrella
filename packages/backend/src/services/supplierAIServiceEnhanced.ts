@@ -187,7 +187,8 @@ const tools = [
 async function executeTool(
   toolName: string,
   args: any,
-  supplierId: string
+  supplierId: string,
+  userId?: string
 ): Promise<any> {
   switch (toolName) {
     case 'get_product_price': {
@@ -450,6 +451,13 @@ async function executeTool(
         where: { id: product.id },
       });
 
+      if (!updatedProduct) {
+        return {
+          success: false,
+          error: `Failed to retrieve updated product information.`,
+        };
+      }
+
       return {
         success: true,
         product: {
@@ -640,7 +648,7 @@ Be helpful, accurate, and concise. Always use tools to get real data rather than
           const toolName = toolCall.function.name;
           const args = JSON.parse(toolCall.function.arguments);
 
-          const toolResult = await executeTool(toolName, args, supplierId);
+          const toolResult = await executeTool(toolName, args, supplierId, userId);
 
           // Add tool result to messages
           messages.push({
