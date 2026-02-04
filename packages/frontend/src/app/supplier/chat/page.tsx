@@ -40,6 +40,13 @@ interface Product {
   createdAt: string;
   updatedAt: string;
   stockAvailability?: string | null;
+  defaultPrices?: Array<{
+    id: string;
+    effectiveFrom: string;
+    effectiveUntil: string | null;
+    price: number;
+    currency: string;
+  }>;
 }
 
 interface Company {
@@ -172,6 +179,101 @@ export default function SupplierChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load profile
+  const loadProfile = async () => {
+    try {
+      setLoadingProfile(true);
+      setProfileError(null);
+      const response = await apiGet<{ profile: SupplierProfile }>('/api/v1/supplier/profile');
+      setProfile(response.profile);
+      const metadata = response.profile.metadata || {};
+      setProfileFormData({
+        name: response.profile.name || '',
+        phone: response.profile.phone || '',
+        address: response.profile.address || '',
+        postalCode: response.profile.postalCode || '',
+        registrationNumber: metadata.registrationNumber || '',
+        contactPerson: metadata.contactPerson || '',
+        website: metadata.website || '',
+        taxId: metadata.taxId || '',
+        businessLicense: metadata.businessLicense || '',
+        description: metadata.description || '',
+        city: metadata.city || '',
+        state: metadata.state || '',
+        country: metadata.country || '',
+      });
+    } catch (err: any) {
+      console.error('Failed to load profile:', err);
+      setProfileError(err.error?.message || 'Failed to load profile. Please try again.');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  // Save profile
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    try {
+      const response = await apiPut<{ profile: SupplierProfile; message: string }>(
+        '/api/v1/supplier/profile',
+        profileFormData
+      );
+      setProfile(response.profile);
+      setProfileSuccess('Profile updated successfully');
+      setTimeout(() => setProfileSuccess(null), 3000);
+    } catch (err: any) {
+      setProfileError(err.error?.message || 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Load companies for special prices
+  const loadCompanies = async () => {
+    if (companies.length > 0) return; // Already loaded
+    try {
+      setLoadingCompanies(true);
+      const response = await apiGet<{ companies: Company[] }>('/api/v1/companies');
+      setCompanies(response.companies || []);
+    } catch (err: any) {
+      console.error('Failed to load companies:', err);
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
+  // Load companies when special price form is opened
+  useEffect(() => {
+    if (draftSpecialPrice && companies.length === 0) {
+      loadCompanies();
+    }
+  }, [draftSpecialPrice]);
+
+  // Calculate expiry countdown
+  const getExpiryCountdown = (product: Product): string | null => {
+    if (!product.defaultPrices || product.defaultPrices.length === 0) return null;
+    const latestPrice = product.defaultPrices[0];
+    if (!latestPrice.effectiveUntil) return null;
+    
+    const expiryDate = new Date(latestPrice.effectiveUntil);
+    const now = new Date();
+    const diff = expiryDate.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Expired';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   const showAvailableActions = () => {
     const actionsMessage: Message = {
@@ -1115,10 +1217,12 @@ export default function SupplierChatPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={async () => {
+                onClick={() => {
                   if (!showProfile) {
                     setShowProfile(true);
-                    await loadProfile();
+                    loadProfile().catch((err) => {
+                      console.error('Failed to load profile:', err);
+                    });
                   } else {
                     setShowProfile(false);
                   }
@@ -1700,7 +1804,8 @@ export default function SupplierChatPage() {
             </div>
           )}
 
-          {/* Products Display */}
+          {/* Products Display - Hide when editing or viewing profile */}
+          {!showAddForm && !showProfile && (
           <div className="flex-1 overflow-y-auto p-4">
             {loadingProducts ? (
               <div className="flex items-center justify-center h-full">
@@ -1783,7 +1888,13 @@ export default function SupplierChatPage() {
                         <span className="text-sm text-gray-500">/{product.unit}</span>
                       </div>
                       <div className="text-xs text-gray-400 pt-2 border-t border-gray-100">
-                        Updated: {new Date(product.updatedAt).toLocaleDateString()}
+                        {getExpiryCountdown(product) ? (
+                          <span className={getExpiryCountdown(product) === 'Expired' ? 'text-red-600 font-medium' : 'text-orange-600'}>
+                            Expires: {getExpiryCountdown(product)}
+                          </span>
+                        ) : (
+                          <span>No expiry set</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1884,6 +1995,7 @@ export default function SupplierChatPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
