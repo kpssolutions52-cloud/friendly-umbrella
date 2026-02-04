@@ -18,12 +18,39 @@ function parseNullableDate(value: string | null | undefined): Date | null | unde
   return new Date(value);
 }
 
+// Expiry duration schema
+const expiryDurationSchema = z.object({
+  value: z.number().positive('Duration value must be positive'),
+  unit: z.enum(['minutes', 'hours', 'days', 'months'], {
+    errorMap: () => ({ message: 'Unit must be minutes, hours, days, or months' }),
+  }),
+});
+
+// Price expiry schema
+const priceExpirySchema = z.object({
+  expiryDuration: expiryDurationSchema.optional(),
+  expiryFrom: z.string().datetime().optional(),
+  expiryUntil: z.string().datetime().optional(),
+}).refine(
+  (data) => {
+    // Either expiryDuration or expiryUntil must be provided, but not both
+    const hasDuration = data.expiryDuration !== undefined;
+    const hasUntil = data.expiryUntil !== undefined;
+    return !(hasDuration && hasUntil);
+  },
+  {
+    message: 'Either expiryDuration or expiryUntil can be provided, but not both',
+    path: ['expiry'],
+  }
+);
+
 // Define schemas locally
 const defaultPriceSchema = z.object({
   price: z.number().min(0, 'Price must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters').optional().default('USD'),
   effectiveFrom: z.string().datetime().optional(),
   effectiveUntil: z.string().datetime().optional().nullable(),
+  expiry: priceExpirySchema.optional(),
 });
 
 const privatePriceSchema = z.object({
@@ -33,6 +60,7 @@ const privatePriceSchema = z.object({
   currency: z.string().length(3, 'Currency must be 3 characters').optional().default('USD'),
   effectiveFrom: z.string().datetime().optional(),
   effectiveUntil: z.string().datetime().optional().nullable(),
+  expiry: priceExpirySchema.optional(),
   notes: z.string().optional(),
 }).refine(
   (data) => {
@@ -59,6 +87,7 @@ const updatePrivatePriceSchema = z.object({
   currency: z.string().length(3, 'Currency must be 3 characters').optional(),
   effectiveFrom: z.string().datetime().optional(),
   effectiveUntil: z.string().datetime().optional().nullable(),
+  expiry: priceExpirySchema.optional(),
   notes: z.string().optional(),
   isActive: z.boolean().optional(),
 }).refine(
@@ -104,6 +133,11 @@ router.put(
         currency: parsed.currency,
         effectiveFrom: parseDate(parsed.effectiveFrom),
         effectiveUntil: parseNullableDate(parsed.effectiveUntil),
+        expiry: parsed.expiry ? {
+          expiryDuration: parsed.expiry.expiryDuration,
+          expiryFrom: parseDate(parsed.expiry.expiryFrom),
+          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil),
+        } : undefined,
       };
 
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
@@ -161,6 +195,11 @@ router.post(
         currency: parsed.currency,
         effectiveFrom: parseDate(parsed.effectiveFrom),
         effectiveUntil: parseNullableDate(parsed.effectiveUntil),
+        expiry: parsed.expiry ? {
+          expiryDuration: parsed.expiry.expiryDuration,
+          expiryFrom: parseDate(parsed.expiry.expiryFrom),
+          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil),
+        } : undefined,
         notes: parsed.notes,
       };
 

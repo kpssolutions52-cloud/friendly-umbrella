@@ -27,12 +27,14 @@ interface ProductDetails {
   defaultPrice: {
     price: number;
     currency: string;
+    effectiveUntil: Date | null;
   } | null;
   privatePrice: {
     price: number | null;
     discountPercentage: number | null;
     calculatedPrice: number | null;
     currency: string;
+    effectiveUntil: Date | null;
   } | null;
   images?: Array<{
     id: string;
@@ -78,9 +80,17 @@ export default function ProductDetailsPage() {
       );
       
       if (response.product) {
-        // Use product images from response, or fallback to productImageUrl
-        const productWithImages: ProductDetails = {
+        // Parse date strings to Date objects for expiry
+        const productWithParsedDates: ProductDetails = {
           ...response.product,
+          defaultPrice: response.product.defaultPrice ? {
+            ...response.product.defaultPrice,
+            effectiveUntil: response.product.defaultPrice.effectiveUntil ? new Date(response.product.defaultPrice.effectiveUntil) : null,
+          } : null,
+          privatePrice: response.product.privatePrice ? {
+            ...response.product.privatePrice,
+            effectiveUntil: response.product.privatePrice.effectiveUntil ? new Date(response.product.privatePrice.effectiveUntil) : null,
+          } : null,
           images: response.product.images && response.product.images.length > 0
             ? response.product.images
             : response.product.productImageUrl
@@ -91,7 +101,7 @@ export default function ProductDetailsPage() {
               }]
             : [],
         };
-        setProduct(productWithImages);
+        setProduct(productWithParsedDates);
       } else {
         setError('Product not found');
       }

@@ -301,12 +301,14 @@ router.get(
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
             currency: defaultPrice.currency,
+            effectiveUntil: defaultPrice.effectiveUntil,
           } : null,
           privatePrice: privatePrice ? {
             price: privatePrice.price ? Number(privatePrice.price) : null,
             discountPercentage: privatePrice.discountPercentage ? Number(privatePrice.discountPercentage) : null,
             calculatedPrice: calculatedPrice,
             currency: privatePrice.currency,
+            effectiveUntil: privatePrice.effectiveUntil,
           } : null,
           // Keep backward compatibility - this is the price that applies
           price: finalPrice,
@@ -533,6 +535,7 @@ router.get(
           defaultPrice: defaultPrice ? {
             price: Number(defaultPrice.price),
             currency: defaultPrice.currency,
+            effectiveUntil: defaultPrice.effectiveUntil,
           } : null,
           privatePrice: privatePrice ? {
             price: privatePrice.price ? Number(privatePrice.price) : null,
@@ -543,6 +546,7 @@ router.get(
               ? Math.round(Number(defaultPrice.price) * (1 - Number(privatePrice.discountPercentage) / 100) * 100) / 100
               : null,
             currency: privatePrice.currency,
+            effectiveUntil: privatePrice.effectiveUntil,
           } : null,
           // Keep backward compatibility - this is the price that applies
           price: privatePrice

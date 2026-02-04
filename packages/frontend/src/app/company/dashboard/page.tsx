@@ -34,12 +34,14 @@ interface SearchProduct {
   defaultPrice: {
     price: number;
     currency: string;
+    effectiveUntil: Date | null;
   } | null;
   privatePrice: {
     price: number | null;
     discountPercentage: number | null;
     calculatedPrice: number | null;
     currency: string;
+    effectiveUntil: Date | null;
   } | null;
 }
 
@@ -186,8 +188,21 @@ function DashboardContent() {
         `/api/v1/products/search?${params.toString()}`
       );
       
+      // Parse date strings to Date objects for expiry
+      const productsWithParsedDates = response.products.map(product => ({
+        ...product,
+        defaultPrice: product.defaultPrice ? {
+          ...product.defaultPrice,
+          effectiveUntil: product.defaultPrice.effectiveUntil ? new Date(product.defaultPrice.effectiveUntil) : null,
+        } : null,
+        privatePrice: product.privatePrice ? {
+          ...product.privatePrice,
+          effectiveUntil: product.privatePrice.effectiveUntil ? new Date(product.privatePrice.effectiveUntil) : null,
+        } : null,
+      }));
+      
       // Sort products: those with special prices first
-      const sortedProducts = [...response.products].sort((a, b) => {
+      const sortedProducts = [...productsWithParsedDates].sort((a, b) => {
         const aHasSpecialPrice = a.privatePrice !== null && (a.privatePrice.price !== null || a.privatePrice.calculatedPrice !== null);
         const bHasSpecialPrice = b.privatePrice !== null && (b.privatePrice.price !== null || b.privatePrice.calculatedPrice !== null);
         

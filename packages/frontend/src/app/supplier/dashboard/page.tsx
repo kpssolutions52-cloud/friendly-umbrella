@@ -12,6 +12,7 @@ import { getTenantStatistics } from '@/lib/tenantAdminApi';
 import { ProductImageManager } from '@/components/ProductImageManager';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { PriceExpiryInput, PriceExpiryInput as PriceExpiryInputType, formatExpiryDate } from '@/components/PriceExpiryInput';
 import Link from 'next/link';
 import { Zap } from 'lucide-react';
 
@@ -52,6 +53,7 @@ interface Product {
     price: number;
     currency: string;
     isActive: boolean;
+    effectiveUntil?: Date | null;
   }>;
   _count: {
     privatePrices: number;
@@ -145,6 +147,8 @@ function DashboardContent() {
     discountPercentage: string;
     currency: string;
     notes: string;
+    expiry?: PriceExpiryInputType;
+    effectiveUntil?: Date | null;
   }
   
   const [companies, setCompanies] = useState<Array<{ id: string; name: string; email: string }>>([]);
@@ -157,6 +161,7 @@ function DashboardContent() {
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
   const [includedSpecialPrices, setIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingSpecialPriceId, setEditingSpecialPriceId] = useState<string | null>(null);
+  const [defaultPriceExpiry, setDefaultPriceExpiry] = useState<PriceExpiryInputType | undefined>(undefined);
   
   // Edit modal special prices (using same draft/included pattern)
   const [editDraftSpecialPrice, setEditDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
@@ -475,31 +480,35 @@ function DashboardContent() {
       // Validate and prepare special prices (only included ones)
       const validSpecialPrices = includedSpecialPrices
         .map(sp => {
+          const basePrice: any = {
+            companyId: sp.companyId,
+            notes: sp.notes || undefined,
+          };
+          
           if (sp.priceType === 'price') {
             // For fixed price: send price and currency, ensure discountPercentage is not sent
-            return {
-              companyId: sp.companyId,
-              price: parseFloat(sp.price),
-              currency: sp.currency || formData.currency || 'USD',
-              discountPercentage: undefined, // Explicitly exclude discount
-              notes: sp.notes || undefined,
-            };
+            basePrice.price = parseFloat(sp.price);
+            basePrice.currency = sp.currency || formData.currency || 'USD';
+            basePrice.discountPercentage = undefined; // Explicitly exclude discount
           } else {
             // For discount percentage: send discountPercentage only, ensure price is not sent
-            return {
-              companyId: sp.companyId,
-              price: undefined, // Explicitly exclude price
-              discountPercentage: parseFloat(sp.discountPercentage),
-              // Don't include currency for discount percentage - it will use product default currency
-              notes: sp.notes || undefined,
-            };
+            basePrice.price = undefined; // Explicitly exclude price
+            basePrice.discountPercentage = parseFloat(sp.discountPercentage);
+            // Don't include currency for discount percentage - it will use product default currency
           }
+          
+          // Add expiry if provided
+          if (sp.expiry) {
+            basePrice.expiry = sp.expiry;
+          }
+          
+          return basePrice;
         });
 
       // Use subcategory (required if main category selected), otherwise use main category or undefined
       const finalCategoryId = formData.categoryId || (formData.mainCategoryId && subCategories.length === 0 ? formData.mainCategoryId : undefined);
       
-      const payload = {
+      const payload: any = {
         sku: formData.sku,
         name: formData.name,
         description: formData.description || undefined,
@@ -509,6 +518,11 @@ function DashboardContent() {
         currency: formData.currency,
         specialPrices: validSpecialPrices.length > 0 ? validSpecialPrices : undefined,
       };
+      
+      // Add default price expiry if provided
+      if (defaultPriceExpiry && formData.defaultPrice) {
+        payload.defaultPriceExpiry = defaultPriceExpiry;
+      }
 
       const response = await apiPost<{ product: { id: string } }>('/api/v1/products', payload);
       setSuccess(true);
@@ -579,6 +593,7 @@ function DashboardContent() {
       setEditIncludedSpecialPrices([]);
       setEditDraftSpecialPrice(null);
       setEditingEditSpecialPriceId(null);
+      setDefaultPriceExpiry(undefined);
     }
   };
   
@@ -721,6 +736,21 @@ function DashboardContent() {
           : 'USD',
       });
       
+      // Load default price expiry if it exists
+      if (fullProduct.defaultPrices && fullProduct.defaultPrices.length > 0 && fullProduct.defaultPrices[0].effectiveUntil) {
+        // Set expiry based on effectiveUntil date
+        const effectiveUntil = new Date(fullProduct.defaultPrices[0].effectiveUntil);
+        const effectiveFrom = fullProduct.defaultPrices[0].effectiveFrom 
+          ? new Date(fullProduct.defaultPrices[0].effectiveFrom)
+          : new Date();
+        setDefaultPriceExpiry({
+          expiryUntil: effectiveUntil,
+          expiryFrom: effectiveFrom,
+        });
+      } else {
+        setDefaultPriceExpiry(undefined);
+      }
+      
       setSelectedMainCategoryId(mainCategoryId);
       
       // Load existing private prices into edit included special prices state
@@ -746,6 +776,11 @@ function DashboardContent() {
               : '',
             currency: pricingType === 'price' ? (pp.currency || 'USD') : 'USD',
             notes: pp.notes || '',
+            effectiveUntil: pp.effectiveUntil ? new Date(pp.effectiveUntil) : null,
+            expiry: pp.effectiveUntil ? {
+              expiryUntil: new Date(pp.effectiveUntil),
+              expiryFrom: pp.effectiveFrom ? new Date(pp.effectiveFrom) : undefined,
+            } : undefined,
           };
         });
         setEditIncludedSpecialPrices(existingSpecialPrices);
@@ -783,24 +818,28 @@ function DashboardContent() {
       // Validate and prepare special prices for edit (only included ones)
       const validSpecialPrices = editIncludedSpecialPrices
         .map(sp => {
+          const basePrice: any = {
+            companyId: sp.companyId,
+            notes: sp.notes || undefined,
+          };
+          
           if (sp.priceType === 'price') {
             // For fixed price: send price and currency, ensure discountPercentage is not sent
-            return {
-              companyId: sp.companyId,
-              price: parseFloat(sp.price),
-              currency: sp.currency || formData.currency || 'USD',
-              discountPercentage: undefined, // Explicitly exclude discount
-              notes: sp.notes || undefined,
-            };
+            basePrice.price = parseFloat(sp.price);
+            basePrice.currency = sp.currency || formData.currency || 'USD';
+            basePrice.discountPercentage = undefined; // Explicitly exclude discount
           } else {
             // For discount percentage: send discountPercentage only, ensure price is not sent
-            return {
-              companyId: sp.companyId,
-              price: undefined, // Explicitly exclude price
-              discountPercentage: parseFloat(sp.discountPercentage),
-              notes: sp.notes || undefined,
-            };
+            basePrice.price = undefined; // Explicitly exclude price
+            basePrice.discountPercentage = parseFloat(sp.discountPercentage);
           }
+          
+          // Add expiry if provided
+          if (sp.expiry) {
+            basePrice.expiry = sp.expiry;
+          }
+          
+          return basePrice;
         });
 
       // Use subcategory (required if main category selected), otherwise use main category or undefined
@@ -820,6 +859,10 @@ function DashboardContent() {
       if (formData.defaultPrice) {
         payload.defaultPrice = parseFloat(formData.defaultPrice);
         payload.currency = formData.currency;
+        // Add default price expiry if provided
+        if (defaultPriceExpiry) {
+          payload.defaultPriceExpiry = defaultPriceExpiry;
+        }
       }
 
       await apiPut(`/api/v1/products/${editingProduct.id}`, payload);
@@ -1215,9 +1258,16 @@ function DashboardContent() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {product.defaultPrices && product.defaultPrices.length > 0 ? (
-                            <span>
-                              {product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}
-                            </span>
+                            <div>
+                              <div>
+                                {product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}
+                              </div>
+                              {product.defaultPrices[0].effectiveUntil && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {formatExpiryDate(product.defaultPrices[0].effectiveUntil)}
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-gray-400">No price</span>
                           )}
@@ -1317,7 +1367,14 @@ function DashboardContent() {
                           <span className="text-gray-500">Price:</span>
                           <span className="ml-1 text-gray-900 font-medium">
                             {product.defaultPrices && product.defaultPrices.length > 0 ? (
-                              <>{product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}</>
+                              <div>
+                                <div>{product.defaultPrices[0].currency} {Number(product.defaultPrices[0].price).toFixed(2)}</div>
+                                {product.defaultPrices[0].effectiveUntil && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {formatExpiryDate(product.defaultPrices[0].effectiveUntil)}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-gray-400">No price</span>
                             )}
@@ -1624,6 +1681,17 @@ function DashboardContent() {
                     />
                   </div>
                 </div>
+                
+                {/* Default Price Expiry */}
+                {formData.defaultPrice && (
+                  <div>
+                    <PriceExpiryInput
+                      value={defaultPriceExpiry}
+                      onChange={setDefaultPriceExpiry}
+                      effectiveFrom={new Date()}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="stockAvailability">Stock Availability</Label>
@@ -1805,6 +1873,17 @@ function DashboardContent() {
                           placeholder="Additional notes..."
                         />
                       </div>
+                      <div className="mt-3">
+                        <PriceExpiryInput
+                          value={draftSpecialPrice.expiry}
+                          onChange={(expiry) => {
+                            if (draftSpecialPrice) {
+                              setDraftSpecialPrice({ ...draftSpecialPrice, expiry });
+                            }
+                          }}
+                          effectiveFrom={new Date()}
+                        />
+                      </div>
                       <div className="mt-4 flex justify-end">
                         <Button
                           type="button"
@@ -1829,6 +1908,7 @@ function DashboardContent() {
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Discount</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -1850,6 +1930,9 @@ function DashboardContent() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                   {sp.priceType === 'price' ? sp.currency : '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  {sp.effectiveUntil ? formatExpiryDate(sp.effectiveUntil) : 'No expiry'}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-500">
                                   {sp.notes || '-'}
@@ -2113,6 +2196,17 @@ function DashboardContent() {
                     />
                   </div>
                 </div>
+                
+                {/* Default Price Expiry */}
+                {formData.defaultPrice && (
+                  <div>
+                    <PriceExpiryInput
+                      value={defaultPriceExpiry}
+                      onChange={setDefaultPriceExpiry}
+                      effectiveFrom={new Date()}
+                    />
+                  </div>
+                )}
 
                 {/* Special Prices Section for Edit */}
                 <div className="border-t pt-4 mt-4">
@@ -2281,6 +2375,17 @@ function DashboardContent() {
                           placeholder="Additional notes..."
                         />
                       </div>
+                      <div className="mt-3">
+                        <PriceExpiryInput
+                          value={editDraftSpecialPrice.expiry}
+                          onChange={(expiry) => {
+                            if (editDraftSpecialPrice) {
+                              setEditDraftSpecialPrice({ ...editDraftSpecialPrice, expiry });
+                            }
+                          }}
+                          effectiveFrom={new Date()}
+                        />
+                      </div>
                       <div className="mt-4 flex justify-end">
                         <Button
                           type="button"
@@ -2305,6 +2410,7 @@ function DashboardContent() {
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Discount</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -2326,6 +2432,9 @@ function DashboardContent() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                   {sp.priceType === 'price' ? sp.currency : '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                  {sp.effectiveUntil ? formatExpiryDate(sp.effectiveUntil) : 'No expiry'}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-500">
                                   {sp.notes || '-'}

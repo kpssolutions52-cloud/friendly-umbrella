@@ -3,6 +3,7 @@ import { productService } from '../services/productService';
 import { authenticate, AuthRequest, requireTenantType, requireTenantAdmin } from '../middleware/auth';
 import { body, param, query, validationResult } from 'express-validator';
 import { z } from 'zod';
+import { PriceExpiryInput } from '../services/priceService';
 
 // Define schemas locally since @platform/shared might not be resolved
 const productSchema = z.object({
@@ -21,11 +22,38 @@ router.use(authenticate);
 // Allow both suppliers and service providers (services are products with type='service')
 router.use(requireTenantType('supplier', 'service_provider'));
 
+// Expiry duration schema
+const expiryDurationSchema = z.object({
+  value: z.number().positive('Duration value must be positive'),
+  unit: z.enum(['minutes', 'hours', 'days', 'months'], {
+    errorMap: () => ({ message: 'Unit must be minutes, hours, days, or months' }),
+  }),
+});
+
+// Price expiry schema
+const priceExpirySchema = z.object({
+  expiryDuration: expiryDurationSchema.optional(),
+  expiryFrom: z.string().datetime().optional(),
+  expiryUntil: z.string().datetime().optional(),
+}).refine(
+  (data) => {
+    // Either expiryDuration or expiryUntil must be provided, but not both
+    const hasDuration = data.expiryDuration !== undefined;
+    const hasUntil = data.expiryUntil !== undefined;
+    return !(hasDuration && hasUntil);
+  },
+  {
+    message: 'Either expiryDuration or expiryUntil can be provided, but not both',
+    path: ['expiry'],
+  }
+);
+
 const specialPriceSchema = z.object({
   companyId: z.string().uuid('Invalid company ID'),
   price: z.number().min(0, 'Price must be positive').optional(),
   discountPercentage: z.number().min(0).max(100, 'Discount percentage must be between 0 and 100').optional(),
   currency: z.string().length(3).optional(),
+  expiry: priceExpirySchema.optional(),
   notes: z.string().optional(),
 }).refine(
   (data) => {
@@ -43,11 +71,15 @@ const specialPriceSchema = z.object({
 const createProductSchema = productSchema.extend({
   defaultPrice: z.number().min(0).optional(),
   currency: z.string().length(3).optional(),
+  defaultPriceExpiry: priceExpirySchema.optional(),
   specialPrices: z.array(specialPriceSchema).optional(),
 });
 
 const updateProductSchema = productSchema.partial().extend({
   isActive: z.boolean().optional(),
+  defaultPrice: z.number().min(0).optional(),
+  currency: z.string().length(3).optional(),
+  defaultPriceExpiry: priceExpirySchema.optional(),
   specialPrices: z.array(specialPriceSchema).optional(),
 });
 
@@ -147,9 +179,25 @@ router.post(
 
       const input = createProductSchema.parse(req.body);
       // Convert null categoryId to undefined
+      // Parse expiry if provided
+      const defaultPriceExpiry: PriceExpiryInput | undefined = input.defaultPriceExpiry ? {
+        expiryDuration: input.defaultPriceExpiry.expiryDuration,
+        expiryFrom: input.defaultPriceExpiry.expiryFrom ? new Date(input.defaultPriceExpiry.expiryFrom) : undefined,
+        expiryUntil: input.defaultPriceExpiry.expiryUntil ? new Date(input.defaultPriceExpiry.expiryUntil) : undefined,
+      } : undefined;
+      
       const productInput = {
         ...input,
         categoryId: input.categoryId || undefined,
+        defaultPriceExpiry,
+        specialPrices: input.specialPrices?.map(sp => ({
+          ...sp,
+          expiry: sp.expiry ? {
+            expiryDuration: sp.expiry.expiryDuration,
+            expiryFrom: sp.expiry.expiryFrom ? new Date(sp.expiry.expiryFrom) : undefined,
+            expiryUntil: sp.expiry.expiryUntil ? new Date(sp.expiry.expiryUntil) : undefined,
+          } : undefined,
+        })),
       };
       const product = await productService.createProduct(req.tenantId!, productInput);
 
@@ -179,10 +227,30 @@ router.put(
       }
 
       const input = updateProductSchema.parse(req.body);
+      // Parse expiry if provided
+      const defaultPriceExpiry: PriceExpiryInput | undefined = (input as any).defaultPriceExpiry ? {
+        expiryDuration: (input as any).defaultPriceExpiry.expiryDuration,
+        expiryFrom: (input as any).defaultPriceExpiry.expiryFrom ? new Date((input as any).defaultPriceExpiry.expiryFrom) : undefined,
+        expiryUntil: (input as any).defaultPriceExpiry.expiryUntil ? new Date((input as any).defaultPriceExpiry.expiryUntil) : undefined,
+      } : undefined;
+      
+      const updateInput = {
+        ...input,
+        defaultPriceExpiry,
+        specialPrices: input.specialPrices?.map(sp => ({
+          ...sp,
+          expiry: sp.expiry ? {
+            expiryDuration: sp.expiry.expiryDuration,
+            expiryFrom: sp.expiry.expiryFrom ? new Date(sp.expiry.expiryFrom) : undefined,
+            expiryUntil: sp.expiry.expiryUntil ? new Date(sp.expiry.expiryUntil) : undefined,
+          } : undefined,
+        })),
+      };
+      
       const product = await productService.updateProduct(
         req.params.id,
         req.tenantId!,
-        input
+        updateInput
       );
 
       res.json({ product });

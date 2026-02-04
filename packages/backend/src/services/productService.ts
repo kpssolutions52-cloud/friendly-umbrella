@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prisma';
 import createError from 'http-errors';
 import { Decimal } from '@prisma/client/runtime/library';
+import { PriceExpiryInput, calculateExpiryDate } from './priceService';
 
 export interface SpecialPriceInput {
   companyId: string;
@@ -8,6 +9,7 @@ export interface SpecialPriceInput {
   discountPercentage?: number; // Optional if price is provided (0-100)
   currency?: string;
   notes?: string;
+  expiry?: PriceExpiryInput; // Price expiry configuration
 }
 
 export interface CreateProductInput {
@@ -20,6 +22,7 @@ export interface CreateProductInput {
   unit: string;
   defaultPrice?: number;
   currency?: string;
+  defaultPriceExpiry?: PriceExpiryInput; // Default price expiry
   // Service-specific pricing
   ratePerHour?: number | null; // For services: hourly rate
   rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null; // Pricing type for services
@@ -36,6 +39,9 @@ export interface UpdateProductInput {
   serviceCategoryId?: string | null; // Reference to ServiceCategory (for services)
   unit?: string;
   stockAvailability?: string | null; // Stock availability status or quantity info
+  defaultPrice?: number; // Update default price
+  currency?: string; // Currency for default price
+  defaultPriceExpiry?: PriceExpiryInput; // Default price expiry
   // Service-specific pricing
   ratePerHour?: number | null; // For services: hourly rate
   rateType?: 'per_hour' | 'per_project' | 'fixed' | 'negotiable' | null; // Pricing type for services
@@ -255,11 +261,18 @@ export class ProductService {
 
       // Create default price if provided
       if (input.defaultPrice !== undefined) {
+        const effectiveFrom = new Date();
+        const effectiveUntil = input.defaultPriceExpiry 
+          ? calculateExpiryDate(input.defaultPriceExpiry, effectiveFrom)
+          : calculateExpiryDate(undefined, effectiveFrom); // Default 1 year
+        
         await tx.defaultPrice.create({
           data: {
             productId: product.id,
             price: new Decimal(input.defaultPrice),
             currency: input.currency || 'USD',
+            effectiveFrom: effectiveFrom,
+            effectiveUntil: effectiveUntil,
             isActive: true,
           },
         });
@@ -500,6 +513,47 @@ export class ProductService {
         data: updateData,
       });
 
+      // Handle default price update if provided
+      if (input.defaultPrice !== undefined) {
+        // Get current active default price
+        const currentDefaultPrice = await tx.defaultPrice.findFirst({
+          where: {
+            productId: product.id,
+            isActive: true,
+          },
+          orderBy: { effectiveFrom: 'desc' },
+        });
+
+        // If price changed or doesn't exist, create new price entry
+        if (!currentDefaultPrice || Number(currentDefaultPrice.price) !== input.defaultPrice) {
+          // Deactivate old price if it exists
+          if (currentDefaultPrice) {
+            await tx.defaultPrice.update({
+              where: { id: currentDefaultPrice.id },
+              data: { isActive: false },
+            });
+          }
+
+          // Calculate expiry date
+          const effectiveFrom = new Date();
+          const effectiveUntil = input.defaultPriceExpiry 
+            ? calculateExpiryDate(input.defaultPriceExpiry, effectiveFrom)
+            : calculateExpiryDate(undefined, effectiveFrom); // Default 1 year
+
+          // Create new default price entry
+          await tx.defaultPrice.create({
+            data: {
+              productId: product.id,
+              price: new Decimal(input.defaultPrice),
+              currency: input.currency || defaultPriceCurrency,
+              effectiveFrom: effectiveFrom,
+              effectiveUntil: effectiveUntil,
+              isActive: true,
+            },
+          });
+        }
+      }
+
       // Handle special prices if provided
       if (input.specialPrices && input.specialPrices.length > 0) {
         // Check for duplicate company IDs
@@ -561,6 +615,12 @@ export class ProductService {
             });
           }
 
+          // Calculate expiry date
+          const effectiveFrom = new Date();
+          const effectiveUntil = specialPrice.expiry 
+            ? calculateExpiryDate(specialPrice.expiry, effectiveFrom)
+            : calculateExpiryDate(undefined, effectiveFrom); // Default 1 year
+          
           // Create new private price entry
           await tx.privatePrice.create({
             data: {
@@ -572,6 +632,8 @@ export class ProductService {
                 : null,
               currency: finalCurrency,
               notes: specialPrice.notes,
+              effectiveFrom: effectiveFrom,
+              effectiveUntil: effectiveUntil,
               isActive: true,
             },
           });

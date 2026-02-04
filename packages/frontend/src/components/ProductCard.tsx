@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { formatExpiryDate } from './PriceExpiryInput';
 
 interface ProductCardProps {
   product: {
@@ -21,12 +22,14 @@ interface ProductCardProps {
     defaultPrice: {
       price: number;
       currency: string;
+      effectiveUntil?: Date | null;
     } | null;
     privatePrice: {
       price: number | null;
       discountPercentage: number | null;
       calculatedPrice: number | null;
       currency: string;
+      effectiveUntil?: Date | null;
     } | null;
   };
   onViewDetails: () => void;
@@ -174,6 +177,14 @@ export function ProductCard({ product, onViewDetails }: ProductCardProps) {
                     <span className="text-xs text-green-600 font-semibold">Special</span>
                   )}
                 </div>
+                {/* Price Expiry Info */}
+                {(product.privatePrice?.effectiveUntil || product.defaultPrice?.effectiveUntil) && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    {formatExpiryDate(
+                      product.privatePrice?.effectiveUntil || product.defaultPrice?.effectiveUntil
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-gray-400">Price not available</p>
