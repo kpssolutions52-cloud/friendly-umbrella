@@ -2041,17 +2041,19 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
-                  <Input
-                    id="edit-stockAvailability"
-                    name="stockAvailability"
-                    value={formData.stockAvailability}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                    placeholder="in_stock, out_of_stock, low_stock, etc."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-stockAvailability">Stock Availability</Label>
+                    <Input
+                      id="edit-stockAvailability"
+                      name="stockAvailability"
+                      value={formData.stockAvailability}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      placeholder="in_stock, out_of_stock, low_stock, etc."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">e.g., "in_stock", "out_of_stock", "low_stock"</p>
+                  </div>
                 </div>
 
                 <div>
