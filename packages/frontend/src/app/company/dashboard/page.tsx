@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { formatExpiryDate } from '@/components/PriceExpiryInput';
 import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap } from 'lucide-react';
 
 interface SearchProduct {
@@ -1281,32 +1282,46 @@ function DashboardContent() {
                                 <p className="text-xs font-medium text-gray-500 mb-2">Pricing</p>
                                 <div className="space-y-2">
                                   {product.defaultPrice && (
-                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                      <span className="text-xs text-gray-600">Default Price</span>
-                                      <span className="text-sm font-semibold text-gray-900">
-                                        {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
-                                      </span>
+                                    <div className="p-2 bg-gray-50 rounded">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs text-gray-600">Default Price</span>
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {product.defaultPrice.currency} {product.defaultPrice.price.toFixed(2)}
+                                        </span>
+                                      </div>
+                                      {product.defaultPrice.effectiveUntil && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                          Expires: {formatExpiryDate(product.defaultPrice.effectiveUntil)}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {product.privatePrice && (
-                                    <div className="flex items-center justify-between p-2 bg-green-50 rounded">
-                                      <div>
-                                        <span className="text-xs font-medium text-green-700">Your Price</span>
-                                        {product.privatePrice.discountPercentage !== null && (
-                                          <span className="text-xs text-green-600 ml-1">
-                                            ({product.privatePrice.discountPercentage.toFixed(1)}% discount)
-                                          </span>
-                                        )}
+                                    <div className="p-2 bg-green-50 rounded">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <span className="text-xs font-medium text-green-700">Your Price</span>
+                                          {product.privatePrice.discountPercentage !== null && (
+                                            <span className="text-xs text-green-600 ml-1">
+                                              ({product.privatePrice.discountPercentage.toFixed(1)}% discount)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="text-sm font-bold text-green-700">
+                                          {product.privatePrice.currency} {
+                                            product.privatePrice.calculatedPrice !== null
+                                              ? product.privatePrice.calculatedPrice.toFixed(2)
+                                              : product.privatePrice.price !== null
+                                              ? product.privatePrice.price.toFixed(2)
+                                              : 'N/A'
+                                          }
+                                        </span>
                                       </div>
-                                      <span className="text-sm font-bold text-green-700">
-                                        {product.privatePrice.currency} {
-                                          product.privatePrice.calculatedPrice !== null
-                                            ? product.privatePrice.calculatedPrice.toFixed(2)
-                                            : product.privatePrice.price !== null
-                                            ? product.privatePrice.price.toFixed(2)
-                                            : 'N/A'
-                                        }
-                                      </span>
+                                      {product.privatePrice.effectiveUntil && (
+                                        <div className="mt-1 text-xs text-green-600">
+                                          Expires: {formatExpiryDate(product.privatePrice.effectiveUntil)}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {!product.privatePrice && product.defaultPrice && (
@@ -1801,32 +1816,46 @@ function DashboardContent() {
                         <p className="text-sm font-medium text-gray-500 mb-2">Pricing</p>
                         <div className="space-y-2">
                           {selectedProductForDetails.defaultPrice && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <span className="text-sm text-gray-600">Default Price</span>
-                              <span className="text-base font-semibold text-gray-900">
-                                {selectedProductForDetails.defaultPrice.currency} {selectedProductForDetails.defaultPrice.price.toFixed(2)}
-                              </span>
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Default Price</span>
+                                <span className="text-base font-semibold text-gray-900">
+                                  {selectedProductForDetails.defaultPrice.currency} {selectedProductForDetails.defaultPrice.price.toFixed(2)}
+                                </span>
+                              </div>
+                              {selectedProductForDetails.defaultPrice.effectiveUntil && (
+                                <div className="mt-2 text-xs text-gray-500">
+                                  Expires: {formatExpiryDate(selectedProductForDetails.defaultPrice.effectiveUntil)}
+                                </div>
+                              )}
                             </div>
                           )}
                           {selectedProductForDetails.privatePrice && (
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                              <div>
-                                <span className="text-sm font-medium text-green-700">Your Price</span>
-                                {selectedProductForDetails.privatePrice.discountPercentage !== null && (
-                                  <span className="text-xs text-green-600 ml-2">
-                                    ({selectedProductForDetails.privatePrice.discountPercentage.toFixed(1)}% discount)
-                                  </span>
-                                )}
+                            <div className="p-3 bg-green-50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-sm font-medium text-green-700">Your Price</span>
+                                  {selectedProductForDetails.privatePrice.discountPercentage !== null && (
+                                    <span className="text-xs text-green-600 ml-2">
+                                      ({selectedProductForDetails.privatePrice.discountPercentage.toFixed(1)}% discount)
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-base font-bold text-green-700">
+                                  {selectedProductForDetails.privatePrice.currency} {
+                                    selectedProductForDetails.privatePrice.calculatedPrice !== null
+                                      ? selectedProductForDetails.privatePrice.calculatedPrice.toFixed(2)
+                                      : selectedProductForDetails.privatePrice.price !== null
+                                      ? selectedProductForDetails.privatePrice.price.toFixed(2)
+                                      : 'N/A'
+                                  }
+                                </span>
                               </div>
-                              <span className="text-base font-bold text-green-700">
-                                {selectedProductForDetails.privatePrice.currency} {
-                                  selectedProductForDetails.privatePrice.calculatedPrice !== null
-                                    ? selectedProductForDetails.privatePrice.calculatedPrice.toFixed(2)
-                                    : selectedProductForDetails.privatePrice.price !== null
-                                    ? selectedProductForDetails.privatePrice.price.toFixed(2)
-                                    : 'N/A'
-                                }
-                              </span>
+                              {selectedProductForDetails.privatePrice.effectiveUntil && (
+                                <div className="mt-2 text-xs text-green-600">
+                                  Expires: {formatExpiryDate(selectedProductForDetails.privatePrice.effectiveUntil)}
+                                </div>
+                              )}
                             </div>
                           )}
                           {!selectedProductForDetails.privatePrice && selectedProductForDetails.defaultPrice && (
