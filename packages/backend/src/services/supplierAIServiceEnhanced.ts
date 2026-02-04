@@ -5,6 +5,8 @@
 
 import OpenAI from 'openai';
 import { prisma } from '../utils/prisma';
+import { priceService } from './priceService';
+import { PriceExpiryInput } from './priceService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -97,7 +99,7 @@ const tools = [
     type: 'function' as const,
     function: {
       name: 'update_product_price',
-      description: 'Update the price of an existing product. Use this when user wants to change a product price (e.g., "Update steel price to $500" or "Set cement price to $48").',
+      description: 'Update the price and/or expiry of an existing product. Use this when user wants to change a product price or set expiry (e.g., "Update steel price to $500", "Set cement price to $48", "Set Ambuja Cement price expiry 2 days from now", "Update cement price to $48 with expiry in 30 days").',
       parameters: {
         type: 'object',
         properties: {
@@ -107,7 +109,7 @@ const tools = [
           },
           price: {
             type: 'number',
-            description: 'The new price value',
+            description: 'Optional: The new price value. If not provided, only expiry will be updated.',
           },
           unit: {
             type: 'string',
@@ -117,8 +119,17 @@ const tools = [
             type: 'string',
             description: 'Optional: Stock availability status (e.g., "in_stock", "out_of_stock", "low_stock", or specific quantity/status info)',
           },
+          expiryValue: {
+            type: 'number',
+            description: 'Optional: Expiry duration value (e.g., 2 for "2 days from now")',
+          },
+          expiryUnit: {
+            type: 'string',
+            enum: ['minutes', 'hours', 'days', 'months'],
+            description: 'Optional: Expiry duration unit (e.g., "days" for "2 days from now")',
+          },
         },
-        required: ['productName', 'price'],
+        required: ['productName'],
       },
     },
   },
@@ -360,9 +371,33 @@ async function executeTool(
         };
       }
 
-      const updateData: any = {
-        price: args.price,
-      };
+      // Get current default price to preserve price if only updating expiry
+      const currentDefaultPrice = await prisma.defaultPrice.findFirst({
+        where: {
+          productId: product.id,
+          isActive: true,
+        },
+        orderBy: { effectiveFrom: 'desc' },
+      });
+
+      const priceToUse = args.price !== undefined ? args.price : (currentDefaultPrice ? Number(currentDefaultPrice.price) : Number(product.price));
+
+      // Build expiry input if provided
+      let expiryInput: PriceExpiryInput | undefined;
+      if (args.expiryValue !== undefined && args.expiryUnit) {
+        expiryInput = {
+          expiryDuration: {
+            value: args.expiryValue,
+            unit: args.expiryUnit as 'minutes' | 'hours' | 'days' | 'months',
+          },
+        };
+      }
+
+      // Update product fields (price, unit, stock) if provided
+      const updateData: any = {};
+      if (args.price !== undefined) {
+        updateData.price = args.price;
+      }
       if (args.unit) {
         updateData.unit = args.unit;
       }
@@ -370,15 +405,50 @@ async function executeTool(
         updateData.stockAvailability = args.stockAvailability;
       }
 
-      const updatedProduct = await prisma.product.update({
-        where: { id: product.id },
-        data: updateData,
-      });
+      if (Object.keys(updateData).length > 0) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: updateData,
+        });
+      }
 
-      let message = `Updated ${updatedProduct.name} price to $${args.price}/${updatedProduct.unit}`;
+      // Update default price using price service (supports expiry)
+      const effectiveUserId = userId || supplierId;
+      try {
+        await priceService.updateDefaultPrice(
+          product.id,
+          supplierId,
+          {
+            price: priceToUse,
+            currency: currentDefaultPrice?.currency || 'USD',
+            expiry: expiryInput,
+          },
+          effectiveUserId
+        );
+      } catch (error: any) {
+        console.error('Error updating default price with expiry:', error);
+        // Continue even if price service fails - at least product was updated
+      }
+
+      // Build response message
+      let message = '';
+      if (args.price !== undefined && expiryInput) {
+        message = `Updated ${product.name} price to $${priceToUse}/${product.unit} with expiry in ${args.expiryValue} ${args.expiryUnit}`;
+      } else if (args.price !== undefined) {
+        message = `Updated ${product.name} price to $${priceToUse}/${product.unit}`;
+      } else if (expiryInput) {
+        message = `Updated ${product.name} price expiry to ${args.expiryValue} ${args.expiryUnit} from now. The current price of $${priceToUse}/${product.unit} will expire on the new date.`;
+      } else {
+        message = `Updated ${product.name}`;
+      }
+      
       if (args.stockAvailability) {
         message += ` and stock availability to ${args.stockAvailability}`;
       }
+
+      const updatedProduct = await prisma.product.findUnique({
+        where: { id: product.id },
+      });
 
       return {
         success: true,
@@ -501,15 +571,16 @@ You have access to the following tools:
 - calculate_total_price: Calculate total for a quantity of one product
 - list_products: List all products
 - calculate_multi_product_total: Calculate total for multiple different products
-- update_product_price: ✅ UPDATE the price of an existing product (e.g., "Update steel price to $500")
+- update_product_price: ✅ UPDATE the price and/or expiry of an existing product (e.g., "Update steel price to $500", "Set Ambuja Cement price expiry 2 days from now", "Update cement price to $48 with expiry in 30 days")
 - update_product_stock: ✅ UPDATE the stock availability of an existing product (e.g., "Set cement stock to in stock", "Mark steel as out of stock")
 - add_product: ✅ ADD a new product to inventory (e.g., "Add paint at $25 per gallon")
 
-IMPORTANT: You CAN and SHOULD update product prices and stock availability! 
+IMPORTANT: You CAN and SHOULD update product prices, expiry dates, and stock availability! 
 - If a supplier asks to update a price, use the update_product_price tool.
+- If a supplier asks to set price expiry (e.g., "Set price expiry 2 days from now"), use the update_product_price tool with expiryValue and expiryUnit parameters.
 - If a supplier asks to update stock availability, use the update_product_stock tool.
-- You can also update both price and stock in a single update_product_price call if both are mentioned.
-If they ask "why can't you update prices/stock", explain that you CAN update them and use the appropriate tool.
+- You can also update price, expiry, and stock in a single update_product_price call if multiple are mentioned.
+If they ask "why can't you update prices/expiry/stock", explain that you CAN update them and use the appropriate tool.
 
 Your product inventory:
 ${productContext || 'No products yet'}
@@ -517,12 +588,13 @@ ${productContext || 'No products yet'}
 When answering questions:
 1. Use tools to get accurate, up-to-date information
 2. For price updates, use update_product_price tool
-3. For stock availability updates, use update_product_stock tool (or update_product_price if updating both)
-4. For adding products, use add_product tool
-5. Perform calculations step by step
-6. Provide clear, formatted responses
-7. If a product isn't found, suggest similar products or ask for clarification
-8. For complex queries involving multiple products, use calculate_multi_product_total
+3. For expiry updates (e.g., "set price expiry 2 days from now"), use update_product_price tool with expiryValue and expiryUnit
+4. For stock availability updates, use update_product_stock tool (or update_product_price if updating both)
+5. For adding products, use add_product tool
+6. Perform calculations step by step
+7. Provide clear, formatted responses
+8. If a product isn't found, suggest similar products or ask for clarification
+9. For complex queries involving multiple products, use calculate_multi_product_total
 
 Be helpful, accurate, and concise. Always use tools to get real data rather than guessing.`;
 
