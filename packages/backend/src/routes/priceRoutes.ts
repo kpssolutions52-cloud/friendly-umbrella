@@ -136,7 +136,7 @@ router.put(
         expiry: parsed.expiry ? {
           expiryDuration: parsed.expiry.expiryDuration,
           expiryFrom: parseDate(parsed.expiry.expiryFrom),
-          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil),
+          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil) ?? undefined,
         } : undefined,
       };
 
@@ -198,7 +198,7 @@ router.post(
         expiry: parsed.expiry ? {
           expiryDuration: parsed.expiry.expiryDuration,
           expiryFrom: parseDate(parsed.expiry.expiryFrom),
-          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil),
+          expiryUntil: parseNullableDate(parsed.expiry.expiryUntil) ?? undefined,
         } : undefined,
         notes: parsed.notes,
       };
