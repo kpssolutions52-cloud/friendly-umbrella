@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -334,8 +336,106 @@ export default function ChatPage() {
                       : 'bg-gray-100 text-gray-800'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap break-words">
-                    {message.content}
+                  <div className="break-words">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => (
+                          <p className={`mb-2 last:mb-0 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                            {children}
+                          </p>
+                        ),
+                        strong: ({ children }) => (
+                          <strong className={`font-semibold ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                            {children}
+                          </strong>
+                        ),
+                        em: ({ children }) => (
+                          <em className={`italic ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                            {children}
+                          </em>
+                        ),
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={message.role === 'user' 
+                              ? 'text-blue-200 hover:text-blue-100 underline' 
+                              : 'text-blue-600 hover:text-blue-800 underline'
+                            }
+                          >
+                            {children}
+                          </a>
+                        ),
+                        code: ({ children, className }) => {
+                          const isInline = !className;
+                          if (isInline) {
+                            return (
+                              <code className={`px-1 py-0.5 rounded text-xs font-mono ${
+                                message.role === 'user' 
+                                  ? 'bg-white/20 text-white' 
+                                  : 'bg-gray-200 text-gray-800'
+                              }`}>
+                                {children}
+                              </code>
+                            );
+                          }
+                          return (
+                            <code className={className}>
+                              <pre className={`p-3 rounded-lg overflow-x-auto mb-2 text-xs ${
+                                message.role === 'user'
+                                  ? 'bg-white/10 text-white'
+                                  : 'bg-gray-900 text-gray-100'
+                              }`}>
+                                {children}
+                              </pre>
+                            </code>
+                          );
+                        },
+                        ul: ({ children }) => (
+                          <ul className={`list-disc ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children }) => (
+                          <ol className={`list-decimal ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children }) => (
+                          <li className={`mb-1 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
+                            {children}
+                          </li>
+                        ),
+                        h1: ({ children }) => (
+                          <h1 className={`text-lg font-bold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                            {children}
+                          </h1>
+                        ),
+                        h2: ({ children }) => (
+                          <h2 className={`text-base font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                            {children}
+                          </h2>
+                        ),
+                        h3: ({ children }) => (
+                          <h3 className={`text-sm font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                            {children}
+                          </h3>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className={`border-l-4 pl-3 italic my-2 ${
+                            message.role === 'user' 
+                              ? 'border-white/30 text-white/90' 
+                              : 'border-gray-300 text-gray-700'
+                          }`}>
+                            {children}
+                          </blockquote>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                   
                   {/* Permission request UI */}
