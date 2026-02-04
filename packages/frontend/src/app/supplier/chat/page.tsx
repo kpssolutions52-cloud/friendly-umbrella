@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from '@/components/Header';
+import { PriceExpiryInput, PriceExpiryInput as PriceExpiryInputType } from '@/components/PriceExpiryInput';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -66,7 +68,9 @@ export default function SupplierChatPage() {
     name: '',
     price: '',
     unit: '',
+    stockAvailability: '',
   });
+  const [defaultPriceExpiry, setDefaultPriceExpiry] = useState<PriceExpiryInputType | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect if not authenticated or not supplier
@@ -477,7 +481,8 @@ export default function SupplierChatPage() {
   };
 
   const handleAddProduct = () => {
-    setFormData({ name: '', price: '', unit: '' });
+    setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+    setDefaultPriceExpiry(undefined);
     setEditingProduct(null);
     setShowAddForm(true);
   };
@@ -487,7 +492,9 @@ export default function SupplierChatPage() {
       name: product.name,
       price: product.price.toString(),
       unit: product.unit,
+      stockAvailability: (product as any).stockAvailability || '',
     });
+    setDefaultPriceExpiry(undefined);
     setEditingProduct(product);
     setShowAddForm(true);
   };
@@ -500,24 +507,33 @@ export default function SupplierChatPage() {
 
     try {
       setSubmitting(true);
+      const payload: any = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        unit: formData.unit,
+        stockAvailability: formData.stockAvailability || undefined,
+      };
+
+      // Add default price with expiry if provided
+      if (defaultPriceExpiry) {
+        payload.defaultPrice = {
+          price: parseFloat(formData.price),
+          currency: 'USD',
+          expiry: defaultPriceExpiry,
+        };
+      }
+
       if (editingProduct) {
         // Update existing product
-        await apiPut(`/api/v1/products/${editingProduct.id}`, {
-          name: formData.name,
-          price: parseFloat(formData.price),
-          unit: formData.unit,
-        });
+        await apiPut(`/api/v1/products/${editingProduct.id}`, payload);
       } else {
         // Create new product
-        await apiPost('/api/v1/products', {
-          name: formData.name,
-          price: parseFloat(formData.price),
-          unit: formData.unit,
-        });
+        await apiPost('/api/v1/products', payload);
       }
       setShowAddForm(false);
       setEditingProduct(null);
-      setFormData({ name: '', price: '', unit: '' });
+      setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+      setDefaultPriceExpiry(undefined);
       await loadProducts();
       
       // Add success message to chat
@@ -909,6 +925,18 @@ export default function SupplierChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Link href="/supplier/profile">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 border-0"
+                >
+                  <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
@@ -982,6 +1010,43 @@ export default function SupplierChatPage() {
                     />
                   </div>
                 </div>
+
+                {/* Stock Availability */}
+                <div className="border-t border-green-200 pt-3 mt-3 bg-green-50 -mx-4 px-4 py-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <Label htmlFor="dashboard-stockAvailability" className="text-sm font-semibold text-gray-900">Stock Availability</Label>
+                  </div>
+                  <Input
+                    id="dashboard-stockAvailability"
+                    value={formData.stockAvailability}
+                    onChange={(e) =>
+                      setFormData({ ...formData, stockAvailability: e.target.value })
+                    }
+                    placeholder="in_stock, out_of_stock, low_stock, etc."
+                    className="mt-1 bg-white"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
+                </div>
+
+                {/* Price Expiry */}
+                <div className="border-t border-blue-200 pt-3 mt-3 bg-blue-50 -mx-4 px-4 py-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <Label className="text-sm font-semibold text-gray-900">Default Price Expiry (Optional)</Label>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-2">Set when this default price will expire. Leave as default for 1 year expiry.</p>
+                  <PriceExpiryInput
+                    value={defaultPriceExpiry}
+                    onChange={setDefaultPriceExpiry}
+                    effectiveFrom={new Date()}
+                  />
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <Button 
                     type="submit" 
@@ -1003,7 +1068,8 @@ export default function SupplierChatPage() {
                     onClick={() => {
                       setShowAddForm(false);
                       setEditingProduct(null);
-                      setFormData({ name: '', price: '', unit: '' });
+                      setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+                      setDefaultPriceExpiry(undefined);
                     }}
                     size="sm"
                   >
