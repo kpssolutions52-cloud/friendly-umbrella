@@ -3,7 +3,6 @@
   "buildCommand": "npm run build --workspace=@platform/shared && npm run build --workspace=@platform/frontend",
   "outputDirectory": "packages/frontend/.next",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "rootDirectory": "packages/frontend"
+  "framework": "nextjs"
 }
 
