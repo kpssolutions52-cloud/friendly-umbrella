@@ -22,6 +22,7 @@ import supplierChatRoutes from './supplierChatRoutes';
 import simplifiedAuthRoutes from './simplifiedAuthRoutes';
 import simplifiedProductRoutes from './simplifiedProductRoutes';
 import supplierProfileRoutes from './supplierProfileRoutes';
+import { priceRoutes } from './priceRoutes';
 
 // Routes needed for QS professionals to browse products
 import { publicCategoryRoutes } from './publicCategoryRoutes';
@@ -51,6 +52,9 @@ export function setupRoutes(app: Express) {
   // Supplier profile routes
   app.use('/api/v1', supplierProfileRoutes);
   
+  // Price routes (for private prices and company list)
+  app.use('/api/v1', priceRoutes);
+  
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);
   // app.use('/api/v1', quoteRoutes);
@@ -60,6 +64,5 @@ export function setupRoutes(app: Express) {
   // app.use('/api/v1/tenant-admin', tenantAdminRoutes);
   // app.use('/api/v1', productImageRoutes);
   // app.use('/api/v1', productRoutes);
-  // app.use('/api/v1', priceRoutes);
 }
 

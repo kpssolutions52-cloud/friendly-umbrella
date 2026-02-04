@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
-import { MessageSquare, Package, LayoutDashboard, LogOut } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -73,32 +73,6 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                     </Link>
                   )}
                   
-                  {(user.type === 'supplier' || user.tenant?.type === 'supplier') && (
-                    <>
-                      <Link href="/supplier/chat" className="flex-shrink-0">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
-                        >
-                          <MessageSquare className="h-4 w-4 sm:mr-1.5" />
-                          <span className="hidden sm:inline">AI Chat</span>
-                          <span className="sm:hidden">Chat</span>
-                        </Button>
-                      </Link>
-                      <Link href="/supplier/products" className="flex-shrink-0">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
-                        >
-                          <Package className="h-4 w-4 sm:mr-1.5" />
-                          <span className="hidden sm:inline">Products</span>
-                          <span className="sm:hidden">Items</span>
-                        </Button>
-                      </Link>
-                    </>
-                  )}
                   
                   {/* Always show logout button - CRITICAL: Must be visible */}
                   <Button 
