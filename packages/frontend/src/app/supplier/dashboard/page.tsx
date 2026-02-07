@@ -1943,7 +1943,10 @@ function DashboardContent() {
         {/* Catalog Grid View - Always show when not editing and in grid mode */}
         {!showEditProductModal && viewMode === 'grid' && (
           <div className="mt-4">
-            <CatalogGrid onEditItem={handleEditFromCatalog} />
+            <CatalogGrid 
+              onEditItem={handleEditFromCatalog}
+              onAddProduct={() => setShowAddProductModal(true)}
+            />
           </div>
         )}
 
