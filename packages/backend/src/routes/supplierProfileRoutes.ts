@@ -44,6 +44,7 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
       throw createError(403, 'Tenant ID not found');
     }
 
+    // Query tenant with Prisma (for standard fields)
     const tenant = await prisma.tenant.findUnique({
       where: { id: req.tenantId },
       select: {
@@ -78,7 +79,7 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
           address: null,
           postalCode: null,
           logoUrl: null,
-          metadata: null,
+          metadata: {},
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
@@ -86,7 +87,79 @@ router.get('/supplier/profile', requireSupplier, async (req: AuthRequest, res: R
       return;
     }
 
-    res.json({ profile: tenant });
+    // Query additional profile fields from direct columns (if they exist in the database)
+    // These columns may exist even if not in Prisma schema
+    let additionalFields: Record<string, any> = {};
+    try {
+      // Query direct columns that may exist in the database
+      // req.tenantId is already validated as UUID from authenticated request
+      const rawData = await prisma.$queryRaw<Array<{
+        registration_number?: string | null;
+        contact_person?: string | null;
+        website?: string | null;
+        tax_id?: string | null;
+        business_license?: string | null;
+        description?: string | null;
+        city?: string | null;
+        state?: string | null;
+        country?: string | null;
+      }>>`
+        SELECT 
+          registration_number,
+          contact_person,
+          website,
+          tax_id,
+          business_license,
+          description,
+          city,
+          state,
+          country
+        FROM tenants
+        WHERE id = ${req.tenantId}::uuid
+      `;
+
+      if (rawData && rawData.length > 0) {
+        const row = rawData[0];
+        // Map database column names to metadata field names
+        if (row.registration_number) additionalFields.registrationNumber = row.registration_number;
+        if (row.contact_person) additionalFields.contactPerson = row.contact_person;
+        if (row.website) additionalFields.website = row.website;
+        if (row.tax_id) additionalFields.taxId = row.tax_id;
+        if (row.business_license) additionalFields.businessLicense = row.business_license;
+        if (row.description) additionalFields.description = row.description;
+        if (row.city) additionalFields.city = row.city;
+        if (row.state) additionalFields.state = row.state;
+        if (row.country) additionalFields.country = row.country;
+      }
+    } catch (error) {
+      // If columns don't exist, that's okay - we'll just use metadata
+      console.log('[supplier/profile] Could not query additional columns (they may not exist):', error);
+    }
+
+    // Merge metadata with additional fields from direct columns
+    // Direct column values take precedence if they exist
+    const existingMetadata = (tenant.metadata as Record<string, any>) || {};
+    const mergedMetadata = {
+      ...existingMetadata,
+      ...additionalFields, // Direct columns override metadata
+    };
+
+    // Ensure metadata is always an object, not null
+    const profile = {
+      ...tenant,
+      metadata: mergedMetadata,
+    };
+
+    console.log('[supplier/profile] Returning profile:', {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      hasMetadata: !!profile.metadata,
+      metadataKeys: profile.metadata ? Object.keys(profile.metadata) : [],
+      additionalFieldsFound: Object.keys(additionalFields).length,
+    });
+
+    res.json({ profile });
   } catch (error) {
     next(error);
   }

@@ -41,6 +41,8 @@ interface Product {
   createdAt: string;
   updatedAt: string;
   stockAvailability?: string | null;
+  category?: string | null;
+  categoryId?: string | null;
   defaultPrices?: Array<{
     id: string;
     effectiveFrom: Date | string;
@@ -110,6 +112,8 @@ export default function SupplierChatPage() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'updatedAt'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -189,19 +193,58 @@ export default function SupplierChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Load profile when Profile section is shown (always reload for fresh data)
+  useEffect(() => {
+    if (showProfile) {
+      loadProfile();
+    }
+  }, [showProfile]);
+
   // Load profile
   const loadProfile = async () => {
     try {
       setLoadingProfile(true);
       setProfileError(null);
+      console.log('[Profile] Loading profile...');
       const response = await apiGet<{ profile: SupplierProfile }>('/api/v1/supplier/profile');
-      setProfile(response.profile);
-      const metadata = response.profile.metadata || {};
+      console.log('[Profile] Profile response:', response);
+      
+      if (!response || !response.profile) {
+        throw new Error('Invalid profile response');
+      }
+      
+      const profileData = response.profile;
+      setProfile(profileData);
+      
+      // Handle metadata - it might be null, an object, or a string that needs parsing
+      let metadata: Record<string, any> = {};
+      if (profileData.metadata) {
+        if (typeof profileData.metadata === 'string') {
+          try {
+            metadata = JSON.parse(profileData.metadata);
+          } catch (e) {
+            console.warn('[Profile] Failed to parse metadata as JSON:', e);
+            metadata = {};
+          }
+        } else if (typeof profileData.metadata === 'object') {
+          metadata = profileData.metadata;
+        }
+      }
+      
+      console.log('[Profile] Extracted metadata:', metadata);
+      console.log('[Profile] Profile data:', {
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+        postalCode: profileData.postalCode,
+        metadataKeys: Object.keys(metadata),
+      });
+      
       setProfileFormData({
-        name: response.profile.name || '',
-        phone: response.profile.phone || '',
-        address: response.profile.address || '',
-        postalCode: response.profile.postalCode || '',
+        name: profileData.name || '',
+        phone: profileData.phone || '',
+        address: profileData.address || '',
+        postalCode: profileData.postalCode || '',
         registrationNumber: metadata.registrationNumber || '',
         contactPerson: metadata.contactPerson || '',
         website: metadata.website || '',
@@ -212,9 +255,24 @@ export default function SupplierChatPage() {
         state: metadata.state || '',
         country: metadata.country || '',
       });
+      
+      console.log('[Profile] Form data set:', {
+        name: profileData.name || '',
+        phone: profileData.phone || '',
+        registrationNumber: metadata.registrationNumber || '',
+        contactPerson: metadata.contactPerson || '',
+        city: metadata.city || '',
+        state: metadata.state || '',
+        country: metadata.country || '',
+      });
     } catch (err: any) {
-      console.error('Failed to load profile:', err);
-      setProfileError(err.error?.message || 'Failed to load profile. Please try again.');
+      console.error('[Profile] Failed to load profile:', err);
+      console.error('[Profile] Error details:', {
+        message: err?.message,
+        error: err?.error,
+        response: err?.response,
+      });
+      setProfileError(err.error?.message || err?.message || 'Failed to load profile. Please try again.');
     } finally {
       setLoadingProfile(false);
     }
@@ -699,8 +757,26 @@ export default function SupplierChatPage() {
   };
 
   // Filtered and sorted products for dashboard
+  // Extract unique categories from products
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>();
+    products.forEach(product => {
+      if (product.category) {
+        categories.add(product.category);
+      }
+    });
+    return Array.from(categories).sort();
+  }, [products]);
+
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products;
+
+    // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(
+        (product) => product.category === selectedCategory
+      );
+    }
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -709,7 +785,8 @@ export default function SupplierChatPage() {
         (product) =>
           product.name.toLowerCase().includes(query) ||
           product.unit.toLowerCase().includes(query) ||
-          product.price.toString().includes(query)
+          product.price.toString().includes(query) ||
+          (product.category && product.category.toLowerCase().includes(query))
       );
     }
 
@@ -733,7 +810,7 @@ export default function SupplierChatPage() {
     });
 
     return filtered;
-  }, [products, searchQuery, sortBy, sortOrder]);
+  }, [products, searchQuery, sortBy, sortOrder, selectedCategory]);
 
   const handleSort = (field: 'name' | 'price' | 'updatedAt') => {
     if (sortBy === field) {
@@ -1288,14 +1365,7 @@ export default function SupplierChatPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (!showProfile) {
-                    setShowProfile(true);
-                    loadProfile().catch((err) => {
-                      console.error('Failed to load profile:', err);
-                    });
-                  } else {
-                    setShowProfile(false);
-                  }
+                  setShowProfile(!showProfile);
                 }}
                 className={showProfile ? "bg-blue-600 text-white hover:bg-blue-700 border-0" : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 border-0"}
               >
@@ -1950,6 +2020,25 @@ export default function SupplierChatPage() {
                   </div>
                 </div>
 
+                {/* Category Filter */}
+                {availableCategories.length > 0 && (
+                  <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-gray-50">
+                    <span className="text-xs text-gray-600 whitespace-nowrap">Category:</span>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="text-sm border-0 bg-transparent focus:outline-none focus:ring-0 cursor-pointer min-w-[120px]"
+                    >
+                      <option value="">All Categories</option>
+                      {availableCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Sort and View Toggle */}
                 <div className="flex gap-2">
                   <div className="flex items-center gap-2 border rounded-md px-3 py-2 bg-gray-50">
@@ -1998,9 +2087,22 @@ export default function SupplierChatPage() {
               </div>
 
               {/* Results count */}
-              {searchQuery && (
+              {(searchQuery || selectedCategory) && (
                 <div className="mt-2 text-xs text-gray-500">
                   Showing {filteredAndSortedProducts.length} of {products.length} products
+                  {(searchQuery || selectedCategory) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategory('');
+                      }}
+                      className="ml-2 h-5 text-xs"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -2107,6 +2209,20 @@ export default function SupplierChatPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.size === filteredAndSortedProducts.length && filteredAndSortedProducts.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProducts(new Set(filteredAndSortedProducts.map(p => p.id)));
+                            } else {
+                              setSelectedProducts(new Set());
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
                       <th 
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                         onClick={() => handleSort('name')}
@@ -2148,12 +2264,33 @@ export default function SupplierChatPage() {
                         key={product.id} 
                         className={`hover:bg-gray-50 ${
                           highlightedProductId === product.id ? 'bg-green-50' : ''
-                        }`}
+                        } ${selectedProducts.has(product.id) ? 'bg-blue-50' : ''}`}
                       >
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.has(product.id)}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedProducts);
+                              if (e.target.checked) {
+                                newSelected.add(product.id);
+                              } else {
+                                newSelected.delete(product.id);
+                              }
+                              setSelectedProducts(newSelected);
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {product.name}
                           </div>
+                          {product.category && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {product.category}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">

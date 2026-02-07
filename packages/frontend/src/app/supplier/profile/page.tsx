@@ -76,14 +76,46 @@ function ProfileContent() {
     try {
       setIsLoading(true);
       setError(null);
+      console.log('[Profile Page] Loading profile...');
       const response = await apiGet<{ profile: SupplierProfile }>('/api/v1/supplier/profile');
-      setProfile(response.profile);
-      const metadata = response.profile.metadata || {};
+      console.log('[Profile Page] Profile response:', response);
+      
+      if (!response || !response.profile) {
+        throw new Error('Invalid profile response');
+      }
+      
+      const profileData = response.profile;
+      setProfile(profileData);
+      
+      // Handle metadata - it might be null, an object, or a string that needs parsing
+      let metadata: Record<string, any> = {};
+      if (profileData.metadata) {
+        if (typeof profileData.metadata === 'string') {
+          try {
+            metadata = JSON.parse(profileData.metadata);
+          } catch (e) {
+            console.warn('[Profile Page] Failed to parse metadata as JSON:', e);
+            metadata = {};
+          }
+        } else if (typeof profileData.metadata === 'object') {
+          metadata = profileData.metadata;
+        }
+      }
+      
+      console.log('[Profile Page] Extracted metadata:', metadata);
+      console.log('[Profile Page] Profile data:', {
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+        postalCode: profileData.postalCode,
+        metadataKeys: Object.keys(metadata),
+      });
+      
       setFormData({
-        name: response.profile.name || '',
-        phone: response.profile.phone || '',
-        address: response.profile.address || '',
-        postalCode: response.profile.postalCode || '',
+        name: profileData.name || '',
+        phone: profileData.phone || '',
+        address: profileData.address || '',
+        postalCode: profileData.postalCode || '',
         registrationNumber: metadata.registrationNumber || '',
         contactPerson: metadata.contactPerson || '',
         website: metadata.website || '',
@@ -94,9 +126,17 @@ function ProfileContent() {
         state: metadata.state || '',
         country: metadata.country || '',
       });
-      setPreviewUrl(response.profile.logoUrl);
+      
+      console.log('[Profile Page] Form data set successfully');
+      setPreviewUrl(profileData.logoUrl);
     } catch (err: any) {
-      setError(err.error?.message || 'Failed to load profile');
+      console.error('[Profile Page] Failed to load profile:', err);
+      console.error('[Profile Page] Error details:', {
+        message: err?.message,
+        error: err?.error,
+        response: err?.response,
+      });
+      setError(err.error?.message || err?.message || 'Failed to load profile');
     } finally {
       setIsLoading(false);
     }
