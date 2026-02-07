@@ -720,6 +720,98 @@ router.get(
   }
 );
 
+// Public companies endpoint (for QS Professional demo selection)
+router.get(
+  '/companies/public',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const companies = await prisma.organization.findMany({
+        where: {
+          type: 'company',
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      res.json({ companies });
+    } catch (error: any) {
+      console.error('Error in /companies/public:', error);
+      // Return empty array on error instead of failing
+      res.json({ companies: [] });
+    }
+  }
+);
+
+// GET /api/v1/companies/public/:id/demo-user - Get demo user for company (public access)
+router.get(
+  '/companies/public/:id/demo-user',
+  param('id').isUUID().withMessage('Invalid company ID'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const organizationId = req.params.id;
+
+      // Verify organization exists
+      const organization = await prisma.organization.findFirst({
+        where: {
+          id: organizationId,
+          type: 'company',
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (!organization) {
+        return res.status(404).json({ 
+          error: { 
+            message: 'Company organization not found', 
+            statusCode: 404 
+          } 
+        });
+      }
+
+      // Find the first user in this organization
+      const user = await prisma.user.findFirst({
+        where: {
+          organizationId: organizationId,
+          type: 'qs',
+        },
+        select: {
+          email: true,
+        },
+        orderBy: {
+          createdAt: 'asc', // Get the first user created
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({ 
+          error: { 
+            message: `No user found for company "${organization.name}". Please ensure at least one user account exists for this company organization.\n\nTo fix this, run the database script:\n  database/37-import-singapore-contractors-as-qs-companies.sql`, 
+            statusCode: 404 
+          } 
+        });
+      }
+
+      res.json({ email: user.email });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /api/v1/suppliers/public/:id - Get supplier details (public access)
 router.get(
   '/suppliers/public/:id',

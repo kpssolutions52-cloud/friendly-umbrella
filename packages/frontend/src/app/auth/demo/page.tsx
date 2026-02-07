@@ -9,17 +9,16 @@ import { Logo } from '@/components/Logo';
 import { Loader2, ChevronDown } from 'lucide-react';
 import { API_URL } from '@/lib/api';
 
-// Demo account credentials
-const DEMO_ACCOUNTS = {
-  qs: {
-    email: 'demo.qs@constructionguru.com',
-    password: 'DemoQS123!',
-    name: 'Demo QS Professional',
-    description: 'Try the QS Professional experience with AI-powered quoting and project management',
-  },
-};
+// Demo account description
+const QS_DESCRIPTION = 'Try the QS Professional experience with AI-powered quoting and project management';
 
 interface Supplier {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface Company {
   id: string;
   name: string;
   email: string;
@@ -30,9 +29,13 @@ function DemoLoginForm() {
   const { login } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<'qs' | 'supplier' | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,22 +47,33 @@ function DemoLoginForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccount]);
 
-  // Close dropdown when clicking outside
+  // Fetch companies when QS Professional account type is selected
+  useEffect(() => {
+    if (selectedAccount === 'qs' && companies.length === 0 && !loadingCompanies) {
+      fetchCompanies();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount]);
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (showSupplierDropdown && !target.closest('.supplier-dropdown-container')) {
         setShowSupplierDropdown(false);
       }
+      if (showCompanyDropdown && !target.closest('.company-dropdown-container')) {
+        setShowCompanyDropdown(false);
+      }
     };
 
-    if (showSupplierDropdown) {
+    if (showSupplierDropdown || showCompanyDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showSupplierDropdown]);
+  }, [showSupplierDropdown, showCompanyDropdown]);
 
   const fetchSuppliers = async () => {
     try {
@@ -81,20 +95,93 @@ function DemoLoginForm() {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      setLoadingCompanies(true);
+      const response = await fetch(`${API_URL}/api/v1/companies/public`);
+      const data = await response.json();
+      if (data.companies && Array.isArray(data.companies)) {
+        setCompanies(data.companies);
+        // Auto-select first company if available
+        if (data.companies.length > 0 && !selectedCompany) {
+          setSelectedCompany(data.companies[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+      setError('Failed to load companies. Using default demo account.');
+    } finally {
+      setLoadingCompanies(false);
+    }
+  };
+
   const handleDemoLogin = async (accountType: 'qs' | 'supplier') => {
     try {
       setLoading(true);
       setError(null);
       
       if (accountType === 'qs') {
-        const account = DEMO_ACCOUNTS.qs;
-        await login(
-          {
-            email: account.email,
-            password: account.password,
-          },
-          '/chat'
-        );
+        if (!selectedCompany) {
+          setError('Please select a company from the list');
+          setLoading(false);
+          return;
+        }
+        
+        // Get user email for this company organization
+        let userEmail: string;
+        try {
+          const userResponse = await fetch(`${API_URL}/api/v1/companies/public/${selectedCompany.id}/demo-user`);
+          if (!userResponse.ok) {
+            const errorData = await userResponse.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || `No user found for company "${selectedCompany.name}". Please ensure at least one user account exists for this company organization.\n\nTo fix this, run: database/37-import-singapore-contractors-as-qs-companies.sql`;
+            setError(errorMsg);
+            setLoading(false);
+            return;
+          }
+          const userData = await userResponse.json();
+          if (!userData.email) {
+            setError(`No user email found for company "${selectedCompany.name}". Please ensure users are created for this company.`);
+            setLoading(false);
+            return;
+          }
+          userEmail = userData.email;
+        } catch (err: any) {
+          console.error('Error fetching user for company:', err);
+          setError(`Failed to get user credentials for "${selectedCompany.name}". Error: ${err?.message || 'Network error'}`);
+          setLoading(false);
+          return;
+        }
+        
+        // Try common demo passwords
+        const demoPasswords = ['Demo123!', 'DemoQS123!', 'password123', 'Demo123'];
+        let loginSuccess = false;
+        let lastError: any = null;
+        
+        for (const password of demoPasswords) {
+          try {
+            await login(
+              {
+                email: userEmail,
+                password: password,
+              },
+              '/chat'
+            );
+            loginSuccess = true;
+            break;
+          } catch (err: any) {
+            lastError = err;
+            console.log(`Login attempt failed with password "${password}" for user ${userEmail}:`, err?.error?.message || err?.message);
+            // Try next password
+            continue;
+          }
+        }
+        
+        if (!loginSuccess) {
+          const errorMsg = lastError?.error?.message || lastError?.message || `Unable to login with user account for "${selectedCompany.name}". The user email is "${userEmail}". Please ensure this account has one of the demo passwords: ${demoPasswords.join(', ')}`;
+          setError(errorMsg);
+          setLoading(false);
+          return;
+        }
       } else if (accountType === 'supplier') {
         if (!selectedSupplier) {
           setError('Please select a supplier from the list');
@@ -241,7 +328,9 @@ function DemoLoginForm() {
             onClick={() => {
               setSelectedAccount('qs');
               setSelectedSupplier(null);
+              setSelectedCompany(null);
               setShowSupplierDropdown(false);
+              setShowCompanyDropdown(false);
             }}
           >
             <div className="flex items-start space-x-4">
@@ -254,7 +343,7 @@ function DemoLoginForm() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900">QS Professional</h3>
-                <p className="mt-1 text-sm text-gray-600">{DEMO_ACCOUNTS.qs.description}</p>
+                <p className="mt-1 text-sm text-gray-600">{QS_DESCRIPTION}</p>
               </div>
               {selectedAccount === 'qs' && (
                 <div className="absolute top-2 right-2">
@@ -277,7 +366,9 @@ function DemoLoginForm() {
             }`}
             onClick={() => {
               setSelectedAccount('supplier');
+              setSelectedCompany(null);
               setShowSupplierDropdown(false);
+              setShowCompanyDropdown(false);
             }}
           >
             <div className="flex items-start space-x-4">
@@ -304,6 +395,62 @@ function DemoLoginForm() {
             </div>
           </div>
         </div>
+
+        {/* Company Selector - Show when QS Professional is selected */}
+        {selectedAccount === 'qs' && (
+          <div className="mt-4 company-dropdown-container">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select a Company
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCompanyDropdown(!showCompanyDropdown)}
+                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={loadingCompanies}
+              >
+                <span className={selectedCompany ? 'text-gray-900' : 'text-gray-500'}>
+                  {loadingCompanies ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                      Loading companies...
+                    </>
+                  ) : selectedCompany ? (
+                    selectedCompany.name
+                  ) : (
+                    'Select a company'
+                  )}
+                </span>
+                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${showCompanyDropdown ? 'transform rotate-180' : ''}`} />
+              </button>
+              
+              {showCompanyDropdown && !loadingCompanies && companies.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {companies.map((company) => (
+                    <button
+                      key={company.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCompany(company);
+                        setShowCompanyDropdown(false);
+                      }}
+                      className={`w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors ${
+                        selectedCompany?.id === company.id ? 'bg-blue-100 font-medium' : ''
+                      }`}
+                    >
+                      <div className="text-sm text-gray-900">{company.name}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {companies.length === 0 && !loadingCompanies && (
+              <p className="mt-2 text-sm text-gray-500">
+                No companies available. Please ensure companies are set up in the database.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Supplier Selector - Show when supplier is selected */}
         {selectedAccount === 'supplier' && (
@@ -365,7 +512,7 @@ function DemoLoginForm() {
         <div className="mt-6">
           <Button
             onClick={() => selectedAccount && handleDemoLogin(selectedAccount)}
-            disabled={!selectedAccount || loading || (selectedAccount === 'supplier' && !selectedSupplier)}
+            disabled={!selectedAccount || loading || (selectedAccount === 'supplier' && !selectedSupplier) || (selectedAccount === 'qs' && !selectedCompany)}
             className="w-full py-6 text-lg font-semibold"
             size="lg"
           >
@@ -375,7 +522,7 @@ function DemoLoginForm() {
                 Logging in...
               </>
             ) : (
-              `Try ${selectedAccount === 'qs' ? 'QS Professional' : selectedAccount === 'supplier' ? (selectedSupplier ? `${selectedSupplier.name} Demo` : 'Supplier Demo') : 'Demo'}`
+              `Try ${selectedAccount === 'qs' ? (selectedCompany ? `${selectedCompany.name} Demo` : 'QS Professional Demo') : selectedAccount === 'supplier' ? (selectedSupplier ? `${selectedSupplier.name} Demo` : 'Supplier Demo') : 'Demo'}`
             )}
           </Button>
         </div>
