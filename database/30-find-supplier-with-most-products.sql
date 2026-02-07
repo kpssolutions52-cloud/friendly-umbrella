@@ -8,12 +8,12 @@
 -- Step 0: Ensure organizations exist for all suppliers
 INSERT INTO organizations (id, name, type, email, created_at, updated_at)
 SELECT 
-    gen_random_uuid()::text as id,
+    gen_random_uuid() as id,
     t.name,
     'supplier'::org_type,
     t.email,
-    t.created_at,
-    t.updated_at
+    COALESCE(t.created_at, NOW()),
+    COALESCE(t.updated_at, NOW())
 FROM tenants t
 WHERE t.type = 'supplier'
   AND t.status = 'active'
