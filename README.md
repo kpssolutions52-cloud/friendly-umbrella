@@ -32,6 +32,24 @@ This is a monorepo containing:
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for complete architecture documentation.
 
+## 🎮 Demo Accounts
+
+Quick access to test the platform:
+
+**Demo Supplier (with products):**
+- Email: Check [DEMO_CREDENTIALS.md](./DEMO_CREDENTIALS.md) for supplier with most products
+- Password: `Demo123!`
+
+**Demo Company:**
+- Email: `company@example.com`
+- Password: `password123`
+
+**Super Admin:**
+- Email: `admin@system.com`
+- Password: `admin123`
+
+See [DEMO_CREDENTIALS.md](./DEMO_CREDENTIALS.md) for complete demo account information.
+
 ## 📋 Prerequisites
 
 - Node.js 20+ and npm 10+

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { apiGet } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Plus, X } from 'lucide-react';
 
 interface CatalogItem {
   product_id?: string;
@@ -24,8 +26,20 @@ interface CatalogItem {
   currency: string | null;
 }
 
+interface CatalogCategory {
+  id: string;
+  code: string;
+  name: string;
+  parent_id: string | null;
+  level: number;
+  display_order: number;
+  parent_name: string | null;
+  parent_code: string | null;
+}
+
 interface CatalogGridProps {
   onEditItem?: (item: CatalogItem) => void;
+  onAddProduct?: () => void;
 }
 
 interface CategoryColumn {
@@ -36,19 +50,43 @@ interface CategoryColumn {
   items: CatalogItem[];
 }
 
-export function CatalogGrid({ onEditItem }: CatalogGridProps) {
+interface FilterState {
+  mainCategoryId: string;
+  subcategoryId: string;
+  itemGroupId: string;
+  stockAvailability: string;
+  minPrice: string;
+  maxPrice: string;
+  currency: string;
+}
+
+export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [columns, setColumns] = useState<CategoryColumn[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  
+  const [filters, setFilters] = useState<FilterState>({
+    mainCategoryId: '',
+    subcategoryId: '',
+    itemGroupId: '',
+    stockAvailability: '',
+    minPrice: '',
+    maxPrice: '',
+    currency: '',
+  });
 
   useEffect(() => {
     loadSupplierItems();
+    loadCatalogCategories();
   }, []);
 
   useEffect(() => {
     organizeItemsIntoColumns();
-  }, [items, searchQuery]);
+  }, [items, searchQuery, filters]);
 
   const loadSupplierItems = async () => {
     try {
@@ -61,6 +99,39 @@ export function CatalogGrid({ onEditItem }: CatalogGridProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCatalogCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await apiGet<{ categories: CatalogCategory[] }>('/api/v1/catalog/categories');
+      setCatalogCategories(response.categories || []);
+    } catch (error) {
+      console.error('Failed to load catalog categories:', error);
+      setCatalogCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const getMainCategories = () => {
+    return catalogCategories
+      .filter(c => c.level === 1)
+      .sort((a, b) => a.display_order - b.display_order);
+  };
+
+  const getSubcategories = (mainCategoryId: string) => {
+    if (!mainCategoryId) return [];
+    return catalogCategories
+      .filter(c => c.parent_id === mainCategoryId && c.level === 2)
+      .sort((a, b) => a.display_order - b.display_order);
+  };
+
+  const getItemGroups = (subcategoryId: string) => {
+    if (!subcategoryId) return [];
+    return catalogCategories
+      .filter(c => c.parent_id === subcategoryId && c.level === 3)
+      .sort((a, b) => a.display_order - b.display_order);
   };
 
   const organizeItemsIntoColumns = () => {
