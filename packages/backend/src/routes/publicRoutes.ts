@@ -669,6 +669,27 @@ router.get(
 
       const organizationId = req.params.id;
 
+      // Verify organization exists
+      const organization = await prisma.organization.findFirst({
+        where: {
+          id: organizationId,
+          type: 'supplier',
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (!organization) {
+        return res.status(404).json({ 
+          error: { 
+            message: 'Supplier organization not found', 
+            statusCode: 404 
+          } 
+        });
+      }
+
       // Find the first user in this organization
       const user = await prisma.user.findFirst({
         where: {
@@ -686,7 +707,7 @@ router.get(
       if (!user) {
         return res.status(404).json({ 
           error: { 
-            message: 'No user found for this supplier organization. Please ensure users are created for suppliers.', 
+            message: `No user found for supplier "${organization.name}". Please ensure at least one user account exists for this supplier organization.`, 
             statusCode: 404 
           } 
         });

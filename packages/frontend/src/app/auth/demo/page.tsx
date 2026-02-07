@@ -107,13 +107,22 @@ function DemoLoginForm() {
         try {
           const userResponse = await fetch(`${API_URL}/api/v1/suppliers/public/${selectedSupplier.id}/demo-user`);
           if (!userResponse.ok) {
-            const errorData = await userResponse.json();
-            throw new Error(errorData.error?.message || 'Failed to get user for supplier');
+            const errorData = await userResponse.json().catch(() => ({}));
+            const errorMsg = errorData.error?.message || `No user found for supplier "${selectedSupplier.name}". Please ensure at least one user account exists for this supplier organization.`;
+            setError(errorMsg);
+            setLoading(false);
+            return;
           }
           const userData = await userResponse.json();
+          if (!userData.email) {
+            setError(`No user email found for supplier "${selectedSupplier.name}". Please ensure users are created for this supplier.`);
+            setLoading(false);
+            return;
+          }
           userEmail = userData.email;
         } catch (err: any) {
-          setError(err?.message || 'Failed to get user credentials for this supplier. Please ensure users are created for suppliers.');
+          console.error('Error fetching user for supplier:', err);
+          setError(`Failed to get user credentials for "${selectedSupplier.name}". Error: ${err?.message || 'Network error'}`);
           setLoading(false);
           return;
         }
@@ -136,13 +145,17 @@ function DemoLoginForm() {
             break;
           } catch (err: any) {
             lastError = err;
+            console.log(`Login attempt failed with password "${password}" for user ${userEmail}:`, err?.error?.message || err?.message);
             // Try next password
             continue;
           }
         }
         
         if (!loginSuccess) {
-          throw new Error(lastError?.error?.message || lastError?.message || `Unable to login. Please ensure the user account for ${selectedSupplier.name} has one of the demo passwords: ${demoPasswords.join(', ')}`);
+          const errorMsg = lastError?.error?.message || lastError?.message || `Unable to login with user account for "${selectedSupplier.name}". The user email is "${userEmail}". Please ensure this account has one of the demo passwords: ${demoPasswords.join(', ')}`;
+          setError(errorMsg);
+          setLoading(false);
+          return;
         }
       }
     } catch (err: any) {
