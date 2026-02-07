@@ -94,18 +94,17 @@ SELECT
 
 SELECT 
     COUNT(DISTINCT t.id) as suppliers_with_products,
-    SUM(product_counts.product_count) as total_products_across_all_suppliers,
-    AVG(product_counts.product_count) as avg_products_per_supplier,
-    MAX(product_counts.product_count) as max_products_single_supplier
+    COALESCE(SUM(product_counts.product_count), 0)::integer as total_products_across_all_suppliers,
+    COALESCE(AVG(product_counts.product_count), 0)::numeric(10,2) as avg_products_per_supplier,
+    COALESCE(MAX(product_counts.product_count), 0)::integer as max_products_single_supplier
 FROM tenants t
 JOIN users u ON t.id = u.tenant_id
-LEFT JOIN organizations o ON t.email = o.email AND o.type = 'supplier'
-LEFT JOIN products p ON o.id = p.supplier_id
 CROSS JOIN LATERAL (
-    SELECT COUNT(p2.id) as product_count
+    SELECT COUNT(p2.id)::integer as product_count
     FROM organizations o2
-    JOIN products p2 ON o2.id = p2.supplier_id
-    WHERE o2.email = t.email AND o2.type = 'supplier'
+    LEFT JOIN products p2 ON o2.id = p2.supplier_id
+    WHERE o2.email = t.email 
+      AND (o2.type::text = 'supplier' OR o2.type = 'supplier'::"OrgType" OR o2.type = 'supplier'::org_type)
 ) product_counts
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
