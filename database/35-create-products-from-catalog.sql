@@ -27,50 +27,124 @@ SELECT
 
 -- Create products from catalog items, distributed across suppliers
 -- Strategy: Each catalog item becomes a product for 1-3 random suppliers
-WITH supplier_orgs AS (
-    SELECT 
-        o.id as org_id,
-        o.name as org_name,
-        o.email as org_email,
-        t.id as tenant_id,
-        ROW_NUMBER() OVER (ORDER BY RANDOM()) as rn
+DO $$
+DECLARE
+    supplier_count INTEGER;
+    catalog_item_count INTEGER;
+    products_per_supplier INTEGER;
+    supplier_record RECORD;
+    catalog_item_record RECORD;
+    product_count INTEGER := 0;
+    supplier_num INTEGER;
+    sku_base TEXT;
+    new_price NUMERIC(12,2);
+BEGIN
+    -- Get counts
+    SELECT COUNT(*) INTO supplier_count
     FROM organizations o
     JOIN tenants t ON o.email = t.email
     WHERE o.type::text = 'supplier'
       AND t.type = 'supplier'
-      AND t.status = 'active'
-),
-catalog_with_suppliers AS (
-    SELECT 
-        ci.id as catalog_item_id,
-        ci.name,
-        ci.unit_code,
-        ci.category_id,
-        ci.description,
-        so.org_id as supplier_id,
-        -- Generate SKU: first 3 letters of supplier name + catalog item code or name
-        UPPER(SUBSTRING(REPLACE(so.org_name, ' ', ''), 1, 3)) || '-' || 
-        COALESCE(ci.code, UPPER(SUBSTRING(REPLACE(ci.name, ' ', ''), 1, 8))) || '-' ||
-        LPAD((ROW_NUMBER() OVER (PARTITION BY so.org_id ORDER BY ci.name))::text, 4, '0') as sku,
-        -- Random price between 10 and 1000 (for demo purposes)
-        (10 + (RANDOM() * 990))::numeric(12,2) as price
-    FROM catalog_items ci
-    CROSS JOIN LATERAL (
-        -- Each catalog item goes to 1-3 random suppliers
-        SELECT so.org_id, so.org_name
-        FROM supplier_orgs so
+      AND t.status = 'active';
+    
+    SELECT COUNT(*) INTO catalog_item_count
+    FROM catalog_items
+    WHERE is_active = true;
+    
+    -- Calculate how many products per supplier (distribute catalog items)
+    products_per_supplier := GREATEST(1, catalog_item_count / GREATEST(supplier_count, 1));
+    
+    -- For each supplier, assign a subset of catalog items
+    FOR supplier_record IN 
+        SELECT 
+            o.id as org_id,
+            o.name as org_name,
+            o.email as org_email,
+            t.id as tenant_id
+        FROM organizations o
+        JOIN tenants t ON o.email = t.email
+        WHERE o.type::text = 'supplier'
+          AND t.type = 'supplier'
+          AND t.status = 'active'
         ORDER BY RANDOM()
-        LIMIT (1 + FLOOR(RANDOM() * 3)::int)
-    ) so
-    WHERE ci.is_active = true
-    AND ci.id NOT IN (
-        -- Avoid duplicates: skip if product already exists for this supplier
-        SELECT p.catalog_item_id
-        FROM products p
-        WHERE p.supplier_id = so.org_id
-          AND p.catalog_item_id IS NOT NULL
-    )
-)
+    LOOP
+        supplier_num := 0;
+        
+        -- Assign 1-3 catalog items per supplier (random selection)
+        FOR catalog_item_record IN
+            SELECT 
+                ci.id,
+                ci.name,
+                ci.unit_code,
+                ci.code,
+                ci.description
+            FROM catalog_items ci
+            WHERE ci.is_active = true
+              AND NOT EXISTS (
+                  -- Skip if product already exists for this supplier
+                  SELECT 1 
+                  FROM products p 
+                  WHERE p.supplier_id = supplier_record.org_id
+                    AND p.catalog_item_id = ci.id
+              )
+            ORDER BY RANDOM()
+            LIMIT (1 + FLOOR(RANDOM() * 3)::int)
+        LOOP
+            supplier_num := supplier_num + 1;
+            
+            -- Generate SKU
+            sku_base := UPPER(SUBSTRING(REPLACE(supplier_record.org_name, ' ', ''), 1, 3));
+            IF catalog_item_record.code IS NOT NULL THEN
+                sku_base := sku_base || '-' || catalog_item_record.code;
+            ELSE
+                sku_base := sku_base || '-' || UPPER(SUBSTRING(REPLACE(catalog_item_record.name, ' ', ''), 1, 8));
+            END IF;
+            sku_base := sku_base || '-' || LPAD(supplier_num::text, 4, '0');
+            
+            -- Random price between 10 and 1000
+            new_price := (10 + (RANDOM() * 990))::numeric(12,2);
+            
+            -- Insert product
+            BEGIN
+                INSERT INTO products (
+                    id,
+                    supplier_id,
+                    name,
+                    sku,
+                    price,
+                    unit,
+                    stock_availability,
+                    is_active,
+                    catalog_item_id,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    gen_random_uuid(),
+                    supplier_record.org_id,
+                    catalog_item_record.name,
+                    sku_base,
+                    new_price,
+                    catalog_item_record.unit_code,
+                    'in_stock',
+                    true,
+                    catalog_item_record.id,
+                    NOW(),
+                    NOW()
+                )
+                ON CONFLICT (supplier_id, sku) DO NOTHING;
+                
+                GET DIAGNOSTICS supplier_num = ROW_COUNT;
+                product_count := product_count + supplier_num;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    -- Skip on error, continue with next item
+                    NULL;
+            END;
+        END LOOP;
+    END LOOP;
+    
+    RAISE NOTICE 'Created % products from catalog items', product_count;
+END $$;
 INSERT INTO products (
     id,
     supplier_id,
