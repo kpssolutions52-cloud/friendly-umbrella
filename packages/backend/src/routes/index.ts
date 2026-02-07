@@ -23,6 +23,7 @@ import simplifiedAuthRoutes from './simplifiedAuthRoutes';
 import simplifiedProductRoutes from './simplifiedProductRoutes';
 import supplierProfileRoutes from './supplierProfileRoutes';
 import { priceRoutes } from './priceRoutes';
+import catalogRoutes from './catalogRoutes';
 
 // Routes needed for QS professionals to browse products
 import { publicCategoryRoutes } from './publicCategoryRoutes';
@@ -55,6 +56,9 @@ export function setupRoutes(app: Express) {
   
   // Price routes (for private prices and companies list)
   app.use('/api/v1', priceRoutes);
+  
+  // Catalog routes (for standardized categories and items)
+  app.use('/api/v1', catalogRoutes);
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);

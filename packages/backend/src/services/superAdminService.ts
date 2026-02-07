@@ -64,11 +64,28 @@ export class SuperAdminService {
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          email: true,
+          phone: true,
+          address: true,
+          postalCode: true,
+          status: true,
+          isActive: true,
+          approvedBy: true,
+          approvedAt: true,
+          rejectedBy: true,
+          rejectedAt: true,
+          rejectionReason: true,
+          metadata: true,
+          createdAt: true,
+          updatedAt: true,
           users: {
             where: {
               role: {
-                in: ['supplier_admin', 'company_admin'],
+                in: ['supplier_admin', 'company_admin', 'service_provider_admin'],
               },
             },
             select: {
@@ -76,6 +93,7 @@ export class SuperAdminService {
               email: true,
               firstName: true,
               lastName: true,
+              createdAt: true,
             },
             take: 1,
           },

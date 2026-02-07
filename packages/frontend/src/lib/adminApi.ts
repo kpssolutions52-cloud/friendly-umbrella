@@ -9,6 +9,7 @@ export interface Tenant {
   email: string;
   phone: string | null;
   address: string | null;
+  postalCode: string | null;
   status: 'pending' | 'active' | 'rejected';
   isActive: boolean;
   approvedBy: string | null;
@@ -18,6 +19,20 @@ export interface Tenant {
   rejectionReason: string | null;
   createdAt: string;
   updatedAt: string;
+  metadata?: {
+    registrationNumber?: string;
+    contactPerson?: string;
+    website?: string;
+    taxId?: string;
+    businessLicense?: string;
+    description?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    workhead?: string;
+    grade?: string;
+    source?: string;
+  } | null;
   users: Array<{
     id: string;
     email: string;

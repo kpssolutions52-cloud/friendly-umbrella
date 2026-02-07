@@ -134,10 +134,10 @@ export function Suppliers() {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                  Contact
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
+                  Address
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -156,14 +156,40 @@ export function Suppliers() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSuppliers.map((supplier) => (
                 <tr key={supplier.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{supplier.name}</div>
+                    {supplier.metadata?.workhead && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {supplier.metadata.workhead} {supplier.metadata.grade && `(${supplier.metadata.grade})`}
+                      </div>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">{supplier.email}</div>
+                    {supplier.phone && (
+                      <div className="text-sm text-gray-500">{supplier.phone}</div>
+                    )}
+                    {supplier.metadata?.contactPerson && (
+                      <div className="text-xs text-gray-400 mt-1">Contact: {supplier.metadata.contactPerson}</div>
+                    )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{supplier.phone || '-'}</div>
+                  <td className="px-6 py-4">
+                    {supplier.address ? (
+                      <div className="text-sm text-gray-900">
+                        <div>{supplier.address}</div>
+                        {supplier.postalCode && (
+                          <div className="text-sm text-gray-600 mt-1">📮 {supplier.postalCode}</div>
+                        )}
+                        {supplier.metadata?.city && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {supplier.metadata.city}
+                            {supplier.metadata.country && `, ${supplier.metadata.country}`}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400">-</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span

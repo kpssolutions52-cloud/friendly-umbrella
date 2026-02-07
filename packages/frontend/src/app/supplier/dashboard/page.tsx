@@ -13,8 +13,9 @@ import { ProductImageManager } from '@/components/ProductImageManager';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { PriceExpiryInput, PriceExpiryInput as PriceExpiryInputType, formatExpiryDate } from '@/components/PriceExpiryInput';
+import { CatalogGrid } from '@/components/CatalogGrid';
 import Link from 'next/link';
-import { Zap } from 'lucide-react';
+import { Zap, List, Grid } from 'lucide-react';
 
 export default function SupplierDashboardPage() {
   return (
@@ -168,6 +169,26 @@ function DashboardContent() {
   const [editIncludedSpecialPrices, setEditIncludedSpecialPrices] = useState<SpecialPriceEntry[]>([]);
   const [editingEditSpecialPriceId, setEditingEditSpecialPriceId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  
+  // Catalog categories (3-level hierarchy)
+  interface CatalogCategory {
+    id: string;
+    code: string;
+    name: string;
+    parent_id: string | null;
+    level: number;
+    display_order: number;
+    parent_name: string | null;
+    parent_code: string | null;
+  }
+  const [catalogCategories, setCatalogCategories] = useState<CatalogCategory[]>([]);
+  const [loadingCatalogCategories, setLoadingCatalogCategories] = useState(false);
+  const [catalogMainCategories, setCatalogMainCategories] = useState<CatalogCategory[]>([]);
+  const [catalogSubCategories, setCatalogSubCategories] = useState<CatalogCategory[]>([]);
+  const [catalogItemGroups, setCatalogItemGroups] = useState<CatalogCategory[]>([]);
+  const [selectedCatalogMainId, setSelectedCatalogMainId] = useState<string>('');
+  const [selectedCatalogSubId, setSelectedCatalogSubId] = useState<string>('');
 
   const fetchStats = async () => {
     try {
@@ -313,6 +334,7 @@ function DashboardContent() {
     if (showAddProductModal || showEditProductModal) {
       loadCompanies();
       loadCategories();
+      loadCatalogCategories();
     }
   }, [showAddProductModal, showEditProductModal]);
 
@@ -368,6 +390,68 @@ function DashboardContent() {
       setError('Failed to load companies list');
     } finally {
       setLoadingCompanies(false);
+    }
+  };
+
+  const loadCatalogCategories = async (mainId?: string, subId?: string) => {
+    try {
+      setLoadingCatalogCategories(true);
+      const response = await apiGet<{ categories: CatalogCategory[] }>('/api/v1/catalog/categories');
+      const allCategories = response.categories || [];
+      setCatalogCategories(allCategories);
+      
+      // Organize into levels
+      const mainCats = allCategories.filter(c => c.level === 1).sort((a, b) => a.display_order - b.display_order);
+      setCatalogMainCategories(mainCats);
+      
+      // Use provided IDs or state IDs
+      const currentMainId = mainId || selectedCatalogMainId;
+      const currentSubId = subId || selectedCatalogSubId;
+      
+      // If a main category is selected, load its subcategories
+      if (currentMainId) {
+        const subCats = allCategories.filter(c => c.parent_id === currentMainId && c.level === 2)
+          .sort((a, b) => a.display_order - b.display_order);
+        setCatalogSubCategories(subCats);
+        
+        // If a subcategory is selected, load its item groups
+        if (currentSubId) {
+          const itemGroups = allCategories.filter(c => c.parent_id === currentSubId && c.level === 3)
+            .sort((a, b) => a.display_order - b.display_order);
+          setCatalogItemGroups(itemGroups);
+        } else {
+          setCatalogItemGroups([]);
+        }
+      } else {
+        setCatalogSubCategories([]);
+        setCatalogItemGroups([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch catalog categories:', err);
+      setCatalogCategories([]);
+      setCatalogMainCategories([]);
+      setCatalogSubCategories([]);
+      setCatalogItemGroups([]);
+    } finally {
+      setLoadingCatalogCategories(false);
+    }
+  };
+
+  // Handler to edit product from catalog grid
+  const handleEditFromCatalog = async (catalogItem: any) => {
+    if (!catalogItem.product_id) {
+      setError('Product ID not found');
+      return;
+    }
+    
+    // Fetch the product using the product_id
+    try {
+      const response = await apiGet<{ product: Product }>(`/api/v1/products/${catalogItem.product_id}`);
+      const product = response.product;
+      await handleEditProduct(product);
+    } catch (err: any) {
+      console.error('Failed to fetch product:', err);
+      setError('Failed to load product details');
     }
   };
 
@@ -719,12 +803,58 @@ function DashboardContent() {
         }
       }
       
+      // Load catalog categories and try to match product category to catalog
+      await loadCatalogCategories();
+      
+      // Try to find matching catalog category
+      let catalogMainId = '';
+      let catalogSubId = '';
+      let catalogItemGroupId = '';
+      
+      if (fullProduct.categoryId) {
+        // Check if the categoryId matches a catalog category
+        const matchingCatalogCat = catalogCategories.find(c => c.id === fullProduct.categoryId);
+        if (matchingCatalogCat) {
+          if (matchingCatalogCat.level === 3) {
+            // It's an item group, find parent hierarchy
+            catalogItemGroupId = matchingCatalogCat.id;
+            const parentSub = catalogCategories.find(c => c.id === matchingCatalogCat.parent_id);
+            if (parentSub) {
+              catalogSubId = parentSub.id;
+              const parentMain = catalogCategories.find(c => c.id === parentSub.parent_id);
+              if (parentMain) {
+                catalogMainId = parentMain.id;
+              }
+            }
+          } else if (matchingCatalogCat.level === 2) {
+            // It's a subcategory
+            catalogSubId = matchingCatalogCat.id;
+            const parentMain = catalogCategories.find(c => c.id === matchingCatalogCat.parent_id);
+            if (parentMain) {
+              catalogMainId = parentMain.id;
+            }
+          } else if (matchingCatalogCat.level === 1) {
+            // It's a main category
+            catalogMainId = matchingCatalogCat.id;
+          }
+        }
+      }
+      
+      // Set catalog category selections
+      setSelectedCatalogMainId(catalogMainId);
+      setSelectedCatalogSubId(catalogSubId);
+      
+      // Reload catalog categories with the selected IDs to populate subcategories and item groups
+      if (catalogMainId) {
+        await loadCatalogCategories(catalogMainId, catalogSubId);
+      }
+      
       setEditingProduct(fullProduct);
       setFormData({
         sku: fullProduct.sku,
         name: fullProduct.name,
         description: fullProduct.description || '',
-        categoryId: subCategoryId,
+        categoryId: catalogItemGroupId || subCategoryId,
         mainCategoryId: mainCategoryId,
         unit: fullProduct.unit,
         stockAvailability: fullProduct.stockAvailability || '',
@@ -1261,10 +1391,109 @@ function DashboardContent() {
                 <p className="text-xs text-gray-600 mt-1">e.g., "in_stock", "out_of_stock", "low_stock", or quantity info</p>
               </div>
 
-              {/* Category Selection */}
+              {/* Catalog Category Selection (3-level hierarchy) */}
+              <div className="border-t border-purple-200 pt-4 mt-4 bg-purple-50 -mx-6 px-6 py-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <Label className="text-base font-semibold text-gray-900">Catalog Category (Standard Singapore Construction Catalog)</Label>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">Select from the standardized Singapore construction catalog with 3-level hierarchy</p>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-catalog-main">Main Category (Level 1)</Label>
+                    <select
+                      id="edit-catalog-main"
+                      value={selectedCatalogMainId}
+                      onChange={async (e) => {
+                        const mainId = e.target.value;
+                        setSelectedCatalogMainId(mainId);
+                        setSelectedCatalogSubId('');
+                        // Reload catalog categories to get subcategories
+                        await loadCatalogCategories(mainId);
+                      }}
+                      disabled={isSubmitting || loadingCatalogCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select main category</option>
+                      {catalogMainCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-catalog-sub">Subcategory (Level 2)</Label>
+                    <select
+                      id="edit-catalog-sub"
+                      value={selectedCatalogSubId}
+                      onChange={async (e) => {
+                        const subId = e.target.value;
+                        setSelectedCatalogSubId(subId);
+                        // Reload catalog categories to get item groups
+                        await loadCatalogCategories(selectedCatalogMainId, subId);
+                      }}
+                      disabled={isSubmitting || !selectedCatalogMainId || loadingCatalogCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {loadingCatalogCategories 
+                          ? 'Loading...' 
+                          : !selectedCatalogMainId
+                          ? 'Select main category first'
+                          : catalogSubCategories.length === 0
+                          ? 'No subcategories available'
+                          : 'Select subcategory'
+                        }
+                      </option>
+                      {catalogSubCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-catalog-item-group">Item Group (Level 3)</Label>
+                    <select
+                      id="edit-catalog-item-group"
+                      value={formData.categoryId}
+                      onChange={(e) => {
+                        const itemGroupId = e.target.value;
+                        // Update formData to use the item group as categoryId (this is the catalog category ID)
+                        setFormData(prev => ({ ...prev, categoryId: itemGroupId }));
+                      }}
+                      disabled={isSubmitting || !selectedCatalogSubId || loadingCatalogCategories}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {loadingCatalogCategories 
+                          ? 'Loading...' 
+                          : !selectedCatalogSubId
+                          ? 'Select subcategory first'
+                          : catalogItemGroups.length === 0
+                          ? 'No item groups available'
+                          : 'Select item group'
+                        }
+                      </option>
+                      {catalogItemGroups.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">This uses the standardized Singapore construction catalog. The selected item group will be saved as the product category.</p>
+              </div>
+
+              {/* Legacy Category Selection (for backward compatibility) */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-mainCategoryId">Main Category</Label>
+                  <Label htmlFor="edit-mainCategoryId">Legacy Main Category</Label>
                   <select
                     id="edit-mainCategoryId"
                     name="mainCategoryId"
@@ -1282,7 +1511,7 @@ function DashboardContent() {
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="edit-categoryId">Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
+                  <Label htmlFor="edit-categoryId">Legacy Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
                   <select
                     id="edit-categoryId"
                     name="categoryId"
@@ -1676,9 +1905,51 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Product List Section - Hide when editing product, show when not editing */}
-        {activeFilter && !showEditProductModal && (
-          <div className="mt-8 bg-white shadow rounded-lg p-6">
+        {/* View Toggle - Always visible when not editing */}
+        {!showEditProductModal && (
+          <div className="mt-8 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {viewMode === 'grid' ? 'Catalog Grid View' : 'Products'}
+              </h2>
+            </div>
+            <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded ${
+                  viewMode === 'list'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Grid View"
+              >
+                <Grid className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Catalog Grid View - Always show when not editing and in grid mode */}
+        {!showEditProductModal && viewMode === 'grid' && (
+          <div className="mt-4">
+            <CatalogGrid onEditItem={handleEditFromCatalog} />
+          </div>
+        )}
+
+        {/* Product List Section - Show when in list mode and filter is active */}
+        {activeFilter && !showEditProductModal && viewMode === 'list' && (
+          <div className="mt-4 bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">
                 {activeFilter === 'all' && 'All Products'}

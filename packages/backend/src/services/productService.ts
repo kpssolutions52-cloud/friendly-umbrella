@@ -328,6 +328,12 @@ export class ProductService {
             finalCurrency = defaultPriceCurrency;
           }
 
+          // Calculate expiry date for special price
+          const effectiveFrom = new Date();
+          const effectiveUntil = specialPrice.expiry 
+            ? calculateExpiryDate(specialPrice.expiry, effectiveFrom)
+            : calculateExpiryDate(undefined, effectiveFrom); // Default 1 year
+
           await tx.privatePrice.create({
             data: {
               productId: product.id,
@@ -338,6 +344,8 @@ export class ProductService {
                 : null,
               currency: finalCurrency,
               notes: specialPrice.notes,
+              effectiveFrom: effectiveFrom,
+              effectiveUntil: effectiveUntil,
               isActive: true,
             },
           });
