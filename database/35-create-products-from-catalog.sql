@@ -137,41 +137,17 @@ BEGIN
                 product_count := product_count + supplier_num;
             EXCEPTION
                 WHEN OTHERS THEN
-                    -- Skip on error, continue with next item
-                    NULL;
+                    -- Log error but continue
+                    RAISE WARNING 'Error inserting product for supplier %: %', supplier_record.org_name, SQLERRM;
             END;
         END LOOP;
     END LOOP;
     
-    RAISE NOTICE 'Created % products from catalog items', product_count;
+    RAISE NOTICE '=== PRODUCT CREATION COMPLETE ===';
+    RAISE NOTICE 'Total products created: %', product_count;
+    RAISE NOTICE 'Suppliers processed: %', supplier_count;
+    RAISE NOTICE 'Catalog items available: %', catalog_item_count;
 END $$;
-INSERT INTO products (
-    id,
-    supplier_id,
-    name,
-    sku,
-    price,
-    unit,
-    stock_availability,
-    is_active,
-    catalog_item_id,
-    created_at,
-    updated_at
-)
-SELECT 
-    gen_random_uuid(),
-    supplier_id,
-    name,
-    sku,
-    price,
-    unit_code,
-    'in_stock' as stock_availability,
-    true as is_active,
-    catalog_item_id,
-    NOW(),
-    NOW()
-FROM catalog_with_suppliers
-ON CONFLICT (supplier_id, sku) DO NOTHING;
 
 -- Step 3: Show summary of created products
 SELECT 
