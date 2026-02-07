@@ -98,18 +98,31 @@ function DemoLoginForm() {
   const fetchCompanies = async () => {
     try {
       setLoadingCompanies(true);
+      setError(null);
       const response = await fetch(`${API_URL}/api/v1/companies/public`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Companies response:', data);
+      
       if (data.companies && Array.isArray(data.companies)) {
         setCompanies(data.companies);
         // Auto-select first company if available
         if (data.companies.length > 0 && !selectedCompany) {
           setSelectedCompany(data.companies[0]);
         }
+      } else {
+        console.warn('No companies in response:', data);
+        setCompanies([]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching companies:', err);
-      setError('Failed to load companies. Using default demo account.');
+      const errorMsg = err?.message || 'Failed to load companies';
+      setError(`Failed to load companies: ${errorMsg}. Please ensure the database script has been run.`);
+      setCompanies([]);
     } finally {
       setLoadingCompanies(false);
     }

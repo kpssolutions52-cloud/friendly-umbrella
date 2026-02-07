@@ -844,7 +844,9 @@ export default function SupplierChatPage() {
   const loadMainCategories = async () => {
     try {
       setLoadingCategories(true);
+      console.log('Loading main categories...');
       const response = await getMainCategories();
+      console.log('Main categories response:', response);
       setMainCategories(response.categories || []);
     } catch (err) {
       console.error('Failed to load main categories:', err);
@@ -853,6 +855,14 @@ export default function SupplierChatPage() {
       setLoadingCategories(false);
     }
   };
+
+  // Load main categories on mount
+  useEffect(() => {
+    if (isAuthenticated && (user?.type === 'supplier' || user?.tenant?.type === 'supplier')) {
+      loadMainCategories();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user]);
 
   // Load subcategories when main category is selected
   const loadSubCategories = async (parentId: string) => {
@@ -864,7 +874,9 @@ export default function SupplierChatPage() {
     
     try {
       setLoadingSubCategories(true);
+      console.log('Loading subcategories for parent:', parentId);
       const response = await getSubcategories(parentId);
+      console.log('Subcategories response:', response);
       setSubCategories(response.categories || []);
       // Reset subcategory selection when main category changes
       // If no subcategories, allow using main category as categoryId
@@ -892,10 +904,8 @@ export default function SupplierChatPage() {
     setSelectedMainCategoryId('');
     setSubCategories([]);
     setShowAddForm(true);
-    // Load categories when form opens
-    if (mainCategories.length === 0) {
-      loadMainCategories();
-    }
+    // Always reload categories when form opens to ensure fresh data
+    loadMainCategories();
   };
 
   const handleEditProduct = (product: Product) => {
