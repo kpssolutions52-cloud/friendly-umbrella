@@ -73,7 +73,8 @@ SELECT
     END as recommendation
 FROM tenants t
 JOIN users u ON t.id = u.tenant_id
-LEFT JOIN organizations o ON t.email = o.email AND o.type = 'supplier'
+LEFT JOIN organizations o ON t.email = o.email 
+    AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
 LEFT JOIN products p ON o.id = p.supplier_id
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
@@ -82,7 +83,8 @@ WHERE t.type = 'supplier'
       SELECT 1 
       FROM organizations org
       JOIN products prod ON org.id = prod.supplier_id
-      WHERE org.email = t.email AND org.type = 'supplier'
+      WHERE org.email = t.email 
+        AND (org.type::text = 'supplier' OR org.type = 'supplier'::"OrgType" OR org.type = 'supplier'::org_type)
   )
 GROUP BY t.id, t.name, t.email, u.email, t.phone, t.address, t.postal_code, t.metadata
 HAVING COUNT(p.id) > 0
