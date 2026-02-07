@@ -157,6 +157,8 @@ function DashboardContent() {
   const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
   const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<string>('');
+  const [mainCategorySearch, setMainCategorySearch] = useState<string>('');
+  const [subCategorySearch, setSubCategorySearch] = useState<string>('');
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
@@ -631,6 +633,8 @@ function DashboardContent() {
       setIncludedSpecialPrices([]);
       setDraftSpecialPrice(null);
       setEditingSpecialPriceId(null);
+      setMainCategorySearch('');
+      setSubCategorySearch('');
       
       // Close the add product modal
       setShowAddProductModal(false);
@@ -2348,19 +2352,54 @@ function DashboardContent() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Category Selection - Moved to Top */}
+                {/* Category Selection - Moved to Top with Searchable Dropdowns */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="mainCategoryId">Main Category</Label>
+                    <div className="relative">
+                      <Input
+                        list="mainCategoryList"
+                        type="text"
+                        placeholder="Type to search main category..."
+                        value={mainCategorySearch || mainCategories.find(c => c.id === formData.mainCategoryId)?.name || ''}
+                        onChange={(e) => {
+                          const searchValue = e.target.value;
+                          setMainCategorySearch(searchValue);
+                          // Find matching category
+                          const matched = mainCategories.find(c => 
+                            c.name.toLowerCase() === searchValue.toLowerCase()
+                          );
+                          if (matched) {
+                            handleInputChange({ target: { name: 'mainCategoryId', value: matched.id } } as any);
+                            setMainCategorySearch('');
+                          } else if (!searchValue) {
+                            handleInputChange({ target: { name: 'mainCategoryId', value: '' } } as any);
+                          }
+                        }}
+                        onBlur={() => {
+                          // Keep selected value if it exists
+                          if (formData.mainCategoryId) {
+                            setMainCategorySearch(mainCategories.find(c => c.id === formData.mainCategoryId)?.name || '');
+                          }
+                        }}
+                        disabled={isSubmitting || loadingCategories}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                      <datalist id="mainCategoryList">
+                        {mainCategories.map((category) => (
+                          <option key={category.id} value={category.name} data-id={category.id} />
+                        ))}
+                      </datalist>
+                    </div>
                     <select
                       id="mainCategoryId"
                       name="mainCategoryId"
                       value={formData.mainCategoryId}
                       onChange={handleInputChange}
                       disabled={isSubmitting || loadingCategories}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="">Select a main category (optional)</option>
+                      <option value="">Or select from dropdown</option>
                       {mainCategories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
@@ -2370,6 +2409,41 @@ function DashboardContent() {
                   </div>
                   <div>
                     <Label htmlFor="categoryId">Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
+                    <div className="relative">
+                      <Input
+                        list="subCategoryList"
+                        type="text"
+                        placeholder="Type to search subcategory..."
+                        value={subCategorySearch || subCategories.find(c => c.id === formData.categoryId)?.name || ''}
+                        onChange={(e) => {
+                          const searchValue = e.target.value;
+                          setSubCategorySearch(searchValue);
+                          // Find matching category
+                          const matched = subCategories.find(c => 
+                            c.name.toLowerCase() === searchValue.toLowerCase()
+                          );
+                          if (matched) {
+                            handleInputChange({ target: { name: 'categoryId', value: matched.id } } as any);
+                            setSubCategorySearch('');
+                          } else if (!searchValue) {
+                            handleInputChange({ target: { name: 'categoryId', value: '' } } as any);
+                          }
+                        }}
+                        onBlur={() => {
+                          // Keep selected value if it exists
+                          if (formData.categoryId) {
+                            setSubCategorySearch(subCategories.find(c => c.id === formData.categoryId)?.name || '');
+                          }
+                        }}
+                        disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
+                      />
+                      <datalist id="subCategoryList">
+                        {subCategories.map((category) => (
+                          <option key={category.id} value={category.name} data-id={category.id} />
+                        ))}
+                      </datalist>
+                    </div>
                     <select
                       id="categoryId"
                       name="categoryId"
@@ -2377,14 +2451,14 @@ function DashboardContent() {
                       onChange={handleInputChange}
                       required={!!(formData.mainCategoryId && subCategories.length > 0)}
                       disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">
                         {loadingSubCategories 
                           ? 'Loading subcategories...' 
                           : subCategories.length === 0 && formData.mainCategoryId
                           ? 'No subcategories available'
-                          : 'Select a subcategory' + (formData.mainCategoryId && subCategories.length > 0 ? ' *' : '')
+                          : 'Or select from dropdown' + (formData.mainCategoryId && subCategories.length > 0 ? ' *' : '')
                         }
                       </option>
                       {subCategories.map((category) => (

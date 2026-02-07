@@ -482,29 +482,28 @@ export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
       <div className="overflow-x-auto">
         <div className="inline-flex gap-4 min-w-full">
           {/* Add Product Column - First Column (Always Visible) */}
-          {onAddProduct && (
-            <div className="flex-shrink-0 w-80 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-              <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6">
-                <div className="bg-blue-500 rounded-full p-4 mb-4">
-                  <Plus className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add New Product</h3>
-                <p className="text-sm text-gray-600 text-center mb-4">
-                  {columns.length === 0 
-                    ? 'Create your first product to get started'
-                    : 'Create a new product and add it to your catalog'}
-                </p>
-                <Button
-                  type="button"
-                  onClick={onAddProduct}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Product
-                </Button>
+          <div className="flex-shrink-0 w-80 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6">
+              <div className="bg-blue-500 rounded-full p-4 mb-4">
+                <Plus className="w-8 h-8 text-white" />
               </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Add New Product</h3>
+              <p className="text-sm text-gray-600 text-center mb-4">
+                {columns.length === 0 
+                  ? 'Create your first product to get started'
+                  : 'Create a new product and add it to your catalog'}
+              </p>
+              <Button
+                type="button"
+                onClick={onAddProduct || (() => {})}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!onAddProduct}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
             </div>
-          )}
+          </div>
 
           {/* Product Columns */}
           {columns.length === 0 ? (
@@ -522,19 +521,25 @@ export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
                 key={`${column.categoryCode}-${colIndex}`}
                 className="flex-shrink-0 w-80 border border-gray-200 rounded-lg bg-white shadow-sm"
               >
-                {/* Column Header */}
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 border-b border-gray-200 rounded-t-lg">
-                  <div className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
-                    {column.mainCategory}
+                {/* Column Header - Enhanced Category Hierarchy Display */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 border-b-2 border-blue-300 rounded-t-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-6 bg-blue-500 rounded"></div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                        {column.mainCategory}
+                      </div>
+                      <div className="text-sm font-semibold text-gray-800 mt-0.5">
+                        {column.subcategory}
+                      </div>
+                      <div className="text-xs font-medium text-gray-600 mt-0.5 flex items-center gap-1">
+                        <span className="text-gray-400">→</span>
+                        {column.itemGroup}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-gray-700 mt-1">
-                    {column.subcategory}
-                  </div>
-                  <div className="text-xs text-gray-600 mt-0.5">
-                    {column.itemGroup}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {column.items.length} item{column.items.length !== 1 ? 's' : ''}
+                  <div className="text-xs text-gray-500 mt-2 pt-2 border-t border-blue-200">
+                    <span className="font-semibold">{column.items.length}</span> item{column.items.length !== 1 ? 's' : ''}
                   </div>
                 </div>
 

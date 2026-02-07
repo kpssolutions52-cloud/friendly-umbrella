@@ -108,7 +108,7 @@ function DemoLoginForm() {
           const userResponse = await fetch(`${API_URL}/api/v1/suppliers/public/${selectedSupplier.id}/demo-user`);
           if (!userResponse.ok) {
             const errorData = await userResponse.json().catch(() => ({}));
-            const errorMsg = errorData.error?.message || `No user found for supplier "${selectedSupplier.name}". Please ensure at least one user account exists for this supplier organization.`;
+            const errorMsg = errorData.error?.message || `No user found for supplier "${selectedSupplier.name}". Please ensure at least one user account exists for this supplier organization.\n\nTo fix this, run: database/33-fix-missing-supplier-users.sql`;
             setError(errorMsg);
             setLoading(false);
             return;

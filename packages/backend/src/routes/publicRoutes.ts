@@ -707,7 +707,7 @@ router.get(
       if (!user) {
         return res.status(404).json({ 
           error: { 
-            message: `No user found for supplier "${organization.name}". Please ensure at least one user account exists for this supplier organization.`, 
+            message: `No user found for supplier "${organization.name}". Please ensure at least one user account exists for this supplier organization.\n\nTo fix this, run the database fix script:\n  database/33-fix-missing-supplier-users.sql\n\nOr if organizations don't exist, run first:\n  database/32-create-missing-organizations-for-suppliers.sql`, 
             statusCode: 404 
           } 
         });
