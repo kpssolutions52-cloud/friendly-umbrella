@@ -7,23 +7,49 @@
 
 -- Step 0: Ensure organizations exist (if not already created)
 -- Create organizations for suppliers that don't have them
-INSERT INTO organizations (id, name, type, email, created_at, updated_at)
-SELECT 
-    gen_random_uuid() as id,
-    t.name,
-    'supplier'::org_type,
-    t.email,
-    COALESCE(t.created_at, NOW()),
-    COALESCE(t.updated_at, NOW())
-FROM tenants t
-WHERE t.type = 'supplier'
-  AND t.status = 'active'
-  AND NOT EXISTS (
-      SELECT 1 
-      FROM organizations o 
-      WHERE o.email = t.email AND o.type = 'supplier'
-  )
-ON CONFLICT (email) DO NOTHING;
+-- Handle both OrgType (Prisma) and org_type (legacy) enum types
+DO $$
+BEGIN
+    -- Try with OrgType first (Prisma standard)
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'OrgType') THEN
+        INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+        SELECT 
+            gen_random_uuid() as id,
+            t.name,
+            'supplier'::"OrgType",
+            t.email,
+            COALESCE(t.created_at, NOW()),
+            COALESCE(t.updated_at, NOW())
+        FROM tenants t
+        WHERE t.type = 'supplier'
+          AND t.status = 'active'
+          AND NOT EXISTS (
+              SELECT 1 
+              FROM organizations o 
+              WHERE o.email = t.email AND o.type = 'supplier'::"OrgType"
+          )
+        ON CONFLICT (email) DO NOTHING;
+    -- Fallback to org_type if OrgType doesn't exist
+    ELSIF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'org_type') THEN
+        INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+        SELECT 
+            gen_random_uuid() as id,
+            t.name,
+            'supplier'::org_type,
+            t.email,
+            COALESCE(t.created_at, NOW()),
+            COALESCE(t.updated_at, NOW())
+        FROM tenants t
+        WHERE t.type = 'supplier'
+          AND t.status = 'active'
+          AND NOT EXISTS (
+              SELECT 1 
+              FROM organizations o 
+              WHERE o.email = t.email AND o.type = 'supplier'::org_type
+          )
+        ON CONFLICT (email) DO NOTHING;
+    END IF;
+END $$;
 
 -- Step 1: Diagnostic - Check what exists
 SELECT 
@@ -59,14 +85,15 @@ SELECT
     END as "Recommendation"
 FROM tenants t
 JOIN users u ON t.id = u.tenant_id
-LEFT JOIN LATERAL (
-    SELECT 
-        COUNT(p.id)::integer as product_count,
-        COUNT(CASE WHEN p.is_active = true THEN 1 END)::integer as active_products
-    FROM organizations o
-    LEFT JOIN products p ON o.id = p.supplier_id
-    WHERE o.email = t.email AND o.type = 'supplier'
-) product_counts ON true
+    LEFT JOIN LATERAL (
+        SELECT 
+            COUNT(p.id)::integer as product_count,
+            COUNT(CASE WHEN p.is_active = true THEN 1 END)::integer as active_products
+        FROM organizations o
+        LEFT JOIN products p ON o.id = p.supplier_id
+        WHERE o.email = t.email 
+          AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+    ) product_counts ON true
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
   AND u.role = 'supplier_admin'
@@ -80,7 +107,8 @@ WHERE users.role = 'supplier_admin'
   AND EXISTS (
       SELECT 1 
       FROM tenants t
-      JOIN organizations o ON t.email = o.email AND o.type = 'supplier'
+      JOIN organizations o ON t.email = o.email 
+        AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
       JOIN products p ON o.id = p.supplier_id
       WHERE t.id = users.tenant_id
         AND t.type = 'supplier'
@@ -105,7 +133,8 @@ WITH supplier_stats AS (
             COUNT(CASE WHEN p.is_active = true THEN 1 END)::integer as active_products
         FROM organizations o
         LEFT JOIN products p ON o.id = p.supplier_id
-        WHERE o.email = t.email AND o.type = 'supplier'
+        WHERE o.email = t.email 
+          AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
     ) product_counts ON true
     WHERE t.type = 'supplier' 
       AND t.status = 'active'
