@@ -61,8 +61,8 @@ FROM tenants t
 JOIN users u ON t.id = u.tenant_id
 LEFT JOIN LATERAL (
     SELECT 
-        COUNT(p.id) as product_count,
-        COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products
+        COUNT(p.id)::integer as product_count,
+        COUNT(CASE WHEN p.is_active = true THEN 1 END)::integer as active_products
     FROM organizations o
     LEFT JOIN products p ON o.id = p.supplier_id
     WHERE o.email = t.email AND o.type = 'supplier'
@@ -95,14 +95,14 @@ SELECT
 WITH supplier_stats AS (
     SELECT 
         t.id,
-        COALESCE(product_counts.product_count, 0) as product_count,
-        COALESCE(product_counts.active_products, 0) as active_products
+        COALESCE(product_counts.product_count, 0)::integer as product_count,
+        COALESCE(product_counts.active_products, 0)::integer as active_products
     FROM tenants t
     JOIN users u ON t.id = u.tenant_id
     LEFT JOIN LATERAL (
         SELECT 
-            COUNT(p.id) as product_count,
-            COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products
+            COUNT(p.id)::integer as product_count,
+            COUNT(CASE WHEN p.is_active = true THEN 1 END)::integer as active_products
         FROM organizations o
         LEFT JOIN products p ON o.id = p.supplier_id
         WHERE o.email = t.email AND o.type = 'supplier'
@@ -112,10 +112,10 @@ WITH supplier_stats AS (
       AND u.role = 'supplier_admin'
 )
 SELECT 
-    COUNT(*) as "Total Active Suppliers",
-    COUNT(CASE WHEN product_count > 0 THEN 1 END) as "Suppliers with Products",
-    SUM(product_count) as "Total Products",
-    SUM(active_products) as "Active Products",
+    COUNT(*)::integer as "Total Active Suppliers",
+    COUNT(CASE WHEN product_count > 0 THEN 1 END)::integer as "Suppliers with Products",
+    COALESCE(SUM(product_count), 0)::integer as "Total Products",
+    COALESCE(SUM(active_products), 0)::integer as "Active Products",
     ROUND(AVG(CASE WHEN product_count > 0 THEN product_count END), 2) as "Avg Products per Supplier (with products)",
-    MAX(product_count) as "Max Products (Single Supplier)"
+    COALESCE(MAX(product_count), 0)::integer as "Max Products (Single Supplier)"
 FROM supplier_stats;
