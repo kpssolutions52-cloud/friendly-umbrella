@@ -1,6 +1,28 @@
 -- List all suppliers with products for demo login selection
 -- This query returns all suppliers that have products, sorted by product count
 -- Note: Products are linked to organizations, so we join through organizations using email
+--
+-- IMPORTANT: If you get 0 results, run database/32-create-missing-organizations-for-suppliers.sql first
+-- to create organizations for all suppliers
+
+-- Step 0: Ensure organizations exist for all suppliers
+INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+SELECT 
+    gen_random_uuid()::text as id,
+    t.name,
+    'supplier'::org_type,
+    t.email,
+    t.created_at,
+    t.updated_at
+FROM tenants t
+WHERE t.type = 'supplier'
+  AND t.status = 'active'
+  AND NOT EXISTS (
+      SELECT 1 
+      FROM organizations o 
+      WHERE o.email = t.email AND o.type = 'supplier'
+  )
+ON CONFLICT (email) DO NOTHING;
 
 SELECT 
     '=== DEMO SUPPLIERS WITH PRODUCTS (Select from this list) ===' as info;

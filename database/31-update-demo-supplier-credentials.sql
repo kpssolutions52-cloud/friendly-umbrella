@@ -1,6 +1,29 @@
 -- List all suppliers with products for demo login selection
 -- This script shows all suppliers that have products, allowing users to select from a list
 -- Run this after importing suppliers and products
+-- 
+-- IMPORTANT: Run database/32-create-missing-organizations-for-suppliers.sql first
+-- if you get 0 results, as products are linked to organizations
+
+-- Step 0: Ensure organizations exist (if not already created)
+-- Create organizations for suppliers that don't have them
+INSERT INTO organizations (id, name, type, email, created_at, updated_at)
+SELECT 
+    gen_random_uuid()::text as id,
+    t.name,
+    'supplier'::org_type,
+    t.email,
+    t.created_at,
+    t.updated_at
+FROM tenants t
+WHERE t.type = 'supplier'
+  AND t.status = 'active'
+  AND NOT EXISTS (
+      SELECT 1 
+      FROM organizations o 
+      WHERE o.email = t.email AND o.type = 'supplier'
+  )
+ON CONFLICT (email) DO NOTHING;
 
 -- Step 1: List all suppliers with products (sorted by product count)
 SELECT 
