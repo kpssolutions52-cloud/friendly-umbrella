@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
+import { apiPost, apiGet, apiPut, apiDelete, getMainCategories, getSubcategories, ProductCategory } from '@/lib/api';
 import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,7 +121,15 @@ export default function SupplierChatPage() {
     price: '',
     unit: '',
     stockAvailability: '',
+    categoryId: '',
   });
+  
+  // Category selection state
+  const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<string>('');
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [defaultPriceExpiry, setDefaultPriceExpiry] = useState<PriceExpiryInputType | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   
@@ -832,13 +840,62 @@ export default function SupplierChatPage() {
     );
   };
 
+  // Load main categories
+  const loadMainCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await getMainCategories();
+      setMainCategories(response.categories || []);
+    } catch (err) {
+      console.error('Failed to load main categories:', err);
+      setMainCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Load subcategories when main category is selected
+  const loadSubCategories = async (parentId: string) => {
+    if (!parentId) {
+      setSubCategories([]);
+      setFormData({ ...formData, categoryId: '' });
+      return;
+    }
+    
+    try {
+      setLoadingSubCategories(true);
+      const response = await getSubcategories(parentId);
+      setSubCategories(response.categories || []);
+      // Reset subcategory selection when main category changes
+      // If no subcategories, allow using main category as categoryId
+      if (response.categories && response.categories.length === 0) {
+        setFormData({ ...formData, categoryId: parentId });
+      } else {
+        setFormData({ ...formData, categoryId: '' });
+      }
+    } catch (err) {
+      console.error('Failed to load subcategories:', err);
+      setSubCategories([]);
+      // If error loading subcategories, allow using main category
+      setFormData({ ...formData, categoryId: parentId });
+    } finally {
+      setLoadingSubCategories(false);
+    }
+  };
+
   const handleAddProduct = () => {
-    setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+    setFormData({ name: '', price: '', unit: '', stockAvailability: '', categoryId: '' });
     setDefaultPriceExpiry(undefined);
     setDraftSpecialPrice(null);
     setIncludedSpecialPrices([]);
     setEditingProduct(null);
+    setSelectedMainCategoryId('');
+    setSubCategories([]);
     setShowAddForm(true);
+    // Load categories when form opens
+    if (mainCategories.length === 0) {
+      loadMainCategories();
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -847,11 +904,29 @@ export default function SupplierChatPage() {
       price: product.price.toString(),
       unit: product.unit,
       stockAvailability: (product as any).stockAvailability || '',
+      categoryId: (product as any).categoryId || '',
     });
     setDefaultPriceExpiry(undefined);
     setDraftSpecialPrice(null);
     setIncludedSpecialPrices([]);
     setEditingProduct(product);
+    
+    // Load categories if not loaded
+    if (mainCategories.length === 0) {
+      loadMainCategories();
+    }
+    
+    // If product has a category, load its parent and subcategories
+    if ((product as any).categoryId) {
+      // We need to find which main category this belongs to
+      // For now, just set the categoryId and let user select main category
+      setSelectedMainCategoryId('');
+      setSubCategories([]);
+    } else {
+      setSelectedMainCategoryId('');
+      setSubCategories([]);
+    }
+    
     setShowAddForm(true);
   };
 
@@ -868,6 +943,7 @@ export default function SupplierChatPage() {
         price: parseFloat(formData.price),
         unit: formData.unit,
         stockAvailability: formData.stockAvailability || undefined,
+        categoryId: formData.categoryId || undefined,
       };
 
       // Add default price with expiry if provided
@@ -900,7 +976,9 @@ export default function SupplierChatPage() {
       }
       setShowAddForm(false);
       setEditingProduct(null);
-      setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+      setFormData({ name: '', price: '', unit: '', stockAvailability: '', categoryId: '' });
+      setSelectedMainCategoryId('');
+      setSubCategories([]);
       setDefaultPriceExpiry(undefined);
       setDraftSpecialPrice(null);
       setIncludedSpecialPrices([]);
@@ -1602,10 +1680,12 @@ export default function SupplierChatPage() {
                     onClick={() => {
                       setShowAddForm(false);
                       setEditingProduct(null);
-                      setFormData({ name: '', price: '', unit: '', stockAvailability: '' });
+                      setFormData({ name: '', price: '', unit: '', stockAvailability: '', categoryId: '' });
                       setDefaultPriceExpiry(undefined);
                       setDraftSpecialPrice(null);
                       setIncludedSpecialPrices([]);
+                      setSelectedMainCategoryId('');
+                      setSubCategories([]);
                       setExpandedSections({ basic: true, pricing: true, expiry: false, specialPrices: false });
                     }}
                     className="h-9"
@@ -1677,6 +1757,61 @@ export default function SupplierChatPage() {
                             className="h-10 text-sm"
                           />
                         </div>
+                        
+                        {/* Category Selection */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="main-category" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                              Main Category
+                            </Label>
+                            <select
+                              id="main-category"
+                              value={selectedMainCategoryId}
+                              onChange={(e) => {
+                                const mainCatId = e.target.value;
+                                setSelectedMainCategoryId(mainCatId);
+                                loadSubCategories(mainCatId);
+                              }}
+                              disabled={loadingCategories}
+                              className="w-full h-10 text-sm rounded-md border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Select main category...</option>
+                              {mainCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <Label htmlFor="sub-category" className="text-sm font-medium text-gray-700 mb-1.5 block">
+                              Sub Category
+                            </Label>
+                            <select
+                              id="sub-category"
+                              value={formData.categoryId}
+                              onChange={(e) =>
+                                setFormData({ ...formData, categoryId: e.target.value })
+                              }
+                              disabled={!selectedMainCategoryId || loadingSubCategories}
+                              className="w-full h-10 text-sm rounded-md border border-input bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                              <option value="">{subCategories.length === 0 && selectedMainCategoryId ? 'No subcategories (using main category)' : 'Select sub category...'}</option>
+                              {subCategories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                            {!selectedMainCategoryId && (
+                              <p className="mt-1 text-xs text-gray-500">Select a main category first</p>
+                            )}
+                            {selectedMainCategoryId && subCategories.length === 0 && !loadingSubCategories && (
+                              <p className="mt-1 text-xs text-gray-500">No subcategories available. Main category will be used.</p>
+                            )}
+                          </div>
+                        </div>
+                        
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <Label htmlFor="dashboard-price" className="text-sm font-medium text-gray-700 mb-1.5 block">
