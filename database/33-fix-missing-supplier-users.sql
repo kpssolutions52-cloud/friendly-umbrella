@@ -25,15 +25,18 @@ HAVING COUNT(u.id) = 0
 ORDER BY o.name;
 
 -- Step 3: Create missing user accounts for all suppliers
--- Users are linked to organizations (not tenants)
+-- Users are linked to organizations via organization_id
 -- Extract first and last name from supplier name
 INSERT INTO users (
     id,
     organization_id,
     email,
     password_hash,
-    name,
-    type,
+    first_name,
+    last_name,
+    role,
+    status,
+    is_active,
     created_at,
     updated_at
 )
@@ -42,9 +45,19 @@ SELECT
     o.id as organization_id,
     o.email,
     crypt('Demo123!', gen_salt('bf', 12)) as password_hash,
-    -- Use organization name as user name
-    o.name as name,
-    'supplier'::"UserType" as type,
+    -- Extract first name (first word or first 20 chars)
+    CASE 
+        WHEN position(' ' in o.name) > 0 THEN LEFT(o.name, position(' ' in o.name) - 1)
+        ELSE LEFT(o.name, 20)
+    END as first_name,
+    -- Extract last name (rest of name or empty)
+    CASE 
+        WHEN position(' ' in o.name) > 0 THEN SUBSTRING(o.name from position(' ' in o.name) + 1)
+        ELSE ''
+    END as last_name,
+    'supplier_admin'::"UserRole" as role,
+    'active'::"UserStatus" as status,
+    true as is_active,
     NOW() as created_at,
     NOW() as updated_at
 FROM organizations o
@@ -57,8 +70,11 @@ WHERE o.type::text = 'supplier'
 ON CONFLICT (email) DO UPDATE SET
     organization_id = EXCLUDED.organization_id,
     password_hash = EXCLUDED.password_hash,
-    name = EXCLUDED.name,
-    type = EXCLUDED.type,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    role = EXCLUDED.role,
+    status = 'active'::"UserStatus",
+    is_active = true,
     updated_at = NOW();
 
 -- Step 4: Verify all suppliers now have users
@@ -69,8 +85,11 @@ SELECT
     o.name as supplier_name,
     o.email as supplier_email,
     u.email as user_email,
-    u.name as user_name,
-    u.type as user_type
+    u.first_name,
+    u.last_name,
+    u.role,
+    u.status as user_status,
+    u.is_active
 FROM organizations o
 JOIN users u ON o.id = u.organization_id
 WHERE o.type::text = 'supplier'
