@@ -2,31 +2,31 @@
 
 This document provides demo login credentials for testing the platform.
 
-## 🔐 Demo Supplier Account (Recommended for Product Testing)
+## 🔐 Demo Supplier Accounts (Select from List)
 
-**Use this account to test supplier features with maximum product data:**
+**All suppliers with products are available for demo. Choose any supplier from the list:**
 
-### Option 1: Supplier with Most Products (Auto-Detected)
+### How to Get List of Suppliers with Products
 
-Run this SQL query to find the supplier with the most products:
+Run this SQL query to see all suppliers that have products:
 
 ```sql
-SELECT 
-    t.name as supplier_name,
-    t.email as login_email,
-    'Demo123!' as password,
-    COUNT(p.id) as product_count,
-    COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products
-FROM tenants t
-JOIN users u ON t.id = u.tenant_id
-LEFT JOIN products p ON t.id = p.supplier_id
-WHERE t.type = 'supplier' 
-  AND t.status = 'active'
-  AND u.role = 'supplier_admin'
-GROUP BY t.id, t.name, t.email
-ORDER BY product_count DESC, active_products DESC
-LIMIT 1;
+-- Run: database/30-find-supplier-with-most-products.sql
+-- Or: database/31-update-demo-supplier-credentials.sql
 ```
+
+The query will return a ranked list showing:
+- **Rank**: Position by product count
+- **Supplier Name**: Company name
+- **Login Email**: Email to use for login
+- **Password**: `Demo123!` (same for all)
+- **Total Products**: Number of products
+- **Active Products**: Number of active products
+- **Recommendation**: Rating based on product count
+  - ⭐⭐⭐ Excellent (50+ products)
+  - ⭐⭐ Good (20-49 products)
+  - ⭐ Fair (10-19 products)
+  - 📦 Has Products (1-9 products)
 
 ### Option 2: Singapore Suppliers (100 Available)
 
@@ -58,32 +58,35 @@ If no products exist yet, use the default seeded supplier:
 - **Email**: `admin@system.com`
 - **Password**: `admin123`
 
-## 📊 Finding Supplier with Maximum Products
+## 📊 Getting List of Suppliers with Products
 
-To find which supplier has the most products for demo purposes:
+To get a complete list of all suppliers that have products (sorted by product count):
 
 ```sql
--- Find supplier with most products
+-- Run the SQL script
+\i database/30-find-supplier-with-most-products.sql
+
+-- Or use this query directly:
 SELECT 
-    t.id,
-    t.name,
-    t.email,
+    ROW_NUMBER() OVER (ORDER BY COUNT(p.id) DESC) as rank,
+    t.name as supplier_name,
     u.email as login_email,
+    'Demo123!' as password,
     COUNT(p.id) as total_products,
-    COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products,
-    t.phone,
-    t.address,
-    t.postal_code
+    COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products
 FROM tenants t
 JOIN users u ON t.id = u.tenant_id
-LEFT JOIN products p ON t.id = p.supplier_id
+LEFT JOIN organizations o ON t.email = o.email AND o.type = 'supplier'
+LEFT JOIN products p ON o.id = p.supplier_id
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
   AND u.role = 'supplier_admin'
-GROUP BY t.id, t.name, t.email, u.email, t.phone, t.address, t.postal_code
-ORDER BY total_products DESC, active_products DESC
-LIMIT 5;
+GROUP BY t.id, t.name, t.email, u.email
+HAVING COUNT(p.id) > 0
+ORDER BY total_products DESC, active_products DESC;
 ```
+
+**Result**: You'll get a ranked list of all suppliers with products, allowing you to choose the best one for your demo needs.
 
 ## 🚀 Quick Start with Demo Account
 
