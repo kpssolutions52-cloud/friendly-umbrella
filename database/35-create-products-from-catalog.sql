@@ -115,11 +115,9 @@ BEGIN
                     unit,
                     stock_availability,
                     is_active,
-                    catalog_item_id,
-                    created_at,
-                    updated_at
+                    catalog_item_id
                 ) VALUES (
-                    gen_random_uuid(),
+                    gen_random_uuid()::text,
                     supplier_record.org_id,
                     catalog_item_record.name,
                     sku_base,
@@ -127,9 +125,7 @@ BEGIN
                     catalog_item_record.unit_code,
                     'in_stock',
                     true,
-                    catalog_item_record.id,
-                    NOW(),
-                    NOW()
+                    catalog_item_record.id
                 )
                 ON CONFLICT (supplier_id, sku) DO NOTHING;
                 

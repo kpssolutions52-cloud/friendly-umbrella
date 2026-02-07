@@ -88,10 +88,11 @@ SELECT
 SELECT 
     column_name,
     data_type,
-    is_nullable
+    is_nullable,
+    column_default
 FROM information_schema.columns
 WHERE table_name = 'products'
-  AND column_name IN ('id', 'supplier_id', 'name', 'sku', 'price', 'unit', 'catalog_item_id', 'stock_availability', 'is_active')
+  AND column_name IN ('id', 'supplier_id', 'name', 'sku', 'price', 'unit', 'catalog_item_id', 'stock_availability', 'is_active', 'created_at', 'updated_at')
 ORDER BY ordinal_position;
 
 -- Step 8: Try a simple test insert (commented out - uncomment to test)
