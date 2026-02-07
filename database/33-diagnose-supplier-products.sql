@@ -86,7 +86,7 @@ SELECT
     COUNT(p.id) as product_count
 FROM tenants t
 LEFT JOIN organizations o ON t.email = o.email 
-    AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+    AND o.type::text = 'supplier'
 LEFT JOIN products p ON o.id = p.supplier_id
 WHERE t.type = 'supplier'
   AND t.status = 'active'
