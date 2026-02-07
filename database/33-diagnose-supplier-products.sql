@@ -68,7 +68,7 @@ SELECT
     COUNT(DISTINCT t.id) as suppliers_with_complete_chain
 FROM tenants t
 JOIN organizations o ON t.email = o.email 
-    AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+    AND o.type::text = 'supplier'
 JOIN products p ON o.id = p.supplier_id
 WHERE t.type = 'supplier'
   AND t.status = 'active';
