@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { AuthRequest, requireAuth } from '../middleware/auth';
+import { AuthRequest, authenticate } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // GET /api/v1/catalog/categories - Get all catalog categories with hierarchy
 router.get(
   '/catalog/categories',
-  requireAuth,
+  authenticate,
   async (req: AuthRequest, res: Response) => {
     try {
       const categories = await prisma.$queryRaw<Array<{
@@ -47,7 +47,7 @@ router.get(
 // GET /api/v1/catalog/items - Get catalog items with category hierarchy
 router.get(
   '/catalog/items',
-  requireAuth,
+  authenticate,
   async (req: AuthRequest, res: Response) => {
     try {
       const { categoryId, search } = req.query;
@@ -120,7 +120,7 @@ router.get(
 // GET /api/v1/catalog/supplier-items - Get supplier's products mapped to catalog items
 router.get(
   '/catalog/supplier-items',
-  requireAuth,
+  authenticate,
   async (req: AuthRequest, res: Response) => {
     try {
       if (!req.tenantId) {
