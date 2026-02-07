@@ -74,7 +74,7 @@ SELECT
 FROM tenants t
 JOIN users u ON t.id = u.tenant_id
 LEFT JOIN organizations o ON t.email = o.email 
-    AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+    AND o.type::text = 'supplier'
 LEFT JOIN products p ON o.id = p.supplier_id
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
@@ -84,7 +84,7 @@ WHERE t.type = 'supplier'
       FROM organizations org
       JOIN products prod ON org.id = prod.supplier_id
       WHERE org.email = t.email 
-        AND (org.type::text = 'supplier' OR org.type = 'supplier'::"OrgType" OR org.type = 'supplier'::org_type)
+        AND org.type::text = 'supplier'
   )
 GROUP BY t.id, t.name, t.email, u.email, t.phone, t.address, t.postal_code, t.metadata
 HAVING COUNT(p.id) > 0
@@ -106,7 +106,7 @@ CROSS JOIN LATERAL (
     FROM organizations o2
     LEFT JOIN products p2 ON o2.id = p2.supplier_id
     WHERE o2.email = t.email 
-      AND (o2.type::text = 'supplier' OR o2.type = 'supplier'::"OrgType" OR o2.type = 'supplier'::org_type)
+      AND o2.type::text = 'supplier'
 ) product_counts
 WHERE t.type = 'supplier' 
   AND t.status = 'active'

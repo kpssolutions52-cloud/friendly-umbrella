@@ -17,7 +17,7 @@ SELECT
 
 SELECT 
     COUNT(*) as total_organizations,
-    COUNT(CASE WHEN type::text = 'supplier' OR type = 'supplier'::"OrgType" OR type = 'supplier'::org_type THEN 1 END) as supplier_organizations
+    COUNT(CASE WHEN type::text = 'supplier' THEN 1 END) as supplier_organizations
 FROM organizations;
 
 -- Step 3: Check if tenants (suppliers) exist
@@ -43,7 +43,7 @@ WHERE t.type = 'supplier'
       SELECT 1 
       FROM organizations o 
       WHERE o.email = t.email 
-        AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+        AND o.type::text = 'supplier'
   );
 
 -- Step 5: Check if products are linked to organizations
@@ -114,7 +114,7 @@ SELECT
 SELECT 
     COUNT(*) as orgs_without_tenants
 FROM organizations o
-WHERE (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+WHERE o.type::text = 'supplier'
   AND NOT EXISTS (
       SELECT 1 
       FROM tenants t 

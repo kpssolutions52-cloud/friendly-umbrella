@@ -57,7 +57,7 @@ SELECT
 
 SELECT 
     (SELECT COUNT(*) FROM tenants WHERE type = 'supplier' AND status = 'active') as "Active Suppliers",
-    (SELECT COUNT(*) FROM organizations WHERE type = 'supplier') as "Supplier Organizations",
+    (SELECT COUNT(*) FROM organizations WHERE type::text = 'supplier') as "Supplier Organizations",
     (SELECT COUNT(*) FROM products) as "Total Products",
     (SELECT COUNT(*) FROM users WHERE role = 'supplier_admin') as "Supplier Admin Users";
 
@@ -92,7 +92,7 @@ JOIN users u ON t.id = u.tenant_id
         FROM organizations o
         LEFT JOIN products p ON o.id = p.supplier_id
         WHERE o.email = t.email 
-          AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+          AND o.type::text = 'supplier'
     ) product_counts ON true
 WHERE t.type = 'supplier' 
   AND t.status = 'active'
@@ -108,7 +108,7 @@ WHERE users.role = 'supplier_admin'
       SELECT 1 
       FROM tenants t
       JOIN organizations o ON t.email = o.email 
-        AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+        AND o.type::text = 'supplier'
       JOIN products p ON o.id = p.supplier_id
       WHERE t.id = users.tenant_id
         AND t.type = 'supplier'
@@ -134,7 +134,7 @@ WITH supplier_stats AS (
         FROM organizations o
         LEFT JOIN products p ON o.id = p.supplier_id
         WHERE o.email = t.email 
-          AND (o.type::text = 'supplier' OR o.type = 'supplier'::"OrgType" OR o.type = 'supplier'::org_type)
+          AND o.type::text = 'supplier'
     ) product_counts ON true
     WHERE t.type = 'supplier' 
       AND t.status = 'active'
