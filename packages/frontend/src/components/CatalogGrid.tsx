@@ -481,7 +481,7 @@ export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
       {/* Grid Container */}
       <div className="overflow-x-auto">
         <div className="inline-flex gap-4 min-w-full">
-          {/* Add Product Column - First Column */}
+          {/* Add Product Column - First Column (Always Visible) */}
           {onAddProduct && (
             <div className="flex-shrink-0 w-80 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
               <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6">
@@ -490,7 +490,9 @@ export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Add New Product</h3>
                 <p className="text-sm text-gray-600 text-center mb-4">
-                  Create a new product and add it to your catalog
+                  {columns.length === 0 
+                    ? 'Create your first product to get started'
+                    : 'Create a new product and add it to your catalog'}
                 </p>
                 <Button
                   type="button"
@@ -504,12 +506,16 @@ export function CatalogGrid({ onEditItem, onAddProduct }: CatalogGridProps) {
             </div>
           )}
 
+          {/* Product Columns */}
           {columns.length === 0 ? (
-            <div className="w-full text-center py-12 text-gray-500">
-              {hasActiveFilters() 
-                ? 'No items found matching your filters. Try adjusting your search criteria.'
-                : 'No items found. Add products to see them organized by category.'}
-            </div>
+            // Show message only if Add Product column is not shown, otherwise it's redundant
+            !onAddProduct && (
+              <div className="w-full text-center py-12 text-gray-500">
+                {hasActiveFilters() 
+                  ? 'No items found matching your filters. Try adjusting your search criteria.'
+                  : 'No items found. Add products to see them organized by category.'}
+              </div>
+            )
           ) : (
             columns.map((column, colIndex) => (
               <div
