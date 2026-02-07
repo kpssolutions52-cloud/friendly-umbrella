@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet, apiPut, apiDelete } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,7 @@ interface Message {
 }
 
 type QuestionFlowType = 'add_product' | 'update_product' | 'fetch_products' | 'set_special_price' | null;
+type PanelMode = 'split' | 'chat-full' | 'dashboard-full';
 
 interface QuestionFlow {
   type: QuestionFlowType;
@@ -94,7 +95,7 @@ export default function SupplierChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chatMinimized, setChatMinimized] = useState(false);
+  const [panelMode, setPanelMode] = useState<PanelMode>('split');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [questionFlow, setQuestionFlow] = useState<QuestionFlow | null>(null);
   
@@ -879,6 +880,10 @@ export default function SupplierChatPage() {
     }
   };
 
+  const togglePanelMode = (mode: PanelMode) => {
+    setPanelMode(mode);
+  };
+
   // Check both new schema (type) and old schema (tenant.type)
   if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
@@ -890,28 +895,56 @@ export default function SupplierChatPage() {
       
       {/* Split Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Chat (1/3, can be minimized) */}
+        {/* Left Panel - Chat */}
         <div
           className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
-            chatMinimized ? 'w-0 hidden' : 'w-full md:w-1/3'
+            panelMode === 'dashboard-full' ? 'w-0 hidden' :
+            panelMode === 'chat-full' ? 'w-full' :
+            'w-full md:w-1/3'
           }`}
         >
           {/* Chat Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold text-gray-900">AI Assistant</h1>
+              <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                AI Assistant
+              </h1>
               <p className="text-xs text-gray-500 mt-0.5">
                 Natural language commands
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setChatMinimized(true)}
-              className="md:hidden"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {panelMode === 'split' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('chat-full')}
+                  title="Maximize chat"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              )}
+              {panelMode === 'chat-full' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('split')}
+                  title="Split view"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => togglePanelMode('dashboard-full')}
+                className="md:hidden"
+                title="Hide chat"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -1202,16 +1235,20 @@ export default function SupplierChatPage() {
           </div>
         </div>
 
-        {/* Right Panel - Dashboard (2/3) */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+        {/* Right Panel - Dashboard */}
+        <div
+          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 ${
+            panelMode === 'chat-full' ? 'w-0 hidden' : 'flex'
+          }`}
+        >
           {/* Dashboard Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {chatMinimized && (
+              {panelMode === 'dashboard-full' && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setChatMinimized(false)}
+                  onClick={() => togglePanelMode('split')}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1227,6 +1264,26 @@ export default function SupplierChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {panelMode === 'split' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('dashboard-full')}
+                  title="Maximize dashboard"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              )}
+              {panelMode === 'dashboard-full' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('split')}
+                  title="Split view"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
