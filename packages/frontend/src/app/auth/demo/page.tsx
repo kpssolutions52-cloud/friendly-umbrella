@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
+import { API_URL } from '@/lib/api';
 
 // Demo account credentials
 const DEMO_ACCOUNTS = {
@@ -16,34 +17,116 @@ const DEMO_ACCOUNTS = {
     name: 'Demo QS Professional',
     description: 'Try the QS Professional experience with AI-powered quoting and project management',
   },
-  supplier: {
-    email: 'demo.supplier@constructionguru.com',
-    password: 'DemoSupplier123!',
-    name: 'Demo Supplier',
-    description: 'Try the Supplier experience with product management and quote responses',
-  },
 };
+
+interface Supplier {
+  id: string;
+  name: string;
+  email: string;
+}
 
 function DemoLoginForm() {
   const router = useRouter();
   const { login } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<'qs' | 'supplier' | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch suppliers when supplier account type is selected
+  useEffect(() => {
+    if (selectedAccount === 'supplier' && suppliers.length === 0 && !loadingSuppliers) {
+      fetchSuppliers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showSupplierDropdown && !target.closest('.supplier-dropdown-container')) {
+        setShowSupplierDropdown(false);
+      }
+    };
+
+    if (showSupplierDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showSupplierDropdown]);
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoadingSuppliers(true);
+      const response = await fetch(`${API_URL}/api/v1/suppliers/public`);
+      const data = await response.json();
+      if (data.suppliers && Array.isArray(data.suppliers)) {
+        setSuppliers(data.suppliers);
+        // Auto-select first supplier if available
+        if (data.suppliers.length > 0 && !selectedSupplier) {
+          setSelectedSupplier(data.suppliers[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+      setError('Failed to load suppliers. Using default demo account.');
+    } finally {
+      setLoadingSuppliers(false);
+    }
+  };
 
   const handleDemoLogin = async (accountType: 'qs' | 'supplier') => {
     try {
       setLoading(true);
       setError(null);
-      const account = DEMO_ACCOUNTS[accountType];
       
-      await login(
-        {
-          email: account.email,
-          password: account.password,
-        },
-        accountType === 'qs' ? '/chat' : '/supplier/chat'
-      );
+      if (accountType === 'qs') {
+        const account = DEMO_ACCOUNTS.qs;
+        await login(
+          {
+            email: account.email,
+            password: account.password,
+          },
+          '/chat'
+        );
+      } else if (accountType === 'supplier') {
+        if (!selectedSupplier) {
+          setError('Please select a supplier from the list');
+          setLoading(false);
+          return;
+        }
+        
+        // Try common demo passwords
+        const demoPasswords = ['Demo123!', 'DemoSupplier123!', 'password123', 'Demo123'];
+        let loginSuccess = false;
+        
+        for (const password of demoPasswords) {
+          try {
+            await login(
+              {
+                email: selectedSupplier.email,
+                password: password,
+              },
+              '/supplier/chat'
+            );
+            loginSuccess = true;
+            break;
+          } catch (err: any) {
+            // Try next password
+            continue;
+          }
+        }
+        
+        if (!loginSuccess) {
+          throw new Error(`Unable to login with supplier ${selectedSupplier.name}. Please ensure a user account exists for this supplier with one of the demo passwords: ${demoPasswords.join(', ')}`);
+        }
+      }
     } catch (err: any) {
       console.error('Demo login error:', err);
       console.error('Error details:', {
@@ -124,7 +207,11 @@ function DemoLoginForm() {
                 ? 'border-blue-500 bg-blue-50 shadow-lg'
                 : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
             }`}
-            onClick={() => setSelectedAccount('qs')}
+            onClick={() => {
+              setSelectedAccount('qs');
+              setSelectedSupplier(null);
+              setShowSupplierDropdown(false);
+            }}
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
@@ -157,7 +244,10 @@ function DemoLoginForm() {
                 ? 'border-green-500 bg-green-50 shadow-lg'
                 : 'border-gray-200 bg-white hover:border-green-300 hover:shadow-md'
             }`}
-            onClick={() => setSelectedAccount('supplier')}
+            onClick={() => {
+              setSelectedAccount('supplier');
+              setShowSupplierDropdown(false);
+            }}
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
@@ -169,7 +259,7 @@ function DemoLoginForm() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900">Supplier</h3>
-                <p className="mt-1 text-sm text-gray-600">{DEMO_ACCOUNTS.supplier.description}</p>
+                <p className="mt-1 text-sm text-gray-600">Try the Supplier experience with product management and quote responses</p>
               </div>
               {selectedAccount === 'supplier' && (
                 <div className="absolute top-2 right-2">
@@ -184,11 +274,68 @@ function DemoLoginForm() {
           </div>
         </div>
 
+        {/* Supplier Selector - Show when supplier is selected */}
+        {selectedAccount === 'supplier' && (
+          <div className="mt-4 supplier-dropdown-container">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select a Supplier
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowSupplierDropdown(!showSupplierDropdown)}
+                className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                disabled={loadingSuppliers}
+              >
+                <span className={selectedSupplier ? 'text-gray-900' : 'text-gray-500'}>
+                  {loadingSuppliers ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                      Loading suppliers...
+                    </>
+                  ) : selectedSupplier ? (
+                    selectedSupplier.name
+                  ) : (
+                    'Select a supplier'
+                  )}
+                </span>
+                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${showSupplierDropdown ? 'transform rotate-180' : ''}`} />
+              </button>
+              
+              {showSupplierDropdown && !loadingSuppliers && suppliers.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {suppliers.map((supplier) => (
+                    <button
+                      key={supplier.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSupplier(supplier);
+                        setShowSupplierDropdown(false);
+                      }}
+                      className={`w-full px-4 py-3 text-left hover:bg-green-50 transition-colors ${
+                        selectedSupplier?.id === supplier.id ? 'bg-green-100 font-medium' : ''
+                      }`}
+                    >
+                      <div className="text-sm text-gray-900">{supplier.name}</div>
+                      <div className="text-xs text-gray-500">{supplier.email}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {suppliers.length === 0 && !loadingSuppliers && (
+              <p className="mt-2 text-sm text-gray-500">
+                No suppliers available. Please ensure suppliers are set up in the database.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Login Button */}
         <div className="mt-6">
           <Button
             onClick={() => selectedAccount && handleDemoLogin(selectedAccount)}
-            disabled={!selectedAccount || loading}
+            disabled={!selectedAccount || loading || (selectedAccount === 'supplier' && !selectedSupplier)}
             className="w-full py-6 text-lg font-semibold"
             size="lg"
           >
@@ -198,7 +345,7 @@ function DemoLoginForm() {
                 Logging in...
               </>
             ) : (
-              `Try ${selectedAccount === 'qs' ? 'QS Professional' : selectedAccount === 'supplier' ? 'Supplier' : 'Demo'} Demo`
+              `Try ${selectedAccount === 'qs' ? 'QS Professional' : selectedAccount === 'supplier' ? (selectedSupplier ? `${selectedSupplier.name} Demo` : 'Supplier Demo') : 'Demo'}`
             )}
           </Button>
         </div>

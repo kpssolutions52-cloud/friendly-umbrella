@@ -16,7 +16,7 @@ SELECT
 SELECT 
     (SELECT COUNT(*) FROM catalog_items WHERE is_active = true) as "Catalog Items Available",
     (SELECT COUNT(*) FROM organizations WHERE type::text = 'supplier') as "Supplier Organizations",
-    (SELECT COUNT(*) FROM tenants WHERE type = 'supplier' AND status = 'active') as "Active Suppliers",
+    (SELECT COUNT(*) FROM organizations WHERE type::text = 'supplier') as "Active Suppliers",
     (SELECT COUNT(*) FROM products) as "Existing Products";
 
 -- Step 2: Create products from catalog items
@@ -42,10 +42,7 @@ BEGIN
     -- Get counts
     SELECT COUNT(*) INTO supplier_count
     FROM organizations o
-    JOIN tenants t ON o.email = t.email
-    WHERE o.type::text = 'supplier'
-      AND t.type = 'supplier'
-      AND t.status = 'active';
+    WHERE o.type::text = 'supplier';
     
     SELECT COUNT(*) INTO catalog_item_count
     FROM catalog_items
@@ -60,12 +57,9 @@ BEGIN
             o.id as org_id,
             o.name as org_name,
             o.email as org_email,
-            t.id as tenant_id
+            o.id as tenant_id
         FROM organizations o
-        JOIN tenants t ON o.email = t.email
         WHERE o.type::text = 'supplier'
-          AND t.type = 'supplier'
-          AND t.status = 'active'
         ORDER BY RANDOM()
     LOOP
         supplier_num := 0;
@@ -164,17 +158,15 @@ SELECT
     '=== PRODUCT DISTRIBUTION BY SUPPLIER ===' as info;
 
 SELECT 
-    t.name as "Supplier Name",
-    t.email as "Email",
+    o.name as "Supplier Name",
+    o.email as "Email",
     COUNT(p.id) as "Product Count",
     COUNT(CASE WHEN p.is_active = true THEN 1 END) as "Active Products"
-FROM tenants t
-JOIN organizations o ON t.email = o.email AND o.type::text = 'supplier'
+FROM organizations o
 LEFT JOIN products p ON o.id = p.supplier_id
-WHERE t.type = 'supplier'
-  AND t.status = 'active'
-GROUP BY t.id, t.name, t.email
-ORDER BY COUNT(p.id) DESC, t.name ASC
+WHERE o.type::text = 'supplier'
+GROUP BY o.id, o.name, o.email
+ORDER BY COUNT(p.id) DESC, o.name ASC
 LIMIT 20;
 
 -- Step 5: Final summary
@@ -184,9 +176,9 @@ SELECT
 SELECT 
     (SELECT COUNT(*) FROM products) as "Total Products",
     (SELECT COUNT(DISTINCT supplier_id) FROM products) as "Suppliers with Products",
-    (SELECT COUNT(*) FROM tenants WHERE type = 'supplier' AND status = 'active') as "Total Active Suppliers",
+    (SELECT COUNT(*) FROM organizations WHERE type::text = 'supplier') as "Total Active Suppliers",
     ROUND(
         (SELECT COUNT(DISTINCT supplier_id)::numeric FROM products) / 
-        NULLIF((SELECT COUNT(*)::numeric FROM tenants WHERE type = 'supplier' AND status = 'active'), 0) * 100, 
+        NULLIF((SELECT COUNT(*)::numeric FROM organizations WHERE type::text = 'supplier'), 0) * 100, 
         2
     ) as "Percentage of Suppliers with Products";
