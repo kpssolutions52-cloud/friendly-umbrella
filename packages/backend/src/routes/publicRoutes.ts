@@ -656,6 +656,49 @@ router.get(
   }
 );
 
+// GET /api/v1/suppliers/public/:id/demo-user - Get demo user for supplier (public access)
+router.get(
+  '/suppliers/public/:id/demo-user',
+  param('id').isUUID().withMessage('Invalid supplier ID'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const organizationId = req.params.id;
+
+      // Find the first user in this organization
+      const user = await prisma.user.findFirst({
+        where: {
+          organizationId: organizationId,
+          type: 'supplier',
+        },
+        select: {
+          email: true,
+        },
+        orderBy: {
+          createdAt: 'asc', // Get the first user created
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({ 
+          error: { 
+            message: 'No user found for this supplier organization. Please ensure users are created for suppliers.', 
+            statusCode: 404 
+          } 
+        });
+      }
+
+      res.json({ email: user.email });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // GET /api/v1/suppliers/public/:id - Get supplier details (public access)
 router.get(
   '/suppliers/public/:id',

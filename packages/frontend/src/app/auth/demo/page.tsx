@@ -102,15 +102,32 @@ function DemoLoginForm() {
           return;
         }
         
+        // Get user email for this supplier organization
+        let userEmail: string;
+        try {
+          const userResponse = await fetch(`${API_URL}/api/v1/suppliers/public/${selectedSupplier.id}/demo-user`);
+          if (!userResponse.ok) {
+            const errorData = await userResponse.json();
+            throw new Error(errorData.error?.message || 'Failed to get user for supplier');
+          }
+          const userData = await userResponse.json();
+          userEmail = userData.email;
+        } catch (err: any) {
+          setError(err?.message || 'Failed to get user credentials for this supplier. Please ensure users are created for suppliers.');
+          setLoading(false);
+          return;
+        }
+        
         // Try common demo passwords
         const demoPasswords = ['Demo123!', 'DemoSupplier123!', 'password123', 'Demo123'];
         let loginSuccess = false;
+        let lastError: any = null;
         
         for (const password of demoPasswords) {
           try {
             await login(
               {
-                email: selectedSupplier.email,
+                email: userEmail,
                 password: password,
               },
               '/supplier/chat'
@@ -118,13 +135,14 @@ function DemoLoginForm() {
             loginSuccess = true;
             break;
           } catch (err: any) {
+            lastError = err;
             // Try next password
             continue;
           }
         }
         
         if (!loginSuccess) {
-          throw new Error(`Unable to login with supplier ${selectedSupplier.name}. Please ensure a user account exists for this supplier with one of the demo passwords: ${demoPasswords.join(', ')}`);
+          throw new Error(lastError?.error?.message || lastError?.message || `Unable to login. Please ensure the user account for ${selectedSupplier.name} has one of the demo passwords: ${demoPasswords.join(', ')}`);
         }
       }
     } catch (err: any) {
@@ -317,7 +335,6 @@ function DemoLoginForm() {
                       }`}
                     >
                       <div className="text-sm text-gray-900">{supplier.name}</div>
-                      <div className="text-xs text-gray-500">{supplier.email}</div>
                     </button>
                   ))}
                 </div>
