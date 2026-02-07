@@ -157,8 +157,6 @@ function DashboardContent() {
   const [mainCategories, setMainCategories] = useState<ProductCategory[]>([]);
   const [subCategories, setSubCategories] = useState<ProductCategory[]>([]);
   const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<string>('');
-  const [mainCategorySearch, setMainCategorySearch] = useState<string>('');
-  const [subCategorySearch, setSubCategorySearch] = useState<string>('');
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingSubCategories, setLoadingSubCategories] = useState(false);
   const [draftSpecialPrice, setDraftSpecialPrice] = useState<SpecialPriceEntry | null>(null);
@@ -633,8 +631,6 @@ function DashboardContent() {
       setIncludedSpecialPrices([]);
       setDraftSpecialPrice(null);
       setEditingSpecialPriceId(null);
-      setMainCategorySearch('');
-      setSubCategorySearch('');
       
       // Close the add product modal
       setShowAddProductModal(false);
@@ -2352,129 +2348,113 @@ function DashboardContent() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Category Selection - Moved to Top with Searchable Dropdowns */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="mainCategoryId">Main Category</Label>
-                    <div className="relative">
-                      <Input
-                        list="mainCategoryList"
-                        type="text"
-                        placeholder="Type to search main category..."
-                        value={mainCategorySearch || mainCategories.find(c => c.id === formData.mainCategoryId)?.name || ''}
-                        onChange={(e) => {
-                          const searchValue = e.target.value;
-                          setMainCategorySearch(searchValue);
-                          // Find matching category
-                          const matched = mainCategories.find(c => 
-                            c.name.toLowerCase() === searchValue.toLowerCase()
-                          );
-                          if (matched) {
-                            handleInputChange({ target: { name: 'mainCategoryId', value: matched.id } } as any);
-                            setMainCategorySearch('');
-                          } else if (!searchValue) {
-                            handleInputChange({ target: { name: 'mainCategoryId', value: '' } } as any);
-                          }
-                        }}
-                        onBlur={() => {
-                          // Keep selected value if it exists
-                          if (formData.mainCategoryId) {
-                            setMainCategorySearch(mainCategories.find(c => c.id === formData.mainCategoryId)?.name || '');
-                          }
-                        }}
-                        disabled={isSubmitting || loadingCategories}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      />
-                      <datalist id="mainCategoryList">
-                        {mainCategories.map((category) => (
-                          <option key={category.id} value={category.name} data-id={category.id} />
-                        ))}
-                      </datalist>
+                {/* Category Selection - Hierarchical Dropdowns */}
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      <Label className="text-sm font-semibold text-gray-900">Product Category Hierarchy</Label>
                     </div>
-                    <select
-                      id="mainCategoryId"
-                      name="mainCategoryId"
-                      value={formData.mainCategoryId}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting || loadingCategories}
-                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Or select from dropdown</option>
-                      {mainCategories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="categoryId">Sub Category {formData.mainCategoryId && subCategories.length > 0 ? '*' : ''}</Label>
-                    <div className="relative">
-                      <Input
-                        list="subCategoryList"
-                        type="text"
-                        placeholder="Type to search subcategory..."
-                        value={subCategorySearch || subCategories.find(c => c.id === formData.categoryId)?.name || ''}
-                        onChange={(e) => {
-                          const searchValue = e.target.value;
-                          setSubCategorySearch(searchValue);
-                          // Find matching category
-                          const matched = subCategories.find(c => 
-                            c.name.toLowerCase() === searchValue.toLowerCase()
-                          );
-                          if (matched) {
-                            handleInputChange({ target: { name: 'categoryId', value: matched.id } } as any);
-                            setSubCategorySearch('');
-                          } else if (!searchValue) {
-                            handleInputChange({ target: { name: 'categoryId', value: '' } } as any);
-                          }
-                        }}
-                        onBlur={() => {
-                          // Keep selected value if it exists
-                          if (formData.categoryId) {
-                            setSubCategorySearch(subCategories.find(c => c.id === formData.categoryId)?.name || '');
-                          }
-                        }}
-                        disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-50"
-                      />
-                      <datalist id="subCategoryList">
-                        {subCategories.map((category) => (
-                          <option key={category.id} value={category.name} data-id={category.id} />
-                        ))}
-                      </datalist>
+                    <p className="text-xs text-gray-600 mb-3">Select from existing category hierarchy to organize your product</p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="mainCategoryId" className="text-sm font-medium">
+                          Main Category <span className="text-gray-400">(Level 1)</span>
+                        </Label>
+                        <select
+                          id="mainCategoryId"
+                          name="mainCategoryId"
+                          value={formData.mainCategoryId}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting || loadingCategories}
+                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">-- Select Main Category (Optional) --</option>
+                          {mainCategories
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                        </select>
+                        {mainCategories.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {mainCategories.length} main categor{mainCategories.length === 1 ? 'y' : 'ies'} available
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="categoryId" className="text-sm font-medium">
+                          Sub Category <span className="text-gray-400">(Level 2)</span>
+                          {formData.mainCategoryId && subCategories.length > 0 && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <select
+                          id="categoryId"
+                          name="categoryId"
+                          value={formData.categoryId}
+                          onChange={handleInputChange}
+                          required={!!(formData.mainCategoryId && subCategories.length > 0)}
+                          disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
+                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">
+                            {!formData.mainCategoryId
+                              ? '-- Select Main Category First --'
+                              : loadingSubCategories
+                              ? 'Loading subcategories...'
+                              : subCategories.length === 0
+                              ? '-- No subcategories available --'
+                              : '-- Select Sub Category' + (subCategories.length > 0 ? ' *' : '') + ' --'}
+                          </option>
+                          {subCategories
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                        </select>
+                        {formData.mainCategoryId && subCategories.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {subCategories.length} subcategor{subCategories.length === 1 ? 'y' : 'ies'} available
+                            {formData.mainCategoryId && subCategories.length > 0 && (
+                              <span className="text-red-500 ml-1">(Required)</span>
+                            )}
+                          </p>
+                        )}
+                        {!formData.mainCategoryId && (
+                          <p className="text-xs text-amber-600 mt-1">⚠️ Please select a main category first</p>
+                        )}
+                        {formData.mainCategoryId && subCategories.length === 0 && !loadingSubCategories && (
+                          <p className="text-xs text-amber-600 mt-1">⚠️ No subcategories available for this main category</p>
+                        )}
+                      </div>
                     </div>
-                    <select
-                      id="categoryId"
-                      name="categoryId"
-                      value={formData.categoryId}
-                      onChange={handleInputChange}
-                      required={!!(formData.mainCategoryId && subCategories.length > 0)}
-                      disabled={isSubmitting || !formData.mainCategoryId || loadingSubCategories}
-                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">
-                        {loadingSubCategories 
-                          ? 'Loading subcategories...' 
-                          : subCategories.length === 0 && formData.mainCategoryId
-                          ? 'No subcategories available'
-                          : 'Or select from dropdown' + (formData.mainCategoryId && subCategories.length > 0 ? ' *' : '')
-                        }
-                      </option>
-                      {subCategories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                    {!formData.mainCategoryId && (
-                      <p className="text-xs text-gray-500 mt-1">Please select a main category first</p>
-                    )}
-                    {formData.mainCategoryId && subCategories.length > 0 && (
-                      <p className="text-xs text-gray-500 mt-1">Subcategory is required when a main category is selected</p>
-                    )}
-                    {formData.mainCategoryId && subCategories.length === 0 && !loadingSubCategories && (
-                      <p className="text-xs text-amber-600 mt-1">No subcategories available for this main category</p>
+                    
+                    {/* Show selected hierarchy path */}
+                    {(formData.mainCategoryId || formData.categoryId) && (
+                      <div className="mt-3 pt-3 border-t border-blue-200">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-gray-500">Selected path:</span>
+                          <div className="flex items-center gap-1 font-medium text-blue-700">
+                            {formData.mainCategoryId && (
+                              <>
+                                <span>{mainCategories.find(c => c.id === formData.mainCategoryId)?.name || 'Main Category'}</span>
+                                {formData.categoryId && (
+                                  <>
+                                    <span className="text-gray-400">→</span>
+                                    <span>{subCategories.find(c => c.id === formData.categoryId)?.name || 'Sub Category'}</span>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
