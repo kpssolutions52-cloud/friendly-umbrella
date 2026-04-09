@@ -24,9 +24,9 @@ END $$;
 
 -- ProcurementRequest
 CREATE TABLE IF NOT EXISTS procurement_requests (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id   UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  created_by_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  organization_id   TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  created_by_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   raw_prompt        TEXT NOT NULL,
   product           VARCHAR(255) NOT NULL,
   location          VARCHAR(255),
@@ -44,9 +44,9 @@ CREATE INDEX IF NOT EXISTS idx_procurement_requests_status ON procurement_reques
 
 -- RfqSupplierCandidate
 CREATE TABLE IF NOT EXISTS rfq_supplier_candidates (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  procurement_request_id   UUID NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
-  organization_id          UUID REFERENCES organizations(id) ON DELETE SET NULL,
+  id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  procurement_request_id   TEXT NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
+  organization_id          TEXT REFERENCES organizations(id) ON DELETE SET NULL,
   company_name             VARCHAR(255) NOT NULL,
   contact_email            VARCHAR(255),
   contact_phone            VARCHAR(100),
@@ -64,9 +64,9 @@ CREATE INDEX IF NOT EXISTS idx_rfq_candidates_org ON rfq_supplier_candidates(org
 
 -- RfqCommunication
 CREATE TABLE IF NOT EXISTS rfq_communications (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  procurement_request_id   UUID NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
-  supplier_candidate_id    UUID NOT NULL REFERENCES rfq_supplier_candidates(id) ON DELETE CASCADE,
+  id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  procurement_request_id   TEXT NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
+  supplier_candidate_id    TEXT NOT NULL REFERENCES rfq_supplier_candidates(id) ON DELETE CASCADE,
   direction                "CommDirection" NOT NULL DEFAULT 'outbound',
   channel                  "CommChannel" NOT NULL,
   to_address               VARCHAR(255),
@@ -87,9 +87,9 @@ CREATE INDEX IF NOT EXISTS idx_rfq_comms_channel ON rfq_communications(channel);
 
 -- QuotationResponse
 CREATE TABLE IF NOT EXISTS quotation_responses (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  procurement_request_id   UUID NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
-  supplier_candidate_id    UUID NOT NULL REFERENCES rfq_supplier_candidates(id) ON DELETE CASCADE,
+  id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  procurement_request_id   TEXT NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
+  supplier_candidate_id    TEXT NOT NULL REFERENCES rfq_supplier_candidates(id) ON DELETE CASCADE,
   unit_price               DECIMAL(12, 2),
   currency                 VARCHAR(10),
   unit                     VARCHAR(50),
