@@ -28,7 +28,10 @@
     "type-check": "npm run type-check --workspaces",
     "db:generate": "npm run db:generate --workspace=@platform/backend",
     "db:migrate": "npm run db:migrate --workspace=@platform/backend",
-    "db:studio": "npm run db:studio --workspace=@platform/backend"
+    "db:studio": "npm run db:studio --workspace=@platform/backend",
+    "mobile:sync": "npm run cap:sync --workspace=@platform/frontend",
+    "mobile:android": "npm run cap:open:android --workspace=@platform/frontend",
+    "mobile:ios": "npm run cap:open:ios --workspace=@platform/frontend"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

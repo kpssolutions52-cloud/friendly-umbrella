@@ -31,6 +31,10 @@ import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
 import qsProductRoutes from './qsProductRoutes';
 import publicRoutes from './publicRoutes';
 
+// AI Procurement Agent routes
+import procurementRoutes from './procurementRoutes';
+import webhookRoutes from './webhookRoutes';
+
 export function setupRoutes(app: Express) {
   // MVP 1: Simplified auth routes (2-step registration)
   app.use('/api/v1', simplifiedAuthRoutes);
@@ -59,6 +63,11 @@ export function setupRoutes(app: Express) {
   
   // Catalog routes (for standardized categories and items)
   app.use('/api/v1', catalogRoutes);
+
+  // AI Procurement Agent routes
+  app.use('/api/v1', procurementRoutes);
+  app.use('/api/v1', webhookRoutes);
+  console.log('✅ Procurement Agent routes registered at /api/v1/procurement');
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);

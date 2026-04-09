@@ -16,7 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { formatExpiryDate } from '@/components/PriceExpiryInput';
-import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap } from 'lucide-react';
+import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap, ShoppingCart, Loader2 as LoaderIcon, Plus } from 'lucide-react';
+import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
+import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
+import { listProcurementRequests, createProcurementRequest } from '@/lib/procurementApi';
+import type { ProcurementRequest } from '@/lib/procurementApi';
 
 interface SearchProduct {
   id: string;
@@ -114,7 +118,14 @@ function DashboardContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<'products' | 'services'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'procurement'>('products');
+
+  // Procurement Agent state
+  const [procurementRequests, setProcurementRequests] = useState<ProcurementRequest[]>([]);
+  const [isLoadingProcurement, setIsLoadingProcurement] = useState(false);
+  const [activeProcurementRequest, setActiveProcurementRequest] = useState<ProcurementRequest | null>(null);
+  const [newRfqPrompt, setNewRfqPrompt] = useState('');
+  const [isCreatingRfq, setIsCreatingRfq] = useState(false);
   
   // Product listing and filtering
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
@@ -152,6 +163,33 @@ function DashboardContent() {
   
   // AI Quote Chat state
   const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
+
+  const loadProcurementRequests = useCallback(async () => {
+    setIsLoadingProcurement(true);
+    try {
+      const result = await listProcurementRequests();
+      setProcurementRequests(result.requests);
+    } catch (err) {
+      console.error('Failed to load procurement requests:', err);
+    } finally {
+      setIsLoadingProcurement(false);
+    }
+  }, []);
+
+  const handleCreateRfq = async () => {
+    if (!newRfqPrompt.trim()) return;
+    setIsCreatingRfq(true);
+    try {
+      const result = await createProcurementRequest(newRfqPrompt.trim());
+      setProcurementRequests((prev) => [result.request, ...prev]);
+      setActiveProcurementRequest(result.request);
+      setNewRfqPrompt('');
+    } catch (err) {
+      console.error('Failed to create RFQ:', err);
+    } finally {
+      setIsCreatingRfq(false);
+    }
+  };
 
   // Load products with filters
   const loadProducts = useCallback(async (page = 1) => {
@@ -632,7 +670,7 @@ function DashboardContent() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
-        {/* Products vs Services Tabs */}
+        {/* Products vs Services vs Procurement Tabs */}
         <div className="mb-6">
           <div className="flex border-b border-gray-200">
             <button
@@ -673,11 +711,109 @@ function DashboardContent() {
             >
               Services
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('procurement');
+                loadProcurementRequests();
+              }}
+              className={`flex-1 px-4 py-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                activeTab === 'procurement'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Procurement
+              {procurementRequests.length > 0 && (
+                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'procurement' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {procurementRequests.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
+        {/* Procurement Tab Content */}
+        {activeTab === 'procurement' && (
+          <div className="flex gap-4">
+            {/* Left: request list */}
+            <div className={`flex-1 min-w-0 ${activeProcurementRequest ? 'hidden md:block md:max-w-sm' : ''}`}>
+              {/* New RFQ input */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+                  <ShoppingCart className="w-4 h-4 text-blue-600" />
+                  New Procurement Request
+                </h3>
+                <p className="text-xs text-gray-500 mb-3">
+                  Describe what you need in plain English. The AI will find suppliers, generate an RFQ, and send it automatically.
+                </p>
+                <textarea
+                  value={newRfqPrompt}
+                  onChange={(e) => setNewRfqPrompt(e.target.value)}
+                  rows={3}
+                  placeholder='e.g. "Find me 5 suppliers in Singapore for ready-mix concrete under $120/m3"'
+                  className="w-full text-sm border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                />
+                <Button
+                  onClick={handleCreateRfq}
+                  disabled={isCreatingRfq || !newRfqPrompt.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
+                >
+                  {isCreatingRfq ? (
+                    <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  {isCreatingRfq ? 'Creating RFQ...' : 'Start Procurement'}
+                </Button>
+              </div>
+
+              {/* Existing requests */}
+              {isLoadingProcurement ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoaderIcon className="w-6 h-6 animate-spin text-gray-400" />
+                </div>
+              ) : procurementRequests.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No procurement requests yet.</p>
+                  <p className="text-xs mt-1">Create your first RFQ above.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {procurementRequests.map((req) => (
+                    <ProcurementRequestCard
+                      key={req.id}
+                      request={req}
+                      onClick={() => setActiveProcurementRequest(req)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right: detail panel */}
+            {activeProcurementRequest && (
+              <div className="flex-1 min-w-0 md:max-w-lg h-[calc(100vh-200px)] rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                <ProcurementPanel
+                  request={activeProcurementRequest}
+                  onClose={() => setActiveProcurementRequest(null)}
+                  onUpdate={(updated) => {
+                    setActiveProcurementRequest(updated);
+                    setProcurementRequests((prev) =>
+                      prev.map((r) => (r.id === updated.id ? updated : r))
+                    );
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Optimized Search & Filter Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
+        {activeTab !== 'procurement' && <><div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
           <form onSubmit={(e) => { e.preventDefault(); }}>
             {/* Clean Search Bar */}
             <div className="p-4 border-b border-gray-100">
@@ -1943,6 +2079,7 @@ function DashboardContent() {
             </div>
           );
         })()}
+        </>}
 
       </main>
 

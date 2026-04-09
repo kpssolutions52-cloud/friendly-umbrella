@@ -23,12 +23,14 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users          User[]          @relation("OrganizationUsers")
-  products       Product[]       @relation("SupplierProducts")
-  projects       Project[]       @relation("CompanyProjects")
-  companyPrices  CompanyPrice[]  @relation("CompanyPrices") // Company-specific prices
-  quoteResponses QuoteResponse[] @relation("SupplierQuoteResponses")
-  orders         Order[]         @relation("SupplierOrders")
+  users                User[]                 @relation("OrganizationUsers")
+  products             Product[]              @relation("SupplierProducts")
+  projects             Project[]              @relation("CompanyProjects")
+  companyPrices        CompanyPrice[]         @relation("CompanyPrices")
+  quoteResponses       QuoteResponse[]        @relation("SupplierQuoteResponses")
+  orders               Order[]                @relation("SupplierOrders")
+  procurementRequests  ProcurementRequest[]   @relation("OrgProcurementRequests")
+  supplierCandidates   RfqSupplierCandidate[] @relation("OrgSupplierCandidates")
 
   @@index([type])
   @@map("organizations")
@@ -66,12 +68,13 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization   Organization    @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
-  projects       Project[]       @relation("ProjectOwner")
-  quotes         Quote[]         @relation("QuoteCreator")
-  quoteRequests  QuoteRequest[]  @relation("QuoteRequestCreator")
-  priceAuditLogs PriceAuditLog[] @relation("PriceAuditLogUser")
-  priceViews     PriceView[]     @relation("PriceViewUser")
+  organization          Organization         @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
+  projects              Project[]            @relation("ProjectOwner")
+  quotes                Quote[]              @relation("QuoteCreator")
+  quoteRequests         QuoteRequest[]       @relation("QuoteRequestCreator")
+  priceAuditLogs        PriceAuditLog[]      @relation("PriceAuditLogUser")
+  priceViews            PriceView[]          @relation("PriceViewUser")
+  procurementRequests   ProcurementRequest[] @relation("UserProcurementRequests")
 
   @@index([organizationId])
   @@index([email])
@@ -634,6 +637,142 @@ model PriceAuditLog {
   @@index([priceType])
   @@map("price_audit_log")
 }
+
+// ─── AI Procurement Agent Models ────────────────────────────────────────────
+
+// ProcurementRequest — top-level record created from a QS natural-language prompt
+model ProcurementRequest {
+  id              String                    @id @default(uuid())
+  organizationId  String                    @map("organization_id")
+  createdById     String                    @map("created_by_id")
+  rawPrompt       String                    @map("raw_prompt") @db.Text
+  product         String                    @db.VarChar(255)
+  location        String?                   @db.VarChar(255)
+  constraints     Json?                     @default("{}") // price limit, quantity, timeline, etc.
+  status          ProcurementStatus         @default(draft)
+  rfqSubject      String?                   @map("rfq_subject") @db.VarChar(500)
+  rfqBody         String?                   @map("rfq_body") @db.Text
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+
+  organization    Organization              @relation("OrgProcurementRequests", fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy       User                      @relation("UserProcurementRequests", fields: [createdById], references: [id], onDelete: Cascade)
+  supplierCandidates RfqSupplierCandidate[]
+  communications  RfqCommunication[]
+  quotationResponses QuotationResponse[]
+
+  @@index([organizationId])
+  @@index([createdById])
+  @@index([status])
+  @@map("procurement_requests")
+}
+
+enum ProcurementStatus {
+  draft
+  searching
+  rfq_sent
+  evaluating
+  awarded
+  closed
+}
+
+// RfqSupplierCandidate — a supplier (internal or web-discovered) linked to a ProcurementRequest
+model RfqSupplierCandidate {
+  id                    String              @id @default(uuid())
+  procurementRequestId  String              @map("procurement_request_id")
+  organizationId        String?             @map("organization_id") // null for web-discovered
+  companyName           String              @map("company_name") @db.VarChar(255)
+  contactEmail          String?             @map("contact_email") @db.VarChar(255)
+  contactPhone          String?             @map("contact_phone") @db.VarChar(100)
+  contactWhatsapp       String?             @map("contact_whatsapp") @db.VarChar(100)
+  website               String?             @db.VarChar(500)
+  address               String?             @db.VarChar(500)
+  source                CandidateSource     @default(internal)
+  rankScore             Float               @default(0) @map("rank_score")
+  isSelected            Boolean             @default(true) @map("is_selected")
+  createdAt             DateTime            @default(now()) @map("created_at")
+
+  procurementRequest    ProcurementRequest  @relation(fields: [procurementRequestId], references: [id], onDelete: Cascade)
+  organization          Organization?       @relation("OrgSupplierCandidates", fields: [organizationId], references: [id], onDelete: SetNull)
+  communications        RfqCommunication[]
+  quotationResponses    QuotationResponse[]
+
+  @@index([procurementRequestId])
+  @@index([organizationId])
+  @@map("rfq_supplier_candidates")
+}
+
+enum CandidateSource {
+  internal
+  web
+}
+
+// RfqCommunication — each outbound or inbound message per supplier per channel
+model RfqCommunication {
+  id                    String              @id @default(uuid())
+  procurementRequestId  String              @map("procurement_request_id")
+  supplierCandidateId   String              @map("supplier_candidate_id")
+  direction             CommDirection       @default(outbound)
+  channel               CommChannel
+  toAddress             String?             @map("to_address") @db.VarChar(255)
+  subject               String?             @db.VarChar(500)
+  body                  String              @db.Text
+  externalMessageId     String?             @map("external_message_id") @db.VarChar(500)
+  deliveryStatus        String?             @map("delivery_status") @db.VarChar(50)
+  rawReply              String?             @map("raw_reply") @db.Text
+  sentAt                DateTime?           @map("sent_at")
+  receivedAt            DateTime?           @map("received_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  procurementRequest    ProcurementRequest  @relation(fields: [procurementRequestId], references: [id], onDelete: Cascade)
+  supplierCandidate     RfqSupplierCandidate @relation(fields: [supplierCandidateId], references: [id], onDelete: Cascade)
+
+  @@index([procurementRequestId])
+  @@index([supplierCandidateId])
+  @@index([channel])
+  @@map("rfq_communications")
+}
+
+enum CommDirection {
+  outbound
+  inbound
+}
+
+enum CommChannel {
+  email
+  whatsapp
+}
+
+// QuotationResponse — AI-parsed structured response from a supplier reply
+model QuotationResponse {
+  id                    String              @id @default(uuid())
+  procurementRequestId  String              @map("procurement_request_id")
+  supplierCandidateId   String              @map("supplier_candidate_id")
+  unitPrice             Decimal?            @map("unit_price") @db.Decimal(12, 2)
+  currency              String?             @db.VarChar(10)
+  unit                  String?             @db.VarChar(50)
+  availability          String?             @db.VarChar(255)
+  deliveryDays          Int?                @map("delivery_days")
+  deliveryTerms         String?             @map("delivery_terms") @db.Text
+  paymentTerms          String?             @map("payment_terms") @db.Text
+  validUntil            DateTime?           @map("valid_until")
+  notes                 String?             @db.Text
+  rawText               String?             @map("raw_text") @db.Text
+  confidence            Float?
+  isAwarded             Boolean             @default(false) @map("is_awarded")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  procurementRequest    ProcurementRequest  @relation(fields: [procurementRequestId], references: [id], onDelete: Cascade)
+  supplierCandidate     RfqSupplierCandidate @relation(fields: [supplierCandidateId], references: [id], onDelete: Cascade)
+
+  @@index([procurementRequestId])
+  @@index([supplierCandidateId])
+  @@map("quotation_responses")
+}
+
+// ─── End AI Procurement Agent Models ─────────────────────────────────────────
 
 // Price Views (Track price views for analytics)
 model PriceView {

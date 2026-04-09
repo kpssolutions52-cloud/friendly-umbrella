@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search, Zap } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search, Zap, ShoppingCart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
@@ -12,6 +12,9 @@ import { ProductCard } from '@/components/ProductCard';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
+import { createProcurementRequest } from '@/lib/procurementApi';
+import type { ProcurementRequest } from '@/lib/procurementApi';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,6 +23,8 @@ interface Message {
   requiresPermission?: boolean;
   hasSystemData?: boolean;
   systemDataSummary?: string;
+  isProcurementIntent?: boolean;
+  procurementPrompt?: string;
 }
 
 interface Project {
@@ -62,6 +67,10 @@ export default function ChatPage() {
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [totalProductPages, setTotalProductPages] = useState(1);
   const [showProducts, setShowProducts] = useState(true);
+
+  // Procurement Agent state
+  const [activeProcurementRequest, setActiveProcurementRequest] = useState<ProcurementRequest | null>(null);
+  const [startingRfq, setStartingRfq] = useState<string | null>(null); // tracks which message is starting RFQ
 
   // Redirect if not authenticated or not QS
   useEffect(() => {
@@ -198,6 +207,26 @@ export default function ChatPage() {
     }
   }, [isAuthenticated, user, loadProducts]);
 
+  // Detect if a message looks like a procurement/sourcing request
+  const isProcurementMessage = (text: string): boolean => {
+    const lower = text.toLowerCase();
+    return /\b(find\s+(me\s+)?\d*\s*suppliers?|source|rfq|request\s+for\s+quotation|get\s+quotes?|procure|vendors?\s+for|suppliers?\s+for|ready.mix|concrete\s+supplier|steel\s+supplier|find.*supplier|looking\s+for\s+supplier)\b/.test(lower);
+  };
+
+  const handleStartRfq = async (prompt: string, messageIndex: number) => {
+    setStartingRfq(`${messageIndex}`);
+    try {
+      const result = await createProcurementRequest(prompt);
+      setActiveProcurementRequest(result.request);
+      // Switch to split mode so panel is visible
+      if (panelMode === 'chat-full') setPanelMode('split');
+    } catch (err: any) {
+      console.error('Failed to start RFQ:', err);
+    } finally {
+      setStartingRfq(null);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -234,6 +263,8 @@ export default function ChatPage() {
         conversationHistory: conversationHistory,
       });
 
+      const isProcurement = isProcurementMessage(questionText);
+
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.answer,
@@ -241,6 +272,8 @@ export default function ChatPage() {
         requiresPermission: response.requiresPermission,
         hasSystemData: response.hasSystemData,
         systemDataSummary: response.systemDataSummary,
+        isProcurementIntent: isProcurement,
+        procurementPrompt: isProcurement ? questionText : undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -553,6 +586,34 @@ export default function ChatPage() {
                     </div>
                   )}
 
+                  {/* Procurement intent action card */}
+                  {message.isProcurementIntent && message.procurementPrompt && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                          <ShoppingCart className="w-3 h-3" />
+                          Procurement Agent Available
+                        </p>
+                        <p className="text-xs text-blue-700 mb-2">
+                          I can automate this RFQ — find suppliers, generate a quote request, and send it via email or WhatsApp.
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => handleStartRfq(message.procurementPrompt!, index)}
+                          disabled={startingRfq === `${index}`}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+                        >
+                          {startingRfq === `${index}` ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="w-3 h-3 mr-1" />
+                          )}
+                          {startingRfq === `${index}` ? 'Starting RFQ...' : 'Start RFQ Process'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     className={`text-xs mt-1 ${
                       message.role === 'user'
@@ -595,6 +656,16 @@ export default function ChatPage() {
                   <Zap className="h-3 w-3 mr-1" />
                   Actions
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInput('Find me 5 suppliers in Singapore for ')}
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                >
+                  <ShoppingCart className="h-3 w-3 mr-1" />
+                  Start RFQ
+                </Button>
               </div>
             </div>
             
@@ -626,10 +697,21 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {/* Procurement Panel - slides in from right when active */}
+        {activeProcurementRequest && (
+          <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col overflow-hidden border-l border-gray-200">
+            <ProcurementPanel
+              request={activeProcurementRequest}
+              onClose={() => setActiveProcurementRequest(null)}
+              onUpdate={(updated) => setActiveProcurementRequest(updated)}
+            />
+          </div>
+        )}
+
         {/* Right Panel - Dashboard */}
         <div
           className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 ${
-            panelMode === 'chat-full' ? 'w-0 hidden' : 'flex'
+            panelMode === 'chat-full' ? 'w-0 hidden' : activeProcurementRequest ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Dashboard Header */}
