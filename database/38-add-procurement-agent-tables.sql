@@ -25,7 +25,7 @@ END $$;
 -- ProcurementRequest
 CREATE TABLE IF NOT EXISTS procurement_requests (
   id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  organization_id   TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  organization_id   UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   created_by_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   raw_prompt        TEXT NOT NULL,
   product           VARCHAR(255) NOT NULL,
@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_procurement_requests_status ON procurement_reques
 CREATE TABLE IF NOT EXISTS rfq_supplier_candidates (
   id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   procurement_request_id   TEXT NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
-  organization_id          TEXT REFERENCES organizations(id) ON DELETE SET NULL,
+  organization_id          UUID REFERENCES organizations(id) ON DELETE SET NULL,
   company_name             VARCHAR(255) NOT NULL,
   contact_email            VARCHAR(255),
   contact_phone            VARCHAR(100),
