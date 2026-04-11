@@ -4,7 +4,25 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Building2, MessageSquare, Package, Search, ShoppingCart, X, Plus, Loader2 as LoaderIcon, Zap, Sparkles } from 'lucide-react';
+import {
+  Send,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+  Building2,
+  MessageSquare,
+  Package,
+  Search,
+  ShoppingCart,
+  X,
+  Plus,
+  Loader2 as LoaderIcon,
+  Zap,
+  Sparkles,
+  GripVertical,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
@@ -17,6 +35,7 @@ import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequ
 import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
 import { createProcurementRequest, listProcurementRequests } from '@/lib/procurementApi';
 import type { ProcurementRequest } from '@/lib/procurementApi';
+import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -40,6 +59,9 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [panelMode, setPanelMode] = useState<PanelMode>('split');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const { chatSplitPercent, setChatSplitPercent } = useChatSplitPercent('cg-qs-chat-split-pct');
+  const isMd = useMinMd();
   
   // Right panel: Products vs RFQs
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('products');
@@ -295,6 +317,36 @@ export default function ChatPage() {
     setPanelMode(mode);
   };
 
+  const onResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (panelMode !== 'split' || !isMd) return;
+      const startX = e.clientX;
+      const container = splitContainerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const w = rect.width;
+      if (w <= 0) return;
+      const startPct = chatSplitPercent;
+
+      const onMove = (ev: MouseEvent) => {
+        const dx = ev.clientX - startX;
+        setChatSplitPercent(startPct + (dx / w) * 100);
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        document.body.style.removeProperty('cursor');
+        document.body.style.removeProperty('user-select');
+      };
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [panelMode, isMd, chatSplitPercent, setChatSplitPercent]
+  );
+
   if (!isAuthenticated || user?.type !== 'qs') {
     return null; // Will redirect
   }
@@ -303,15 +355,20 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       <Header />
       
-      {/* Split Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Split Layout — chat width adjustable on desktop (drag handle); hide chat = dashboard-only */}
+      <div ref={splitContainerRef} className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Chat */}
         <div
-          className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
+          className={`bg-white border-r border-gray-200 flex flex-col transition-[width] duration-300 min-h-0 ${
             panelMode === 'dashboard-full' ? 'w-0 hidden' : 
             panelMode === 'chat-full' ? 'w-full' : 
-            'w-full md:w-1/3'
+            'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
           }`}
+          style={
+            panelMode === 'split' && isMd
+              ? { width: `${chatSplitPercent}%`, flexShrink: 0 as const }
+              : undefined
+          }
         >
           {/* Chat Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -322,6 +379,7 @@ export default function ChatPage() {
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
                 Ask about pricing and materials
+                <span className="hidden md:inline"> · Drag the divider to resize, or ◀ to hide chat</span>
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -349,8 +407,7 @@ export default function ChatPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => togglePanelMode('dashboard-full')}
-                className="md:hidden"
-                title="Hide chat"
+                title="Focus on dashboard (hide chat)"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -685,6 +742,19 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {panelMode === 'split' && isMd && (
+          <button
+            type="button"
+            aria-label="Drag to resize chat and dashboard"
+            title="Drag to resize panels"
+            onMouseDown={onResizeStart}
+            className="group w-2 shrink-0 cursor-col-resize flex flex-col items-center justify-center border-x border-gray-200/80 bg-gray-100 hover:bg-blue-100/60 transition-colors"
+          >
+            <GripVertical className="h-10 w-4 text-gray-400 group-hover:text-blue-600" />
+          </button>
+        )}
+
+        <div className="flex-1 flex flex-row min-w-0 overflow-hidden">
         {/* Procurement Panel - slides in from right when active */}
         {activeProcurementRequest && (
           <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col overflow-hidden border-l border-gray-200">
@@ -703,7 +773,7 @@ export default function ChatPage() {
 
         {/* Right Panel - Dashboard */}
         <div
-          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 ${
+          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0 ${
             panelMode === 'chat-full' ? 'w-0 hidden' : activeProcurementRequest ? 'hidden md:flex' : 'flex'
           }`}
         >
@@ -715,6 +785,7 @@ export default function ChatPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => togglePanelMode('split')}
+                  title="Show chat panel"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -1005,6 +1076,7 @@ export default function ChatPage() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>

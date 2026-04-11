@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet, apiPut, apiDelete, getMainCategories, getSubcategories, ProductCategory } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info, Maximize2, Minimize2, MessageSquare } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Package, Edit2, Trash2, Search, Grid3x3, List, ArrowUpDown, ArrowUp, ArrowDown, Plus, Zap, Tag, DollarSign, Save, X, Info, Maximize2, Minimize2, MessageSquare, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { PriceExpiryInput, PriceExpiryInput as PriceExpiryInputType } from '@/co
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -99,6 +100,9 @@ export default function SupplierChatPage() {
   const [loading, setLoading] = useState(false);
   const [panelMode, setPanelMode] = useState<PanelMode>('split');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+  const { chatSplitPercent, setChatSplitPercent } = useChatSplitPercent('cg-supplier-chat-split-pct');
+  const isMd = useMinMd();
   const [questionFlow, setQuestionFlow] = useState<QuestionFlow | null>(null);
   
   // Dashboard state
@@ -1049,6 +1053,36 @@ export default function SupplierChatPage() {
     setPanelMode(mode);
   };
 
+  const onResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (panelMode !== 'split' || !isMd) return;
+      const startX = e.clientX;
+      const container = splitContainerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const w = rect.width;
+      if (w <= 0) return;
+      const startPct = chatSplitPercent;
+
+      const onMove = (ev: MouseEvent) => {
+        const dx = ev.clientX - startX;
+        setChatSplitPercent(startPct + (dx / w) * 100);
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        document.body.style.removeProperty('cursor');
+        document.body.style.removeProperty('user-select');
+      };
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [panelMode, isMd, chatSplitPercent, setChatSplitPercent]
+  );
+
   // Check both new schema (type) and old schema (tenant.type)
   if (!isAuthenticated || (user?.type !== 'supplier' && user?.tenant?.type !== 'supplier')) {
     return null; // Will redirect
@@ -1058,15 +1092,20 @@ export default function SupplierChatPage() {
     <div className="flex flex-col h-screen bg-gray-50">
       <Header />
       
-      {/* Split Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Split Layout — resizable on desktop; hide chat = dashboard-only */}
+      <div ref={splitContainerRef} className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Chat */}
         <div
-          className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
+          className={`bg-white border-r border-gray-200 flex flex-col transition-[width] duration-300 min-h-0 ${
             panelMode === 'dashboard-full' ? 'w-0 hidden' :
             panelMode === 'chat-full' ? 'w-full' :
-            'w-full md:w-1/3'
+            'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
           }`}
+          style={
+            panelMode === 'split' && isMd
+              ? { width: `${chatSplitPercent}%`, flexShrink: 0 as const }
+              : undefined
+          }
         >
           {/* Chat Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -1077,6 +1116,7 @@ export default function SupplierChatPage() {
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
                 Natural language commands
+                <span className="hidden md:inline"> · Drag the divider to resize, or ◀ to hide chat</span>
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -1104,8 +1144,7 @@ export default function SupplierChatPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => togglePanelMode('dashboard-full')}
-                className="md:hidden"
-                title="Hide chat"
+                title="Focus on dashboard (hide chat)"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -1400,9 +1439,21 @@ export default function SupplierChatPage() {
           </div>
         </div>
 
+        {panelMode === 'split' && isMd && (
+          <button
+            type="button"
+            aria-label="Drag to resize chat and dashboard"
+            title="Drag to resize panels"
+            onMouseDown={onResizeStart}
+            className="group w-2 shrink-0 cursor-col-resize flex flex-col items-center justify-center border-x border-gray-200/80 bg-gray-100 hover:bg-blue-100/60 transition-colors"
+          >
+            <GripVertical className="h-10 w-4 text-gray-400 group-hover:text-blue-600" />
+          </button>
+        )}
+
         {/* Right Panel - Dashboard */}
         <div
-          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 ${
+          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0 ${
             panelMode === 'chat-full' ? 'w-0 hidden' : 'flex'
           }`}
         >
@@ -1414,6 +1465,7 @@ export default function SupplierChatPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => togglePanelMode('split')}
+                  title="Show chat panel"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
