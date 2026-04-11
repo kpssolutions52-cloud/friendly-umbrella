@@ -753,13 +753,13 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Dashboard Content — Products & RFQs tabs */}
+          {/* Dashboard Content — Products, RFQs & Supplier Hub */}
           <div
             className={`flex-1 p-4 flex flex-col min-h-0 ${
               rightPanelTab === 'hub' ? 'overflow-hidden' : 'overflow-y-auto'
             }`}
           >
-            <div className="flex border-b border-gray-200 mb-4 flex-shrink-0">
+            <div className="flex border-b border-gray-200 mb-4 flex-shrink-0 overflow-x-auto gap-0.5">
               <button
                 type="button"
                 onClick={() => setRightPanelTab('products')}
@@ -794,6 +794,19 @@ export default function ChatPage() {
                     {procurementRequests.length}
                   </span>
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('hub')}
+                className={`px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                  rightPanelTab === 'hub'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="Supplier Intelligence Hub — directory, Excel import & export"
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                Suppliers
               </button>
             </div>
 
