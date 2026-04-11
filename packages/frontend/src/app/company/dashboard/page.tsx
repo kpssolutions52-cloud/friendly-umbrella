@@ -13,10 +13,9 @@ import { ProductImageCarousel } from '@/components/ProductImageCarousel';
 import { ProductCard } from '@/components/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { AIQuoteChat } from '@/components/AIQuoteChat';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { formatExpiryDate } from '@/components/PriceExpiryInput';
-import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap, ShoppingCart, Loader2 as LoaderIcon, Plus } from 'lucide-react';
+import { Search as SearchIcon, Filter, X, ChevronDown, Package, ShoppingCart, Loader2 as LoaderIcon, Plus } from 'lucide-react';
 import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
 import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
 import { listProcurementRequests, createProcurementRequest, checkProcurementConfig } from '@/lib/procurementApi';
@@ -118,7 +117,7 @@ function DashboardContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
   // Tab state
-  const [activeTab, setActiveTab] = useState<'products' | 'services' | 'procurement'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'rfqs'>('products');
 
   // Procurement Agent state
   const [procurementRequests, setProcurementRequests] = useState<ProcurementRequest[]>([]);
@@ -131,6 +130,7 @@ function DashboardContent() {
   const [isCreatingRfq, setIsCreatingRfq] = useState(false);
   
   // Product listing and filtering
+  const [productType, setProductType] = useState<'product' | 'service'>('product');
   const [allProducts, setAllProducts] = useState<SearchProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [filteredProducts, setFilteredProducts] = useState<SearchProduct[]>([]);
@@ -164,9 +164,6 @@ function DashboardContent() {
   // Pending user count for admin notification
   const [pendingUserCount, setPendingUserCount] = useState<number>(0);
   
-  // AI Quote Chat state
-  const [showAIQuoteChat, setShowAIQuoteChat] = useState(false);
-
   const loadProcurementRequests = useCallback(async () => {
     setIsLoadingProcurement(true);
     try {
@@ -204,8 +201,7 @@ function DashboardContent() {
     setIsLoadingProducts(true);
     const params = new URLSearchParams();
     
-    // Add type filter based on active tab
-    params.append('type', activeTab === 'products' ? 'product' : 'service');
+    params.append('type', productType);
     
     if (filters.search) {
       params.append('q', filters.search);
@@ -214,8 +210,7 @@ function DashboardContent() {
       params.append('supplierId', filters.supplierId);
     }
     
-    // Use appropriate category filter based on tab
-    if (activeTab === 'products') {
+    if (productType === 'product') {
       const categoryId = selectedSubCategoryId || selectedMainCategoryId;
       if (categoryId) {
         params.append('category', categoryId);
@@ -275,7 +270,7 @@ function DashboardContent() {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [filters.search, filters.supplierId, activeTab, selectedMainCategoryId, selectedSubCategoryId]);
+  }, [filters.search, filters.supplierId, productType, selectedMainCategoryId, selectedSubCategoryId]);
 
   // Load suppliers, service providers, and categories on mount
   useEffect(() => {
@@ -350,7 +345,7 @@ function DashboardContent() {
   };
 
   useEffect(() => {
-    if (activeTab === 'products') {
+    if (productType === 'product') {
       if (selectedMainCategoryId) {
         loadSubCategories(selectedMainCategoryId);
       } else {
@@ -364,7 +359,7 @@ function DashboardContent() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMainCategoryId, activeTab]);
+  }, [selectedMainCategoryId, productType]);
 
   const handleMainCategoryChange = async (mainCategoryId: string) => {
     setSelectedMainCategoryId(mainCategoryId);
@@ -372,7 +367,7 @@ function DashboardContent() {
     setCurrentPage(1);
     
     if (mainCategoryId) {
-      if (activeTab === 'products') {
+      if (productType === 'product') {
         await loadSubCategories(mainCategoryId);
       } else {
         await loadSubServiceCategories(mainCategoryId);
@@ -417,7 +412,7 @@ function DashboardContent() {
     setSubCategories([]);
     setSubServiceCategories([]);
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, productType]);
 
   // Load products when filters change
   useEffect(() => {
@@ -585,20 +580,8 @@ function DashboardContent() {
             {/* Desktop menu */}
             <div className="hidden sm:flex items-center gap-2">
               <NotificationCenter />
-              <Button
-                variant="default"
-                onClick={() => setShowAIQuoteChat(true)}
-                className="touch-target bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                <span className="hidden md:inline">AI Quote</span>
-                <span className="md:hidden">Quote</span>
-              </Button>
               <Link href="/company/quotes">
-                <Button variant="outline" className="touch-target">
-                  <span className="hidden md:inline">Quotes</span>
-                  <span className="md:hidden">Quotes</span>
-                </Button>
+                <Button variant="outline" className="touch-target">Quotes</Button>
               </Link>
               {user?.role === 'company_admin' && (
                 <Link href="/company/users">
@@ -641,17 +624,6 @@ function DashboardContent() {
                 <span className="text-sm font-medium text-gray-700">Notifications</span>
                 <NotificationCenter />
               </div>
-              <Button
-                variant="default"
-                onClick={() => {
-                  setShowAIQuoteChat(true);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full touch-target justify-start bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                <Zap className="h-4 w-4 mr-2" />
-                AI Quote
-              </Button>
               <Link href="/company/quotes" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" className="w-full touch-target justify-start">
                   Quotes
@@ -678,7 +650,7 @@ function DashboardContent() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
-        {/* Products vs Services vs Procurement Tabs */}
+        {/* Products / RFQs Tabs */}
         <div className="mb-6">
           <div className="flex border-b border-gray-200">
             <button
@@ -692,8 +664,8 @@ function DashboardContent() {
                 setSubServiceCategories([]);
                 setCurrentPage(1);
               }}
-              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
-                activeTab === 'products'
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                productType === 'product'
                   ? 'border-b-2 border-blue-600 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -703,38 +675,19 @@ function DashboardContent() {
             <button
               type="button"
               onClick={() => {
-                setActiveTab('services');
-                setSelectedMainCategoryId('');
-                setSelectedSubCategoryId('');
-                setFilters(prev => ({ ...prev, supplierId: '', category: '', serviceCategoryId: '' }));
-                setSubCategories([]);
-                setSubServiceCategories([]);
-                setCurrentPage(1);
-              }}
-              className={`flex-1 px-4 py-3 text-center font-medium transition-colors ${
-                activeTab === 'services'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Services
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('procurement');
+                setActiveTab('rfqs');
                 loadProcurementRequests();
               }}
-              className={`flex-1 px-4 py-3 text-center font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                activeTab === 'procurement'
+              className={`px-6 py-3 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                activeTab === 'rfqs'
                   ? 'border-b-2 border-blue-600 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
-              Procurement
+              RFQs
               {procurementRequests.length > 0 && (
-                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'procurement' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'rfqs' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
                   {procurementRequests.length}
                 </span>
               )}
@@ -742,8 +695,8 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* Procurement Tab Content */}
-        {activeTab === 'procurement' && (
+        {/* RFQs Tab Content */}
+        {activeTab === 'rfqs' && (
           <div className="flex gap-4">
             {/* Left: request list */}
             <div className={`flex-1 min-w-0 ${activeProcurementRequest ? 'hidden md:block md:max-w-sm' : ''}`}>
@@ -939,17 +892,34 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Optimized Search & Filter Bar */}
-        {activeTab !== 'procurement' && <><div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
+        {/* Products Tab Content */}
+        {activeTab !== 'rfqs' && <><div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
           <form onSubmit={(e) => { e.preventDefault(); }}>
-            {/* Clean Search Bar */}
+            {/* Products / Services sub-toggle + search */}
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
+                {/* Sub-type toggle */}
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setProductType('product'); setSelectedMainCategoryId(''); setSelectedSubCategoryId(''); setCurrentPage(1); }}
+                    className={`px-3 py-2 text-xs font-medium transition-colors ${productType === 'product' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Products
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setProductType('service'); setSelectedMainCategoryId(''); setSelectedSubCategoryId(''); setCurrentPage(1); }}
+                    className={`px-3 py-2 text-xs font-medium transition-colors ${productType === 'service' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Services
+                  </button>
+                </div>
                 <div className="flex-1 relative">
                   <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder={`Search ${activeTab === 'products' ? 'products' : 'services'} by name...`}
+                    placeholder={`Search ${productType === 'product' ? 'products' : 'services'} by name...`}
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="w-full pl-10 pr-4 h-11 text-base border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-all"
@@ -963,7 +933,7 @@ function DashboardContent() {
               <div className="px-4 py-2.5 bg-gray-50/50 border-b border-gray-100 flex flex-wrap items-center gap-2">
                 {filters.supplierId && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium border border-blue-200">
-                    {(activeTab === 'products' ? suppliers : serviceProviders).find(s => s.id === filters.supplierId)?.name || 'Provider'}
+                    {(productType === 'product' ? suppliers : serviceProviders).find(s => s.id === filters.supplierId)?.name || 'Provider'}
                     <button
                       type="button"
                       onClick={() => {
@@ -979,7 +949,7 @@ function DashboardContent() {
                 )}
                 {selectedMainCategoryId && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium border border-indigo-200">
-                    {(activeTab === 'products' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
+                    {(productType === 'product' ? mainCategories : mainServiceCategories).find(c => c.id === selectedMainCategoryId)?.name || 'Category'}
                     <button
                       type="button"
                       onClick={() => {
@@ -997,7 +967,7 @@ function DashboardContent() {
                 )}
                 {selectedSubCategoryId && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-md text-xs font-medium border border-purple-200">
-                    {(activeTab === 'products' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
+                    {(productType === 'product' ? subCategories : subServiceCategories).find(c => c.id === selectedSubCategoryId)?.name || 'Subcategory'}
                     <button
                       type="button"
                       onClick={() => {
@@ -1049,7 +1019,7 @@ function DashboardContent() {
                 {/* Supplier/Service Provider Filter */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    {activeTab === 'products' ? 'Supplier' : 'Service Provider'}
+                    {productType === 'product' ? 'Supplier' : 'Service Provider'}
                   </label>
                   <div className="relative supplier-dropdown-container">
                     <div className="relative">
@@ -1079,9 +1049,9 @@ function DashboardContent() {
                             setSupplierDropdownOpen(false);
                           }}
                         >
-                          All {activeTab === 'products' ? 'Suppliers' : 'Service Providers'}
+                          All {productType === 'product' ? 'Suppliers' : 'Service Providers'}
                         </div>
-                        {(activeTab === 'products' ? suppliers : serviceProviders)
+                        {(productType === 'product' ? suppliers : serviceProviders)
                           .filter(supplier =>
                             supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
                           )
@@ -1116,11 +1086,11 @@ function DashboardContent() {
                               </div>
                             </div>
                           ))}
-                        {(activeTab === 'products' ? suppliers : serviceProviders).filter(supplier =>
+                        {(productType === 'product' ? suppliers : serviceProviders).filter(supplier =>
                           supplier.name.toLowerCase().includes(supplierSearchQuery.toLowerCase())
                         ).length === 0 && supplierSearchQuery && (
                           <div className="px-4 py-2 text-gray-500 text-sm">
-                            No {activeTab === 'products' ? 'suppliers' : 'service providers'} found
+                            No {productType === 'product' ? 'suppliers' : 'service providers'} found
                           </div>
                         )}
                       </div>
@@ -1141,7 +1111,7 @@ function DashboardContent() {
                       className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-8 text-sm text-gray-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
                     >
                       <option value="">All Categories</option>
-                      {(activeTab === 'products' ? mainCategories : mainServiceCategories).map((cat) => (
+                      {(productType === 'product' ? mainCategories : mainServiceCategories).map((cat) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
                         </option>
@@ -1169,11 +1139,11 @@ function DashboardContent() {
                           ? 'Loading...' 
                           : !selectedMainCategoryId 
                             ? 'Select main category first' 
-                            : (activeTab === 'products' ? subCategories : subServiceCategories).length === 0 
+                            : (productType === 'product' ? subCategories : subServiceCategories).length === 0 
                               ? 'No subcategories' 
                               : 'All Subcategories'}
                       </option>
-                      {(activeTab === 'products' ? subCategories : subServiceCategories).map((subCat) => (
+                      {(productType === 'product' ? subCategories : subServiceCategories).map((subCat) => (
                         <option key={subCat.id} value={subCat.id}>
                           {subCat.name}
                         </option>
@@ -1191,10 +1161,10 @@ function DashboardContent() {
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-              Available {activeTab === 'products' ? 'Products' : 'Services'}
+              Available {productType === 'product' ? 'Products' : 'Services'}
               {filteredProducts.length > 0 && (
                 <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({filteredProducts.length} {filteredProducts.length === 1 ? (activeTab === 'products' ? 'product' : 'service') : (activeTab === 'products' ? 'products' : 'services')})
+                  ({filteredProducts.length} {filteredProducts.length === 1 ? (productType === 'product' ? 'product' : 'service') : (productType === 'product' ? 'products' : 'services')})
                 </span>
               )}
             </h2>
@@ -1254,20 +1224,20 @@ function DashboardContent() {
               <h3 className="mt-4 text-lg font-semibold text-gray-900">
                 {filters.supplierId || filters.category || filters.search
                   ? 'No results found'
-                  : `No ${activeTab === 'products' ? 'products' : 'services'} available`}
+                  : `No ${productType === 'product' ? 'products' : 'services'} available`}
               </h3>
               <p className="mt-3 text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
                 {filters.supplierId || filters.category || filters.search
                   ? (
                     <>
-                      No {activeTab === 'products' ? 'products' : 'services'} match your filters.
+                      No {productType === 'product' ? 'products' : 'services'} match your filters.
                       <br />
                       <span className="text-gray-500">Try adjusting your search or filters.</span>
                     </>
                   )
                   : (
                     <>
-                      {activeTab === 'products' ? 'Suppliers' : 'Service providers'} need to add {activeTab === 'products' ? 'products' : 'services'} with default prices.
+                      {productType === 'product' ? 'Suppliers' : 'Service providers'} need to add {productType === 'product' ? 'products' : 'services'} with default prices.
                       <br />
                       <span className="text-gray-500">Check back later or contact suppliers directly.</span>
                     </>
@@ -1296,7 +1266,7 @@ function DashboardContent() {
                 <div className="text-sm text-gray-600">
                   Showing <span className="font-medium text-gray-900">{filteredProducts.length > 0 ? ((currentPage - 1) * productsPerPage + 1) : 0}</span> to{' '}
                   <span className="font-medium text-gray-900">{Math.min(currentPage * productsPerPage, totalProducts)}</span> of{' '}
-                  <span className="font-medium text-gray-900">{totalProducts}</span> {activeTab === 'products' ? 'products' : 'services'}
+                  <span className="font-medium text-gray-900">{totalProducts}</span> {productType === 'product' ? 'products' : 'services'}
                   {totalPages > 1 && (
                     <span className="ml-2 text-gray-500">
                       (Page {currentPage} of {totalPages})
@@ -2209,11 +2179,6 @@ function DashboardContent() {
         </>}
 
       </main>
-
-      {/* AI Quote Chat Modal */}
-      {showAIQuoteChat && (
-        <AIQuoteChat onClose={() => setShowAIQuoteChat(false)} />
-      )}
     </div>
   );
 }
