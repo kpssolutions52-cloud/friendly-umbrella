@@ -55,9 +55,15 @@ function detectColumnMap(headers: string[]): Record<string, keyof ParsedSupplier
 function rowToObject(
   row: unknown[],
   headerRow: string[],
-  colMap: Record<string, string>
+  colMap: Record<string, string>,
+  opts?: { implicitCategoryColIndex?: number }
 ): Record<string, string> {
   const o: Record<string, string> = {};
+  const ic = opts?.implicitCategoryColIndex;
+  if (ic != null && ic >= 0) {
+    const v = cellStr(row[ic]);
+    if (v) o.category = v;
+  }
   headerRow.forEach((h, i) => {
     if (!h) return;
     const canon = colMap[h];
@@ -181,10 +187,27 @@ export function parseSupplierExcelBuffer(buffer: Buffer): {
     warnings.push('No "Company" column detected — check header spelling');
   }
 
+  /**
+   * Supplier lists often put a section title in column A with a **blank** header cell
+   * (e.g. "Structural Steel & Metal Steel" only on the first row of a block; A is empty for
+   * following rows). `rowToObject` skips unlabeled columns, so we map column 0 → category
+   * when there is no Category header but Company is in a later column.
+   */
+  let implicitCategoryColIndex: number | undefined;
+  if (!Object.values(colMap).includes('category')) {
+    const companyHeader = Object.keys(colMap).find((h) => colMap[h] === 'company');
+    const companyIdx = companyHeader ? headerCells.indexOf(companyHeader) : -1;
+    if (companyIdx > 0 && !cellStr(headerCells[0])) {
+      implicitCategoryColIndex = 0;
+    }
+  }
+
   const dataRows: Record<string, string>[] = [];
   for (let r = headerRowIdx + 1; r < matrix.length; r++) {
     const rowArr = matrix[r] as unknown[];
-    const obj = rowToObject(rowArr, headerCells, colMap);
+    const obj = rowToObject(rowArr, headerCells, colMap, {
+      implicitCategoryColIndex,
+    });
     const hasAny = Object.keys(obj).length > 0;
     if (!hasAny) continue;
     dataRows.push(obj);

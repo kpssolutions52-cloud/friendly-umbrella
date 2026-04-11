@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
+import { SITE_BRAND_NAME } from '@/lib/siteBrand';
 import { MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
 
 interface HeaderProps {
@@ -22,28 +23,11 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              {/* Logo - Try JPG first (since we have logo.jpg), then PNG, then SVG */}
-              <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
-                <Logo
-                  src="/images/logo.jpg"
-                  alt="ConstructionGuru"
-                  width={48}
-                  height={48}
-                  priority
-                  unoptimized
-                />
+            <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+              <div className="relative h-9 max-w-[min(240px,calc(100vw-8rem))] w-[min(240px,calc(100vw-8rem))] sm:h-10 sm:max-w-[260px] sm:w-[260px] flex-shrink-0">
+                <Logo priority unoptimized className="h-full w-full object-contain object-left" />
               </div>
-              {/* Company Name - Hidden on very small screens, shown on sm and up */}
-              <div className="hidden sm:block">
-                <div className="text-lg sm:text-xl font-bold text-gray-900">
-                  ConstructionGuru
-                </div>
-              </div>
-              {/* Mobile: Just show "ConstructionGuru" */}
-              <div className="sm:hidden text-lg font-bold text-gray-900">
-                ConstructionGuru
-              </div>
+              <span className="sr-only">{SITE_BRAND_NAME}</span>
             </Link>
           </div>
           

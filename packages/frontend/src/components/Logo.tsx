@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { SITE_BRAND_NAME, SITE_LOGO_PATH } from '@/lib/siteBrand';
 
 interface LogoProps {
   src?: string;
@@ -14,11 +15,11 @@ interface LogoProps {
 }
 
 export function Logo({
-  src = '/images/logo.jpg',
-  alt = 'ConstructionGuru',
-  width = 48,
-  height = 48,
-  className = 'object-contain',
+  src = SITE_LOGO_PATH,
+  alt = SITE_BRAND_NAME,
+  width = 240,
+  height = 64,
+  className = 'object-contain object-left',
   priority = false,
   unoptimized = false,
 }: LogoProps) {
@@ -26,10 +27,8 @@ export function Logo({
   const [hasError, setHasError] = useState(false);
 
   const handleError = () => {
-    if (imageSrc.endsWith('.jpg') || imageSrc.endsWith('.jpeg')) {
-      setImageSrc('/images/logo.png');
-    } else if (imageSrc.endsWith('.png')) {
-      setImageSrc('/images/logo.svg');
+    if (imageSrc === SITE_LOGO_PATH || imageSrc.endsWith('stravex-qs-ai-logo.png')) {
+      setImageSrc('/images/logo.jpg');
     } else {
       setHasError(true);
     }

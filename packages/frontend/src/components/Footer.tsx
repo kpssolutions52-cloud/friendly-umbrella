@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { SITE_BRAND_SHORT } from '@/lib/siteBrand';
 
 export function Footer() {
   return (
@@ -95,26 +96,16 @@ export function Footer() {
         <div className="border-t border-gray-800 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="relative h-10 w-10 flex-shrink-0">
-                <Logo
-                  src="/images/logo.jpg"
-                  alt="ConstructionGuru"
-                  width={40}
-                  height={40}
-                  unoptimized
-                />
+              <div className="relative h-9 w-[200px] max-w-full flex-shrink-0">
+                <Logo width={200} height={54} unoptimized className="h-full w-full object-contain object-left" />
               </div>
               <div>
-                <div className="text-base font-bold text-white">
-                  ConstructionGuru
-                </div>
-                <div className="text-xs text-gray-400">
-                  AI Assistant for Construction
-                </div>
+                <div className="text-base font-bold text-white">{SITE_BRAND_SHORT}</div>
+                <div className="text-xs text-gray-400">AI Assistant for construction</div>
               </div>
             </div>
             <div className="text-sm text-gray-400">
-              © 2024 ConstructionGuru. All rights reserved.
+              © {new Date().getFullYear()} {SITE_BRAND_SHORT}. All rights reserved.
             </div>
           </div>
         </div>

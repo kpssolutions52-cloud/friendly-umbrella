@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Logo } from '@/components/Logo';
+import { SITE_BRAND_NAME, SITE_BRAND_SHORT } from '@/lib/siteBrand';
 import { Menu, X, TrendingUp, Users, Zap, Target, FileText, Code, BarChart3, Rocket, Building2, ShoppingCart, Home } from 'lucide-react';
 
 export default function DocsLayout({
@@ -63,27 +64,21 @@ export default function DocsLayout({
                 )}
               </button>
 
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity flex-shrink-0">
-                {/* Logo */}
-                <div className="relative h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+              <Link href="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-opacity flex-shrink-0 min-w-0">
+                <div className="relative h-8 w-[min(160px,42vw)] sm:h-9 sm:w-[180px] flex-shrink-0">
                   <Logo
-                    src="/images/logo.jpg"
-                    alt="QS AI Agent"
-                    width={32}
-                    height={32}
+                    alt={SITE_BRAND_NAME}
+                    width={180}
+                    height={48}
                     priority
                     unoptimized
+                    className="h-full w-full object-contain object-left"
                   />
                 </div>
-                {/* Company Name */}
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                    ConstructionGuru
-                  </div>
-                  <div className="hidden xs:block text-xs font-semibold text-gray-700 -mt-0.5 truncate">
-                    Documentation
-                  </div>
+                <div className="min-w-0 hidden sm:block">
+                  <div className="text-xs font-semibold text-gray-600 truncate">Documentation</div>
                 </div>
+                <span className="sr-only">{SITE_BRAND_SHORT}</span>
               </Link>
 
               {/* Desktop navigation */}

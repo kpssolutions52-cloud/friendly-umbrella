@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { SITE_BRAND_NAME } from '@/lib/siteBrand';
 import { getActiveTenants, Tenant } from '@/lib/tenantApi';
 import { apiPost } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -214,21 +215,11 @@ function RegisterForm() {
       <div className="w-full max-w-md space-y-6 sm:space-y-8 pb-8">
         {/* Logo and Back to Home */}
         <div className="flex flex-col items-center space-y-4">
-          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-            <div className="relative h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0">
-              <Logo
-                src="/images/logo.jpg"
-                alt="ConstructionGuru"
-                width={64}
-                height={64}
-                priority
-                unoptimized
-              />
+          <Link href="/" className="flex flex-col items-center gap-2 hover:opacity-90 transition-opacity">
+            <div className="relative h-10 w-[min(260px,85vw)] sm:h-11">
+              <Logo priority unoptimized width={260} height={70} className="h-full w-full object-contain object-center" />
             </div>
-            <div className="hidden sm:block">
-              <div className="text-lg font-bold text-gray-900">ConstructionGuru</div>
-              <div className="text-xs font-semibold text-gray-700 -mt-0.5">Real-Time Pricing for Construction Professionals</div>
-            </div>
+            <span className="sr-only">{SITE_BRAND_NAME}</span>
           </Link>
           <Link
             href="/"

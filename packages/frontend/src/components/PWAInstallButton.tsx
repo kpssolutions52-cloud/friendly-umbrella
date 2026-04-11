@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, X, Share } from 'lucide-react';
+import { SITE_BRAND_SHORT } from '@/lib/siteBrand';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -156,7 +157,7 @@ export function PWAInstallButton() {
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
-                    Add ConstructionGuru to your home screen for quick access:
+                    Add {SITE_BRAND_SHORT} to your home screen for quick access:
                   </p>
                   <ol className="space-y-3 text-sm text-gray-700 list-decimal list-inside">
                     <li>Tap the <strong>Share</strong> button <Share className="w-4 h-4 inline mx-1" /> at the bottom of Safari</li>
