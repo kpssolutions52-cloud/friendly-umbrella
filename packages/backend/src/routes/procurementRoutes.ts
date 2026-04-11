@@ -14,9 +14,51 @@ import {
   getProcurementRequests,
   getProcurementRequestById,
 } from '../services/procurementOrchestrator';
+import { verifyEmailConfig } from '../services/emailService';
 import { prisma } from '../utils/prisma';
 
 const router = Router();
+
+/**
+ * GET /api/v1/procurement/config/check
+ * Returns which procurement integrations are configured and working.
+ * Useful for verifying setup before a real test.
+ */
+router.get('/procurement/config/check', requireAuth, requireQS, async (_req: Request, res: Response) => {
+  const emailConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const whatsappConfigured = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+  const openaiConfigured = !!process.env.OPENAI_API_KEY;
+  const webSearchConfigured = !!(process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_CX);
+
+  // Actually verify SMTP can connect (non-blocking)
+  let emailReachable = false;
+  if (emailConfigured) {
+    emailReachable = await verifyEmailConfig().catch(() => false);
+  }
+
+  return res.json({
+    email: {
+      configured: emailConfigured,
+      reachable: emailReachable,
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER || null,
+      hint: emailConfigured ? null : 'Set SMTP_HOST, SMTP_USER, SMTP_PASS in .env',
+    },
+    whatsapp: {
+      configured: whatsappConfigured,
+      from: whatsappConfigured ? (process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886') : null,
+      hint: whatsappConfigured ? null : 'Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in .env',
+    },
+    openai: {
+      configured: openaiConfigured,
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      hint: openaiConfigured ? null : 'Set OPENAI_API_KEY in .env (fallback NLP still works without it)',
+    },
+    webSearch: {
+      configured: webSearchConfigured,
+      hint: webSearchConfigured ? null : 'Set GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_CX to enable internet supplier search',
+    },
+  });
+});
 
 /**
  * POST /api/v1/procurement/requests
@@ -42,6 +84,12 @@ router.post('/procurement/requests', requireAuth, requireQS, async (req: Request
       request: result.request,
       intent: result.intent,
       candidatesCount: result.candidates.length,
+      discovery: {
+        webSearchEnabled: result.discovery.webSearchEnabled,
+        webSearchQuery: result.discovery.webSearchQuery,
+        internalCount: result.discovery.internalCount,
+        webCount: result.discovery.webCount,
+      },
     });
   } catch (err: any) {
     console.error('[ProcurementRoutes] createRequest error:', err);
@@ -211,7 +259,19 @@ router.post(
  */
 router.post('/procurement/candidates/:id/select', requireAuth, requireQS, async (req: Request, res: Response) => {
   try {
+    const user = (req as any).user;
     const { isSelected } = req.body as { isSelected: boolean };
+
+    // Verify ownership via the parent procurement request
+    const candidate = await prisma.rfqSupplierCandidate.findUnique({
+      where: { id: req.params.id },
+      include: { procurementRequest: { select: { organizationId: true } } },
+    });
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    if (candidate.procurementRequest.organizationId !== user.organizationId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const updated = await prisma.rfqSupplierCandidate.update({
       where: { id: req.params.id },
       data: { isSelected },
@@ -219,6 +279,43 @@ router.post('/procurement/candidates/:id/select', requireAuth, requireQS, async 
     return res.json({ candidate: updated });
   } catch (err: any) {
     console.error('[ProcurementRoutes] selectCandidate error:', err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/v1/procurement/candidates/:id/contact
+ * Update contact details (email, phone, whatsapp) for a supplier candidate.
+ */
+router.post('/procurement/candidates/:id/contact', requireAuth, requireQS, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { contactEmail, contactPhone, contactWhatsapp } = req.body as {
+      contactEmail?: string;
+      contactPhone?: string;
+      contactWhatsapp?: string;
+    };
+
+    const candidate = await prisma.rfqSupplierCandidate.findUnique({
+      where: { id: req.params.id },
+      include: { procurementRequest: { select: { organizationId: true } } },
+    });
+    if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+    if (candidate.procurementRequest.organizationId !== user.organizationId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const updated = await prisma.rfqSupplierCandidate.update({
+      where: { id: req.params.id },
+      data: {
+        ...(contactEmail !== undefined && { contactEmail }),
+        ...(contactPhone !== undefined && { contactPhone }),
+        ...(contactWhatsapp !== undefined && { contactWhatsapp }),
+      },
+    });
+    return res.json({ candidate: updated });
+  } catch (err: any) {
+    console.error('[ProcurementRoutes] updateContact error:', err);
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });

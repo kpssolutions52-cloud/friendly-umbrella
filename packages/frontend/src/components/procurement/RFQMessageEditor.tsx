@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Mail, MessageCircle, Loader2, CheckCircle, AlertCircle, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,15 @@ type SendStatus = 'idle' | 'sending' | 'success' | 'error';
 export function RFQMessageEditor({ request, onSent, onDraftUpdated }: Props) {
   const [subject, setSubject] = useState(request.rfqSubject ?? '');
   const [body, setBody] = useState(request.rfqBody ?? '');
+
+  // Sync when parent refreshes the request (but don't overwrite if user is mid-edit)
   const [isEditing, setIsEditing] = useState(false);
+  useEffect(() => {
+    if (!isEditing) {
+      setSubject(request.rfqSubject ?? '');
+      setBody(request.rfqBody ?? '');
+    }
+  }, [request.rfqSubject, request.rfqBody, isEditing]);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [sendStatus, setSendStatus] = useState<SendStatus>('idle');
   const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null);
@@ -31,14 +39,17 @@ export function RFQMessageEditor({ request, onSent, onDraftUpdated }: Props) {
     (c) => c.isSelected && (c.contactWhatsapp || c.contactPhone)
   );
 
+  const [draftError, setDraftError] = useState<string | null>(null);
+
   const handleSaveDraft = async () => {
     setIsSavingDraft(true);
+    setDraftError(null);
     try {
       const result = await updateRfqDraft(request.id, subject, body);
       onDraftUpdated?.(result.request);
       setIsEditing(false);
     } catch (err: any) {
-      console.error('Failed to save draft:', err);
+      setDraftError(err.message || 'Failed to save draft');
     } finally {
       setIsSavingDraft(false);
     }
@@ -101,18 +112,25 @@ export function RFQMessageEditor({ request, onSent, onDraftUpdated }: Props) {
       </div>
 
       {isEditing && (
-        <Button
-          onClick={handleSaveDraft}
-          disabled={isSavingDraft}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          {isSavingDraft ? (
-            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-          ) : null}
-          Save Draft
-        </Button>
+        <div className="space-y-1">
+          {draftError && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> {draftError}
+            </p>
+          )}
+          <Button
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            {isSavingDraft ? (
+              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+            ) : null}
+            Save Draft
+          </Button>
+        </div>
       )}
 
       {/* Send buttons */}

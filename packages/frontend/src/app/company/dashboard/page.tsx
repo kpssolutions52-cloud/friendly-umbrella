@@ -19,8 +19,8 @@ import { formatExpiryDate } from '@/components/PriceExpiryInput';
 import { Search as SearchIcon, Filter, X, ChevronDown, Package, Zap, ShoppingCart, Loader2 as LoaderIcon, Plus } from 'lucide-react';
 import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
 import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
-import { listProcurementRequests, createProcurementRequest } from '@/lib/procurementApi';
-import type { ProcurementRequest } from '@/lib/procurementApi';
+import { listProcurementRequests, createProcurementRequest, checkProcurementConfig } from '@/lib/procurementApi';
+import type { ProcurementRequest, ProcurementConfigCheck } from '@/lib/procurementApi';
 
 interface SearchProduct {
   id: string;
@@ -122,6 +122,9 @@ function DashboardContent() {
 
   // Procurement Agent state
   const [procurementRequests, setProcurementRequests] = useState<ProcurementRequest[]>([]);
+  const [lastDiscoveryMeta, setLastDiscoveryMeta] = useState<{ webSearchEnabled: boolean; webSearchQuery?: string; internalCount: number; webCount: number } | null>(null);
+  const [procurementConfig, setProcurementConfig] = useState<ProcurementConfigCheck | null>(null);
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [isLoadingProcurement, setIsLoadingProcurement] = useState(false);
   const [activeProcurementRequest, setActiveProcurementRequest] = useState<ProcurementRequest | null>(null);
   const [newRfqPrompt, setNewRfqPrompt] = useState('');
@@ -167,8 +170,12 @@ function DashboardContent() {
   const loadProcurementRequests = useCallback(async () => {
     setIsLoadingProcurement(true);
     try {
-      const result = await listProcurementRequests();
-      setProcurementRequests(result.requests);
+      const [requestsResult, configResult] = await Promise.allSettled([
+        listProcurementRequests(),
+        checkProcurementConfig(),
+      ]);
+      if (requestsResult.status === 'fulfilled') setProcurementRequests(requestsResult.value.requests);
+      if (configResult.status === 'fulfilled') setProcurementConfig(configResult.value);
     } catch (err) {
       console.error('Failed to load procurement requests:', err);
     } finally {
@@ -183,6 +190,7 @@ function DashboardContent() {
       const result = await createProcurementRequest(newRfqPrompt.trim());
       setProcurementRequests((prev) => [result.request, ...prev]);
       setActiveProcurementRequest(result.request);
+      setLastDiscoveryMeta(result.discovery ?? null);
       setNewRfqPrompt('');
     } catch (err) {
       console.error('Failed to create RFQ:', err);
@@ -739,6 +747,91 @@ function DashboardContent() {
           <div className="flex gap-4">
             {/* Left: request list */}
             <div className={`flex-1 min-w-0 ${activeProcurementRequest ? 'hidden md:block md:max-w-sm' : ''}`}>
+              {/* Channel setup status */}
+              {procurementConfig && (
+                <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
+                  <button
+                    onClick={() => setShowConfigPanel((v) => !v)}
+                    className="w-full flex items-center justify-between text-sm font-medium text-gray-700"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>Channel Setup</span>
+                      {procurementConfig.email.reachable && procurementConfig.whatsapp.configured ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Ready</span>
+                      ) : (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Incomplete</span>
+                      )}
+                    </span>
+                    <span className="text-gray-400 text-xs">{showConfigPanel ? '▲' : '▼'}</span>
+                  </button>
+                  {showConfigPanel && (
+                    <div className="mt-3 space-y-2 text-xs">
+                      {/* Email */}
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${procurementConfig.email.reachable ? 'bg-green-500' : procurementConfig.email.configured ? 'bg-yellow-500' : 'bg-gray-300'}`}>
+                          {procurementConfig.email.reachable ? '✓' : procurementConfig.email.configured ? '!' : '–'}
+                        </span>
+                        <div>
+                          <p className="font-medium text-gray-700">Email (SMTP)</p>
+                          {procurementConfig.email.reachable ? (
+                            <p className="text-green-600">Connected · sending from {procurementConfig.email.from}</p>
+                          ) : procurementConfig.email.configured ? (
+                            <p className="text-yellow-600">Credentials set but server unreachable — check SMTP_HOST / SMTP_PASS</p>
+                          ) : (
+                            <p className="text-gray-500">{procurementConfig.email.hint}</p>
+                          )}
+                        </div>
+                      </div>
+                      {/* WhatsApp */}
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${procurementConfig.whatsapp.configured ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          {procurementConfig.whatsapp.configured ? '✓' : '–'}
+                        </span>
+                        <div>
+                          <p className="font-medium text-gray-700">WhatsApp (Twilio)</p>
+                          {procurementConfig.whatsapp.configured ? (
+                            <p className="text-green-600">Connected · sending from {procurementConfig.whatsapp.from}</p>
+                          ) : (
+                            <p className="text-gray-500">{procurementConfig.whatsapp.hint}</p>
+                          )}
+                          {procurementConfig.whatsapp.configured && (
+                            <p className="text-gray-400 mt-0.5">Sandbox: supplier must first WhatsApp "join &lt;keyword&gt;" to +14155238886</p>
+                          )}
+                        </div>
+                      </div>
+                      {/* OpenAI */}
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${procurementConfig.openai.configured ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                          {procurementConfig.openai.configured ? '✓' : '!'}
+                        </span>
+                        <div>
+                          <p className="font-medium text-gray-700">AI (OpenAI)</p>
+                          {procurementConfig.openai.configured ? (
+                            <p className="text-green-600">Connected · model: {procurementConfig.openai.model}</p>
+                          ) : (
+                            <p className="text-yellow-600">{procurementConfig.openai.hint}</p>
+                          )}
+                        </div>
+                      </div>
+                      {/* Web search */}
+                      <div className="flex items-start gap-2">
+                        <span className={`mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${procurementConfig.webSearch.configured ? 'bg-green-500' : 'bg-gray-300'}`}>
+                          {procurementConfig.webSearch.configured ? '✓' : '–'}
+                        </span>
+                        <div>
+                          <p className="font-medium text-gray-700">Web Supplier Search</p>
+                          {procurementConfig.webSearch.configured ? (
+                            <p className="text-green-600">Google Custom Search enabled</p>
+                          ) : (
+                            <p className="text-gray-500">{procurementConfig.webSearch.hint} (optional)</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* New RFQ input */}
               <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
                 <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
@@ -769,6 +862,40 @@ function DashboardContent() {
                   {isCreatingRfq ? 'Creating RFQ...' : 'Start Procurement'}
                 </Button>
               </div>
+
+              {/* Discovery status banner */}
+              {lastDiscoveryMeta && (
+                <div className={`rounded-lg border px-3 py-2 mb-4 text-xs flex items-start gap-2 ${
+                  lastDiscoveryMeta.webSearchEnabled
+                    ? 'bg-blue-50 border-blue-200 text-blue-800'
+                    : 'bg-amber-50 border-amber-200 text-amber-800'
+                }`}>
+                  <span className="mt-0.5 text-base leading-none">
+                    {lastDiscoveryMeta.webSearchEnabled ? '🌐' : '⚠️'}
+                  </span>
+                  <div>
+                    <p className="font-medium">
+                      {lastDiscoveryMeta.webSearchEnabled
+                        ? `Found ${lastDiscoveryMeta.internalCount} internal + ${lastDiscoveryMeta.webCount} web suppliers`
+                        : `Found ${lastDiscoveryMeta.internalCount} internal suppliers (web search not configured)`}
+                    </p>
+                    {lastDiscoveryMeta.webSearchQuery && (
+                      <p className="text-xs opacity-75 mt-0.5">
+                        Web query: "{lastDiscoveryMeta.webSearchQuery}"
+                      </p>
+                    )}
+                    {!lastDiscoveryMeta.webSearchEnabled && (
+                      <p className="text-xs opacity-75 mt-0.5">
+                        Set GOOGLE_SEARCH_API_KEY &amp; GOOGLE_SEARCH_CX in backend .env to enable internet search.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setLastDiscoveryMeta(null)}
+                    className="ml-auto text-current opacity-50 hover:opacity-100"
+                  >✕</button>
+                </div>
+              )}
 
               {/* Existing requests */}
               {isLoadingProcurement ? (

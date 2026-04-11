@@ -84,14 +84,40 @@ export interface ProcurementIntent {
   confidence: number;
 }
 
+export interface DiscoveryMeta {
+  webSearchEnabled: boolean;
+  webSearchQuery?: string;
+  internalCount: number;
+  webCount: number;
+}
+
 // ─── API calls ────────────────────────────────────────────────────────────────
 
 export async function createProcurementRequest(prompt: string): Promise<{
   request: ProcurementRequest;
   intent: ProcurementIntent;
   candidatesCount: number;
+  discovery: DiscoveryMeta;
 }> {
   return apiPost('/api/v1/procurement/requests', { prompt });
+}
+
+export interface ProcurementConfigCheck {
+  email: { configured: boolean; reachable: boolean; from: string | null; hint: string | null };
+  whatsapp: { configured: boolean; from: string | null; hint: string | null };
+  openai: { configured: boolean; model: string; hint: string | null };
+  webSearch: { configured: boolean; hint: string | null };
+}
+
+export async function checkProcurementConfig(): Promise<ProcurementConfigCheck> {
+  return apiGet('/api/v1/procurement/config/check');
+}
+
+export async function updateCandidateContact(
+  candidateId: string,
+  contact: { contactEmail?: string; contactPhone?: string; contactWhatsapp?: string }
+): Promise<{ candidate: SupplierCandidate }> {
+  return apiPost(`/api/v1/procurement/candidates/${candidateId}/contact`, contact);
 }
 
 export async function listProcurementRequests(): Promise<{ requests: ProcurementRequest[] }> {

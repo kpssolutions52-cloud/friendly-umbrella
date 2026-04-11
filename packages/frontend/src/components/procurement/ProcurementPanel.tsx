@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { X, ChevronDown, ChevronUp, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { X, RefreshCw, Mail, MessageCircle, ArrowUpRight, ArrowDownLeft, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { SupplierCandidateList } from './SupplierCandidateList';
 import { RFQMessageEditor } from './RFQMessageEditor';
 import { QuotationComparisonTable } from './QuotationComparisonTable';
-import { STATUS_LABELS, STATUS_COLORS } from '@/lib/procurementApi';
-import { getProcurementRequest } from '@/lib/procurementApi';
-import type { ProcurementRequest } from '@/lib/procurementApi';
+import { STATUS_LABELS, STATUS_COLORS, getProcurementRequest } from '@/lib/procurementApi';
+import type { ProcurementRequest, RfqCommunication } from '@/lib/procurementApi';
 
-type Tab = 'suppliers' | 'rfq' | 'quotations';
+type Tab = 'suppliers' | 'rfq' | 'quotations' | 'comms';
 
 interface Props {
   request: ProcurementRequest;
@@ -18,10 +16,65 @@ interface Props {
   onUpdate?: (request: ProcurementRequest) => void;
 }
 
+function DeliveryIcon({ status }: { status?: string | null }) {
+  if (status === 'sent' || status === 'delivered') return <CheckCircle className="w-3 h-3 text-green-500" />;
+  if (status === 'failed') return <XCircle className="w-3 h-3 text-red-500" />;
+  return <Clock className="w-3 h-3 text-gray-400" />;
+}
+
+function CommCard({ comm }: { comm: RfqCommunication }) {
+  const isOutbound = comm.direction === 'outbound';
+  const isEmail = comm.channel === 'email';
+  const time = comm.sentAt || comm.receivedAt || comm.createdAt;
+
+  return (
+    <div className={`border rounded-lg p-3 text-xs ${isOutbound ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'}`}>
+      <div className="flex items-center gap-2 mb-1.5">
+        {isOutbound ? (
+          <ArrowUpRight className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+        ) : (
+          <ArrowDownLeft className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+        )}
+        {isEmail ? (
+          <Mail className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+        ) : (
+          <MessageCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+        )}
+        <span className="font-medium text-gray-700 capitalize">
+          {isOutbound ? 'Sent' : 'Received'} via {comm.channel}
+        </span>
+        <DeliveryIcon status={comm.deliveryStatus} />
+        <span className="ml-auto text-gray-400">
+          {new Date(time).toLocaleString('en-SG', { dateStyle: 'short', timeStyle: 'short' })}
+        </span>
+      </div>
+      {comm.toAddress && (
+        <p className="text-gray-500 mb-1 truncate">
+          {isOutbound ? 'To: ' : 'From: '}{comm.toAddress}
+        </p>
+      )}
+      {comm.subject && (
+        <p className="font-medium text-gray-700 mb-1 truncate">{comm.subject}</p>
+      )}
+      <p className="text-gray-600 line-clamp-3 whitespace-pre-wrap">{comm.body}</p>
+      {comm.deliveryStatus && (
+        <p className={`mt-1 capitalize ${comm.deliveryStatus === 'failed' ? 'text-red-500' : 'text-gray-400'}`}>
+          Status: {comm.deliveryStatus}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ProcurementPanel({ request: initialRequest, onClose, onUpdate }: Props) {
   const [request, setRequest] = useState<ProcurementRequest>(initialRequest);
   const [activeTab, setActiveTab] = useState<Tab>('suppliers');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync when parent passes a new request (e.g. user clicks a different card)
+  useEffect(() => {
+    setRequest(initialRequest);
+  }, [initialRequest.id]);
 
   const handleUpdate = (updated: ProcurementRequest) => {
     setRequest(updated);
@@ -44,12 +97,13 @@ export function ProcurementPanel({ request: initialRequest, onClose, onUpdate }:
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'suppliers', label: 'Suppliers', count: request.supplierCandidates.length },
     { id: 'rfq', label: 'RFQ Draft' },
-    {
-      id: 'quotations',
-      label: 'Quotations',
-      count: request.quotationResponses.length,
-    },
+    { id: 'comms', label: 'Comms', count: request.communications.length },
+    { id: 'quotations', label: 'Quotes', count: request.quotationResponses.length },
   ];
+
+  const sortedComms = [...request.communications].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-gray-200">
@@ -126,12 +180,35 @@ export function ProcurementPanel({ request: initialRequest, onClose, onUpdate }:
         {activeTab === 'rfq' && (
           <RFQMessageEditor
             request={request}
-            onSent={(result) => {
-              // Refresh to get updated status
-              handleRefresh();
-            }}
+            onSent={() => handleRefresh()}
             onDraftUpdated={handleUpdate}
           />
+        )}
+
+        {activeTab === 'comms' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Communication History</h3>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+
+            {sortedComms.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 text-sm">
+                <Mail className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p>No messages yet.</p>
+                <p className="text-xs mt-1">Send the RFQ to start communicating with suppliers.</p>
+              </div>
+            ) : (
+              sortedComms.map((comm) => <CommCard key={comm.id} comm={comm} />)
+            )}
+          </div>
         )}
 
         {activeTab === 'quotations' && (

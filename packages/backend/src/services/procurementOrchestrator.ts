@@ -6,7 +6,7 @@
 
 import { prisma } from '../utils/prisma';
 import { extractProcurementIntent, type ProcurementIntent } from './procurementNLPService';
-import { discoverSuppliers, type SupplierCandidate } from './supplierDiscoveryService';
+import { discoverSuppliers, type SupplierCandidate, type DiscoveryResult } from './supplierDiscoveryService';
 import { generateRfqDraft } from './rfqGeneratorService';
 import { sendRfqEmail } from './emailService';
 import { sendWhatsAppRfq } from './whatsappService';
@@ -44,12 +44,13 @@ export type SendChannel = 'email' | 'whatsapp' | 'both';
 
 export async function createProcurementRequest(
   input: CreateProcurementRequestInput
-): Promise<{ request: any; intent: ProcurementIntent; candidates: SupplierCandidate[] }> {
+): Promise<{ request: any; intent: ProcurementIntent; candidates: SupplierCandidate[]; discovery: DiscoveryResult }> {
   // 1. Parse intent
   const intent = await extractProcurementIntent(input.rawPrompt);
 
   // 2. Discover suppliers
-  const candidates = await discoverSuppliers(intent, intent.supplierCount ?? 10);
+  const discovery = await discoverSuppliers(intent, intent.supplierCount ?? 10);
+  const { candidates } = discovery;
 
   // 3. Generate RFQ draft
   const rfqDraft = await generateRfqDraft(
@@ -101,7 +102,7 @@ export async function createProcurementRequest(
     },
   });
 
-  return { request: requestWithCandidates, intent, candidates };
+  return { request: requestWithCandidates, intent, candidates, discovery };
 }
 
 // ─── Step 2: Update RFQ draft (QS edits before sending) ──────────────────────
@@ -177,7 +178,7 @@ export async function sendRfqToSuppliers(
 
     if (sendWA) {
       const phone = candidate.contactWhatsapp || candidate.contactPhone!;
-      const waBody = await getWhatsAppBody(request);
+      const waBody = getWhatsAppBody(request);
       const result = await sendWhatsAppRfq({ to: phone, body: waBody });
 
       const comm = await prisma.rfqCommunication.create({
@@ -210,19 +211,10 @@ export async function sendRfqToSuppliers(
   return { sent, failed, details: results };
 }
 
-async function getWhatsAppBody(request: any): Promise<string> {
-  // Generate a concise WhatsApp version from the email body
-  const { generateRfqDraft } = await import('./rfqGeneratorService');
-  const intent = {
-    isProcurementIntent: true,
-    confidence: 1,
-    product: request.product,
-    location: request.location,
-    constraints: request.constraints ?? {},
-    supplierCount: 5,
-  };
-  const draft = await generateRfqDraft(intent);
-  return draft.whatsappBody;
+function getWhatsAppBody(request: any): string {
+  // Use the user-edited rfqBody, truncated to WhatsApp-friendly length (~1000 chars)
+  const body = request.rfqBody ?? `RFQ: ${request.product}${request.location ? ` in ${request.location}` : ''}. Please provide your best quote.`;
+  return body.length > 1000 ? body.slice(0, 997) + '...' : body;
 }
 
 // ─── Step 4: Record inbound reply and parse it ────────────────────────────────

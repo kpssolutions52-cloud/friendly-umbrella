@@ -21,6 +21,14 @@ export interface SupplierCandidate {
   rankScore: number;
 }
 
+export interface DiscoveryResult {
+  candidates: SupplierCandidate[];
+  webSearchEnabled: boolean;
+  webSearchQuery?: string;
+  internalCount: number;
+  webCount: number;
+}
+
 // ─── Internal DB Discovery ────────────────────────────────────────────────────
 
 async function discoverFromInternalDB(
@@ -66,8 +74,19 @@ async function discoverFromInternalDB(
     take: limit * 2,
   });
 
+  // Also look up Tenant records (which have phone/address) matched by email
+  const orgEmails = suppliers.map((s) => s.email);
+  const tenants = orgEmails.length
+    ? await prisma.tenant.findMany({
+        where: { email: { in: orgEmails } },
+        select: { email: true, phone: true, address: true },
+      })
+    : [];
+  const tenantByEmail = new Map(tenants.map((t) => [t.email, t]));
+
   return suppliers.map((org) => {
     let rankScore = 50; // base score for internal suppliers
+    const tenant = tenantByEmail.get(org.email);
 
     // Boost score if price is within constraint
     const maxPrice = intent.constraints.maxPricePerUnit;
@@ -79,7 +98,6 @@ async function discoverFromInternalDB(
         const minPrice = Math.min(...prices);
         if (minPrice <= maxPrice) {
           rankScore += 30;
-          // Extra boost for significantly cheaper
           rankScore += Math.min(20, ((maxPrice - minPrice) / maxPrice) * 20);
         }
       }
@@ -88,8 +106,8 @@ async function discoverFromInternalDB(
     // Boost for location match
     if (intent.location) {
       const loc = intent.location.toLowerCase();
-      const orgAddress = ((org as any).address || '').toLowerCase();
-      if (orgAddress.includes(loc)) rankScore += 15;
+      const addr = (tenant?.address || '').toLowerCase();
+      if (addr.includes(loc)) rankScore += 15;
     }
 
     // Boost for more matching products
@@ -98,6 +116,10 @@ async function discoverFromInternalDB(
     return {
       companyName: org.name,
       contactEmail: org.email,
+      contactPhone: tenant?.phone ?? undefined,
+      // Use phone as WhatsApp fallback if it looks like a mobile number
+      contactWhatsapp: tenant?.phone?.replace(/\D/g, '').length === 8 ? tenant.phone : undefined,
+      address: tenant?.address ?? undefined,
       source: 'internal' as const,
       organizationId: org.id,
       rankScore,
@@ -204,15 +226,25 @@ function normalizeKey(name: string): string {
 export async function discoverSuppliers(
   intent: ProcurementIntent,
   maxCandidates = 10
-): Promise<SupplierCandidate[]> {
+): Promise<DiscoveryResult> {
+  const webSearchEnabled = !!(process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_CX);
+  const location = intent.location || 'Singapore';
+  const webSearchQuery = webSearchEnabled
+    ? `${intent.product} supplier ${location} contact email`
+    : undefined;
+
   const internalCandidates = await discoverFromInternalDB(intent, maxCandidates);
   const webLimit = Math.max(5, maxCandidates - internalCandidates.length);
   const webCandidates = await discoverFromWeb(intent, webLimit);
 
   const all = deduplicateCandidates([...internalCandidates, ...webCandidates]);
-
-  // Sort by rank score descending
   all.sort((a, b) => b.rankScore - a.rankScore);
 
-  return all.slice(0, maxCandidates);
+  return {
+    candidates: all.slice(0, maxCandidates),
+    webSearchEnabled,
+    webSearchQuery,
+    internalCount: internalCandidates.length,
+    webCount: webCandidates.length,
+  };
 }
