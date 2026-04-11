@@ -659,7 +659,7 @@ export default function ChatPage() {
           }`}
         >
           {/* Dashboard Header */}
-          <div className="bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {effectivePanelMode === 'dashboard-full' && isMd && (
                 <Button
@@ -676,7 +676,7 @@ export default function ChatPage() {
                   <Building2 className="h-5 w-5" />
                   QS Dashboard
                 </h1>
-                <p className="text-xs text-gray-500 mt-0.5">Supplier intelligence</p>
+                <p className="hidden text-xs text-gray-500 mt-0.5 sm:block">Supplier intelligence</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -714,15 +714,16 @@ export default function ChatPage() {
           </div>
 
           {/* Dashboard Content — Supplier Hub */}
-          <div className="flex-1 p-2 sm:p-4 flex flex-col min-h-0 overflow-hidden">
-            <div className="flex border-b border-gray-200 mb-3 sm:mb-4 flex-shrink-0 overflow-x-auto gap-0.5">
+          <div className="flex-1 px-4 pt-1 pb-2 sm:px-6 sm:py-4 sm:pt-4 sm:pb-3 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex border-b border-gray-200 mb-1 sm:mb-4 flex-shrink-0 overflow-x-auto gap-0.5">
               <button
                 type="button"
-                className="px-3 py-2.5 text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap border-b-2 border-blue-600 text-blue-600"
-                title="Supplier Intelligence Hub — directory, Excel import & export"
+                className="px-2 py-2 text-xs sm:px-3 sm:py-2.5 sm:text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap border-b-2 border-blue-600 text-blue-600"
+                title="Suppliers"
+                aria-label="Suppliers"
               >
-                <Building2 className="h-4 w-4 shrink-0" />
-                Suppliers
+                <Building2 className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="hidden sm:inline">Suppliers</span>
               </button>
             </div>
             <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
