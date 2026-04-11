@@ -46,7 +46,8 @@ function detectColumnMap(headers: string[]): Record<string, keyof ParsedSupplier
     else if (/designation|title|position/i.test(key)) map[h] = 'designation';
     else if (/^address|location/i.test(key)) map[h] = 'address';
     else if (/trade|speciali[sz]ation|product|service/i.test(key)) map[h] = 'trade';
-    else if (/remark|note|comments?/i.test(key)) map[h] = 'remark';
+    // Excel headers: Remarks, Remark, Notes, Comments → supplier_hub_entries.remark
+    else if (/remarks?|remark\b|\bnotes?\b|comments?/i.test(key)) map[h] = 'remark';
   }
   return map as any;
 }

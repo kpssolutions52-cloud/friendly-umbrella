@@ -48,6 +48,64 @@ const STATUS_CLASS: Record<SupplierHubStatus, string> = {
   blacklisted: 'bg-red-50 text-red-800 border-red-200',
 };
 
+function ColumnResizeHandle({
+  ariaLabel,
+  onResizeStart,
+}: {
+  ariaLabel: string;
+  onResizeStart: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <span
+      role="separator"
+      aria-label={ariaLabel}
+      className="absolute right-0 top-0 z-30 h-full w-4 -translate-x-1/2 cursor-col-resize select-none touch-none hover:bg-blue-500/25 active:bg-blue-500/40"
+      onMouseDown={onResizeStart}
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
+
+function RemarkCell({
+  entry,
+  onSaved,
+  toast,
+}: {
+  entry: SupplierHubEntry;
+  onSaved: () => void;
+  toast: ReturnType<typeof useToast>['toast'];
+}) {
+  const [v, setV] = useState(entry.remark ?? '');
+  useEffect(() => {
+    setV(entry.remark ?? '');
+  }, [entry.id, entry.remark]);
+
+  const save = async () => {
+    const next = v.trim() || null;
+    const prev = entry.remark ?? null;
+    if (next === prev) return;
+    try {
+      await updateSupplierHub(entry.id, { remark: next });
+      onSaved();
+    } catch (e: any) {
+      toast({ title: 'Could not save remarks', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  return (
+    <textarea
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={save}
+      rows={2}
+      placeholder="—"
+      className="w-full min-h-[2.25rem] max-h-28 resize-y rounded border border-transparent bg-slate-50/80 px-1.5 py-1 text-[11px] leading-snug text-slate-700 placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:outline-none"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    />
+  );
+}
+
 export function SupplierIntelligenceHub() {
   const { toast } = useToast();
   const [q, setQ] = useState('');
@@ -283,7 +341,7 @@ export function SupplierIntelligenceHub() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search company, contact, trade, phone, email…"
+              placeholder="Search company, contact, trade, remarks, phone, email…"
               className="h-8 border-slate-200 pl-7 text-sm"
             />
           </div>
@@ -378,95 +436,70 @@ export function SupplierIntelligenceHub() {
           <div className="min-h-0 flex-1 overflow-auto">
             <table
               className="text-xs table-fixed border-collapse"
-              style={{ width: colWidths.reduce((a, b) => a + b, 0) }}
+              style={{ minWidth: colWidths.reduce((a, b) => a + b, 0) }}
             >
               <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
                 <tr className="text-left text-slate-500">
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
-                    style={{ width: colWidths[0] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none overflow-hidden"
+                    style={{ width: colWidths[0], minWidth: colWidths[0] }}
                   >
-                    <span className="block truncate pr-2">Company</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize company column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(0, e)}
-                    />
+                    <span className="block truncate pr-3">Company</span>
+                    <ColumnResizeHandle ariaLabel="Resize company column" onResizeStart={(e) => startResize(0, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 hidden sm:table-cell select-none"
-                    style={{ width: colWidths[1] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden sm:table-cell select-none overflow-hidden"
+                    style={{ width: colWidths[1], minWidth: colWidths[1] }}
                   >
-                    <span className="block truncate pr-2">Category</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize category column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(1, e)}
-                    />
+                    <span className="block truncate pr-3">Category</span>
+                    <ColumnResizeHandle ariaLabel="Resize category column" onResizeStart={(e) => startResize(1, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 hidden md:table-cell select-none"
-                    style={{ width: colWidths[2] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden md:table-cell select-none overflow-hidden"
+                    style={{ width: colWidths[2], minWidth: colWidths[2] }}
                   >
-                    <span className="block truncate pr-2">Trade</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize trade column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(2, e)}
-                    />
+                    <span className="block truncate pr-3">Trade</span>
+                    <ColumnResizeHandle ariaLabel="Resize trade column" onResizeStart={(e) => startResize(2, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
-                    style={{ width: colWidths[3] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none overflow-hidden"
+                    style={{ width: colWidths[3], minWidth: colWidths[3] }}
                   >
-                    <span className="block truncate pr-2">Contact</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize contact column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(3, e)}
-                    />
+                    <span className="block truncate pr-3">Contact</span>
+                    <ColumnResizeHandle ariaLabel="Resize contact column" onResizeStart={(e) => startResize(3, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none"
-                    style={{ width: colWidths[4] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none overflow-hidden"
+                    style={{ width: colWidths[4], minWidth: colWidths[4] }}
                   >
-                    <span className="block truncate pr-2">Phone</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize phone column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(4, e)}
-                    />
+                    <span className="block truncate pr-3">Phone</span>
+                    <ColumnResizeHandle ariaLabel="Resize phone column" onResizeStart={(e) => startResize(4, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none"
-                    style={{ width: colWidths[5] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none overflow-hidden"
+                    style={{ width: colWidths[5], minWidth: colWidths[5] }}
                   >
-                    <span className="block truncate pr-2">Email</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize email column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(5, e)}
-                    />
+                    <span className="block truncate pr-3">Email</span>
+                    <ColumnResizeHandle ariaLabel="Resize email column" onResizeStart={(e) => startResize(5, e)} />
                   </th>
                   <th
-                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
-                    style={{ width: colWidths[6] }}
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none overflow-hidden"
+                    style={{ width: colWidths[6], minWidth: colWidths[6] }}
                   >
-                    <span className="block truncate pr-2">Status</span>
-                    <span
-                      role="separator"
-                      aria-label="Resize status column"
-                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
-                      onMouseDown={(e) => startResize(6, e)}
-                    />
+                    <span className="block truncate pr-3">Remarks</span>
+                    <ColumnResizeHandle ariaLabel="Resize remarks column" onResizeStart={(e) => startResize(6, e)} />
                   </th>
-                  <th className="px-2 py-2 font-medium text-slate-700 text-right" style={{ width: colWidths[7] }}>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none overflow-hidden"
+                    style={{ width: colWidths[7], minWidth: colWidths[7] }}
+                  >
+                    <span className="block truncate pr-3">Status</span>
+                    <ColumnResizeHandle ariaLabel="Resize status column" onResizeStart={(e) => startResize(7, e)} />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 text-right overflow-hidden"
+                    style={{ width: colWidths[8], minWidth: colWidths[8] }}
+                  >
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -480,20 +513,58 @@ export function SupplierIntelligenceHub() {
                       className="border-b border-slate-100 hover:bg-blue-50/40 cursor-pointer"
                       onClick={() => openDrawer(s.id)}
                     >
-                      <td className="px-2 py-2 font-medium text-slate-900 truncate" style={{ maxWidth: colWidths[0] }}>
-                        {s.companyName}
+                      <td
+                        className="px-2 py-2 font-medium text-slate-900 align-top"
+                        style={{ width: colWidths[0], minWidth: colWidths[0], maxWidth: colWidths[0] }}
+                      >
+                        <div className="truncate" title={s.companyName}>
+                          {s.companyName}
+                        </div>
                       </td>
-                      <td className="px-2 py-2 text-slate-600 hidden sm:table-cell truncate">{s.category ?? '—'}</td>
-                      <td className="px-2 py-2 text-slate-600 hidden md:table-cell truncate">{s.trade ?? '—'}</td>
-                      <td className="px-2 py-2 truncate">{p?.contactName ?? '—'}</td>
-                      <td className="px-2 py-2 hidden lg:table-cell truncate">{p?.phone ?? '—'}</td>
-                      <td className="px-2 py-2 hidden lg:table-cell truncate">{p?.email ?? '—'}</td>
-                      <td className="px-2 py-2">
+                      <td
+                        className="px-2 py-2 text-slate-600 hidden sm:table-cell align-top truncate"
+                        style={{ width: colWidths[1], minWidth: colWidths[1], maxWidth: colWidths[1] }}
+                      >
+                        {s.category ?? '—'}
+                      </td>
+                      <td
+                        className="px-2 py-2 text-slate-600 hidden md:table-cell align-top truncate"
+                        style={{ width: colWidths[2], minWidth: colWidths[2], maxWidth: colWidths[2] }}
+                      >
+                        {s.trade ?? '—'}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top truncate"
+                        style={{ width: colWidths[3], minWidth: colWidths[3], maxWidth: colWidths[3] }}
+                      >
+                        {p?.contactName ?? '—'}
+                      </td>
+                      <td
+                        className="px-2 py-2 hidden lg:table-cell align-top truncate"
+                        style={{ width: colWidths[4], minWidth: colWidths[4], maxWidth: colWidths[4] }}
+                      >
+                        {p?.phone ?? '—'}
+                      </td>
+                      <td
+                        className="px-2 py-2 hidden lg:table-cell align-top truncate"
+                        style={{ width: colWidths[5], minWidth: colWidths[5], maxWidth: colWidths[5] }}
+                      >
+                        {p?.email ?? '—'}
+                      </td>
+                      <td
+                        className="px-1 py-1 align-top"
+                        style={{ width: colWidths[6], minWidth: colWidths[6], maxWidth: colWidths[6] }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <RemarkCell entry={s} onSaved={load} toast={toast} />
+                      </td>
+                      <td className="px-2 py-2 align-top" style={{ width: colWidths[7], minWidth: colWidths[7] }}>
                         <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] ${STATUS_CLASS[s.status]}`}>
                           {s.status}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-right">
+                      <td className="px-2 py-2 text-right align-top" style={{ width: colWidths[8], minWidth: colWidths[8] }}>
                         <Button
                           variant="ghost"
                           size="sm"
