@@ -570,9 +570,9 @@ export async function runImportJob(jobId: string) {
     const importMode: 'create' | 'skip_duplicates' | 'replace_existing' =
       job.mode === 'skip_duplicates'
         ? 'skip_duplicates'
-        : job.mode === 'replace_existing'
-          ? 'replace_existing'
-          : 'create';
+        : job.mode === 'create'
+          ? 'create'
+          : 'replace_existing';
     const result = await importSuppliers(
       job.organizationId,
       job.userId ?? undefined,

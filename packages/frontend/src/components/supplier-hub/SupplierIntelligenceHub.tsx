@@ -322,11 +322,11 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
     }
   };
 
-  const confirmImport = async (mode: 'create' | 'skip_duplicates' | 'replace_existing') => {
+  const confirmImport = async () => {
     if (!importPreview) return;
     setImporting(true);
     try {
-      const r = await confirmImportSupplierHub(importPreview, mode);
+      const r = await confirmImportSupplierHub(importPreview);
       setImportOpen(false);
       setImportPreview(null);
       setImportWarnings([]);
@@ -1079,24 +1079,17 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
               ))}
               {importPreview.length > 15 && <p className="text-slate-400">…and {importPreview.length - 15} more</p>}
             </div>
-            <div className="p-3 border-t border-slate-200 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-              <p className="text-slate-500 text-[11px] sm:mr-auto sm:max-w-[55%] order-last sm:order-first">
-                <span className="font-medium text-slate-700">Replace existing</span> updates matching suppliers
-                (same name, ignoring case/spacing) and replaces all contacts. New companies in the file are still
-                added.
+            <div className="p-3 border-t border-slate-200 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <p className="text-slate-500 text-[11px] sm:max-w-[65%]">
+                Matching suppliers (same company name, ignoring case and extra spaces) are updated from the file and
+                contacts are replaced. New companies are added.
               </p>
               <div className="flex flex-wrap gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(false)}>
                   Cancel
                 </Button>
-                <Button size="sm" variant="secondary" disabled={importing} onClick={() => confirmImport('skip_duplicates')}>
-                  Skip duplicates
-                </Button>
-                <Button size="sm" variant="secondary" disabled={importing} onClick={() => confirmImport('create')}>
-                  All as new
-                </Button>
-                <Button size="sm" disabled={importing} onClick={() => confirmImport('replace_existing')}>
-                  Replace existing
+                <Button size="sm" disabled={importing} onClick={() => confirmImport()}>
+                  Import
                 </Button>
               </div>
             </div>

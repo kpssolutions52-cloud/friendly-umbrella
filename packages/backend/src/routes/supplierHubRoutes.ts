@@ -191,12 +191,13 @@ router.post('/supplier-hub/import/confirm', requireAuth, requireQS, async (req: 
       mode?: 'create' | 'skip_duplicates' | 'replace_existing';
     };
     if (!Array.isArray(suppliers)) return res.status(400).json({ error: 'suppliers array required' });
+    // Default: upsert by company name (update + replace contacts if match; else create).
     const importMode: 'create' | 'skip_duplicates' | 'replace_existing' =
       mode === 'skip_duplicates'
         ? 'skip_duplicates'
-        : mode === 'replace_existing'
-          ? 'replace_existing'
-          : 'create';
+        : mode === 'create'
+          ? 'create'
+          : 'replace_existing';
     const job = await createImportJob(orgId(req), userId(req), suppliers, importMode);
     setImmediate(() => {
       runImportJob(job.id).catch((err) => console.error('[supplier-hub] import job', job.id, err));

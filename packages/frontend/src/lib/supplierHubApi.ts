@@ -135,9 +135,10 @@ export async function previewImportSupplierHub(file: File) {
 }
 
 /** Queues server-side import job; poll with {@link getSupplierImportJob}. */
+/** Excel import: defaults to upsert (match by company name, replace row + contacts, or create). */
 export async function confirmImportSupplierHub(
   suppliers: any[],
-  mode: 'create' | 'skip_duplicates' | 'replace_existing'
+  mode: 'create' | 'skip_duplicates' | 'replace_existing' = 'replace_existing'
 ) {
   return apiPost<{ jobId: string; status: string }>(
     `/api/v1/supplier-hub/import/confirm`,
