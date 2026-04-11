@@ -353,7 +353,7 @@ export function SupplierIntelligenceHub() {
   const activeFilterCount = Number(Boolean(category)) + Number(Boolean(trade)) + Number(Boolean(statusFilter));
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-1.5">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-1.5 pb-[calc(env(safe-area-inset-bottom)+4.25rem)] sm:pb-0">
       {/* Compact toolbar — single short block so the grid gets vertical space */}
       <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -370,11 +370,11 @@ export function SupplierIntelligenceHub() {
               className="h-8 border-slate-200 pl-8 text-sm"
             />
           </div>
-          <Button size="sm" className="h-8 px-2 text-xs sm:h-7 sm:px-2 sm:text-[11px]" onClick={() => setCreateOpen(true)} title="Add supplier">
+          <Button size="sm" className="hidden h-8 px-2 text-xs sm:inline-flex sm:h-7 sm:px-2 sm:text-[11px]" onClick={() => setCreateOpen(true)} title="Add supplier">
             <Plus className="h-3.5 w-3.5 sm:mr-0.5 sm:h-3 sm:w-3" />
             <span className="hidden sm:inline">Add</span>
           </Button>
-          <label className="inline-flex">
+          <label className="hidden sm:inline-flex">
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => onImportFile(e.target.files?.[0] ?? null)} />
             <Button size="sm" variant="outline" className="h-8 cursor-pointer px-2 text-xs sm:h-7 sm:px-2 sm:text-[11px]" asChild>
               <span>
@@ -391,22 +391,6 @@ export function SupplierIntelligenceHub() {
             <RefreshCw className={`h-3.5 w-3.5 sm:mr-0.5 sm:h-3 sm:w-3 ${loading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
-          {isMobile && (
-            <Button
-              size="sm"
-              variant={mobileFiltersOpen ? 'default' : 'outline'}
-              className="h-8 px-2 text-xs relative"
-              onClick={() => setMobileFiltersOpen((v) => !v)}
-              title="Filters"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {activeFilterCount > 0 && (
-                <span className="absolute -right-1 -top-1 rounded-full bg-blue-600 px-1 text-[9px] text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </Button>
-          )}
           <span className="ml-auto text-[11px] text-slate-500">{total}</span>
           {!isMobile && <div className="flex shrink-0 overflow-hidden rounded-lg border border-slate-200">
             <button
@@ -722,6 +706,37 @@ export function SupplierIntelligenceHub() {
             </Button>
             <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
               Next
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isMobile && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-3 py-2 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto grid max-w-xl grid-cols-3 gap-2">
+            <Button size="sm" className="h-10 text-xs" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Add
+            </Button>
+            <label className="inline-flex">
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => onImportFile(e.target.files?.[0] ?? null)} />
+              <Button size="sm" variant="outline" className="h-10 w-full text-xs" asChild>
+                <span>
+                  <Upload className="mr-1 h-4 w-4" /> Import
+                </span>
+              </Button>
+            </label>
+            <Button
+              size="sm"
+              variant={mobileFiltersOpen ? 'default' : 'outline'}
+              className="relative h-10 text-xs"
+              onClick={() => setMobileFiltersOpen((v) => !v)}
+            >
+              <SlidersHorizontal className="mr-1 h-4 w-4" /> Filters
+              {activeFilterCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 rounded-full bg-blue-600 px-1 text-[9px] text-white">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
           </div>
         </div>
