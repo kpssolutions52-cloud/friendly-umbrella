@@ -32,6 +32,7 @@ model Organization {
   procurementRequests  ProcurementRequest[]   @relation("OrgProcurementRequests")
   supplierCandidates   RfqSupplierCandidate[] @relation("OrgSupplierCandidates")
   supplierHubEntries   SupplierHubEntry[]     @relation("OrgSupplierHubEntries")
+  supplierHubImportJobs SupplierHubImportJob[] @relation("OrgSupplierHubImportJobs")
 
   @@index([type])
   @@map("organizations")
@@ -77,6 +78,7 @@ model User {
   priceViews            PriceView[]          @relation("PriceViewUser")
   procurementRequests   ProcurementRequest[] @relation("UserProcurementRequests")
   supplierHubActivities SupplierHubActivity[]  @relation("UserSupplierHubActivities")
+  supplierHubImportJobs SupplierHubImportJob[] @relation("UserSupplierHubImportJobs")
 
   @@index([organizationId])
   @@index([email])
@@ -853,6 +855,36 @@ model SupplierHubActivity {
   @@index([supplierHubEntryId])
   @@index([createdAt])
   @@map("supplier_hub_activities")
+}
+
+enum SupplierHubImportJobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+model SupplierHubImportJob {
+  id             String                     @id @default(uuid())
+  organizationId String                     @map("organization_id")
+  userId         String?                    @map("user_id")
+  status         SupplierHubImportJobStatus @default(pending)
+  mode           String                     @db.VarChar(32)
+  payload        Json
+  resultCreated  Int?                       @map("result_created")
+  resultSkipped  Int?                       @map("result_skipped")
+  resultErrors   Json?                      @map("result_errors")
+  errorMessage   String?                    @map("error_message") @db.Text
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  organization Organization @relation("OrgSupplierHubImportJobs", fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("UserSupplierHubImportJobs", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("supplier_hub_import_jobs")
 }
 
 // ─── End Supplier Intelligence Hub ───────────────────────────────────────────

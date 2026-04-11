@@ -17,6 +17,7 @@ import {
   Pencil,
   Trash2,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ import {
   archiveSupplierHub,
   previewImportSupplierHub,
   confirmImportSupplierHub,
+  getSupplierImportJob,
   exportSupplierHubBlob,
   upsertContactHub,
   deleteContactHub,
@@ -37,6 +39,7 @@ import {
   type SupplierHubContact,
   type SupplierHubStatus,
 } from '@/lib/supplierHubApi';
+import { useSupplierHubColumnWidths } from '@/components/supplier-hub/useSupplierHubColumnWidths';
 
 const STATUS_CLASS: Record<SupplierHubStatus, string> = {
   active: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -68,6 +71,14 @@ export function SupplierIntelligenceHub() {
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
+  /** Background Excel import (poll until completed / failed) */
+  const [activeImportJob, setActiveImportJob] = useState<{
+    id: string;
+    status: string;
+    bannerDismissed: boolean;
+  } | null>(null);
+
+  const { widths: colWidths, startResize } = useSupplierHubColumnWidths();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newCo, setNewCo] = useState({ companyName: '', category: '', trade: '', email: '', phone: '' });
@@ -103,6 +114,50 @@ export function SupplierIntelligenceHub() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const jobId = activeImportJob?.id;
+    if (!jobId) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      try {
+        const j = await getSupplierImportJob(jobId);
+        if (cancelled) return;
+        setActiveImportJob((prev) =>
+          prev && prev.id === jobId ? { ...prev, status: j.status } : prev
+        );
+        if (j.status === 'completed') {
+          const errs = Array.isArray(j.resultErrors) ? j.resultErrors : [];
+          toast({
+            title: 'Import finished',
+            description: `Created ${j.resultCreated ?? 0}, skipped ${j.resultSkipped ?? 0}.${errs.length ? ` ${errs.slice(0, 3).join('; ')}` : ''}`,
+          });
+          setActiveImportJob(null);
+          load();
+        } else if (j.status === 'failed') {
+          toast({
+            title: 'Import failed',
+            description: j.errorMessage || 'Unknown error',
+            variant: 'destructive',
+          });
+          setActiveImportJob(null);
+        }
+      } catch (e: any) {
+        if (cancelled) return;
+        toast({ title: 'Could not check import status', description: e.message, variant: 'destructive' });
+        setActiveImportJob(null);
+      }
+    };
+
+    const interval = setInterval(tick, 1500);
+    tick();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeImportJob?.id]);
 
   const openDrawer = async (id: string) => {
     try {
@@ -179,13 +234,14 @@ export function SupplierIntelligenceHub() {
     setImporting(true);
     try {
       const r = await confirmImportSupplierHub(importPreview, mode);
-      toast({
-        title: 'Import complete',
-        description: `Created ${r.created}, skipped ${r.skipped}. ${r.errors.length ? r.errors.slice(0, 3).join('; ') : ''}`,
-      });
       setImportOpen(false);
       setImportPreview(null);
-      load();
+      setImportWarnings([]);
+      setActiveImportJob({ id: r.jobId, status: r.status || 'pending', bannerDismissed: false });
+      toast({
+        title: 'Import queued',
+        description: 'Processing in the background. We will notify you when it finishes.',
+      });
     } catch (e: any) {
       toast({ title: 'Import failed', description: e.message, variant: 'destructive' });
     } finally {
@@ -214,129 +270,250 @@ export function SupplierIntelligenceHub() {
   const primary = (s: SupplierHubEntry) => s.primaryContact ?? s.contacts?.[0];
 
   return (
-    <div className="flex flex-col gap-3 min-h-0 flex-1">
-      {/* Hero search */}
-      <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-blue-50/40 p-3 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mb-2">
-          <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-          Supplier Intelligence Hub
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search company, contact, trade, category, phone, email, address…"
-            className="pl-9 h-10 text-sm bg-white/90 border-slate-200"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          <Button size="sm" className="h-8 text-xs" onClick={() => setCreateOpen(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" /> Add Supplier
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-1.5">
+      {/* Compact toolbar — single short block so the grid gets vertical space */}
+      <div className="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5 gap-y-1">
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+            <Sparkles className="h-3 w-3 shrink-0 text-blue-500" />
+            <span className="hidden sm:inline">Hub</span>
+          </div>
+          <div className="relative min-w-[120px] flex-1 basis-[min(100%,220px)]">
+            <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search company, contact, trade, phone, email…"
+              className="h-8 border-slate-200 pl-7 text-sm"
+            />
+          </div>
+          <Button size="sm" className="h-7 px-2 text-[11px]" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-0.5 h-3 w-3" /> Add
           </Button>
           <label className="inline-flex">
             <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => onImportFile(e.target.files?.[0] ?? null)} />
-            <Button size="sm" variant="outline" className="h-8 text-xs cursor-pointer" asChild>
+            <Button size="sm" variant="outline" className="h-7 cursor-pointer px-2 text-[11px]" asChild>
               <span>
-                <Upload className="w-3.5 h-3.5 mr-1" /> Import Excel
+                <Upload className="mr-0.5 h-3 w-3" /> Import
               </span>
             </Button>
           </label>
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={handleExport}>
-            <Download className="w-3.5 h-3.5 mr-1" /> Export
+          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={handleExport}>
+            <Download className="mr-0.5 h-3 w-3" /> Export
           </Button>
-          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => load()} disabled={loading}>
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => load()} disabled={loading}>
+            <RefreshCw className={`mr-0.5 h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
           </Button>
-          <div className="ml-auto flex rounded-md border border-slate-200 overflow-hidden">
+          <div className="ml-auto flex shrink-0 overflow-hidden rounded border border-slate-200">
             <button
               type="button"
-              className={`px-2 py-1 ${view === 'table' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}
+              title="Table"
+              className={`px-1.5 py-0.5 ${view === 'table' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}
               onClick={() => setView('table')}
             >
-              <Table2 className="w-3.5 h-3.5" />
+              <Table2 className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
-              className={`px-2 py-1 ${view === 'cards' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}
+              title="Cards"
+              className={`px-1.5 py-0.5 ${view === 'cards' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}
               onClick={() => setView('cards')}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-1.5 text-[11px]">
+          <Input
+            placeholder="Category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="h-7 w-24"
+          />
+          <Input placeholder="Trade" value={trade} onChange={(e) => setTrade(e.target.value)} className="h-7 w-24" />
+          <select
+            className="h-7 rounded-md border border-input bg-background px-1.5 text-[11px]"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as SupplierHubStatus | '')}
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="preferred">Preferred</option>
+            <option value="blacklisted">Blacklisted</option>
+          </select>
+          <span className="text-slate-400">{total} suppliers</span>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        <Input placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} className="h-8 w-28" />
-        <Input placeholder="Trade" value={trade} onChange={(e) => setTrade(e.target.value)} className="h-8 w-28" />
-        <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as SupplierHubStatus | '')}
-        >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="preferred">Preferred</option>
-          <option value="blacklisted">Blacklisted</option>
-        </select>
-        <span className="text-slate-400 self-center">{total} suppliers</span>
-      </div>
+      {activeImportJob &&
+        !activeImportJob.bannerDismissed &&
+        (activeImportJob.status === 'pending' || activeImportJob.status === 'processing') && (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 shrink-0">
+            <Loader2 className="h-4 w-4 animate-spin shrink-0 text-blue-600" />
+            <span>
+              Importing suppliers… <span className="text-blue-800/80">({activeImportJob.status})</span>
+            </span>
+            <button
+              type="button"
+              className="ml-auto text-blue-800 hover:underline"
+              onClick={() =>
+                setActiveImportJob((prev) => (prev ? { ...prev, bannerDismissed: true } : null))
+              }
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-      {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-slate-200 bg-white">
+      {/* Content — flex-1 so the table fills space below the compact toolbar */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
         {loading ? (
-          <div className="p-4 space-y-2">
+          <div className="space-y-2 p-3">
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-8 w-full" />
           </div>
         ) : view === 'table' ? (
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
-              <tr className="text-left text-slate-500">
-                <th className="px-3 py-2 font-medium">Company</th>
-                <th className="px-3 py-2 font-medium hidden sm:table-cell">Category</th>
-                <th className="px-3 py-2 font-medium hidden md:table-cell">Trade</th>
-                <th className="px-3 py-2 font-medium">Contact</th>
-                <th className="px-3 py-2 font-medium hidden lg:table-cell">Phone</th>
-                <th className="px-3 py-2 font-medium hidden lg:table-cell">Email</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium w-16" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => {
-                const p = primary(s);
-                return (
-                  <tr
-                    key={s.id}
-                    className="border-b border-slate-100 hover:bg-blue-50/40 cursor-pointer"
-                    onClick={() => openDrawer(s.id)}
+          <div className="min-h-0 flex-1 overflow-auto">
+            <table
+              className="text-xs table-fixed border-collapse"
+              style={{ width: colWidths.reduce((a, b) => a + b, 0) }}
+            >
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
+                <tr className="text-left text-slate-500">
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
+                    style={{ width: colWidths[0] }}
                   >
-                    <td className="px-3 py-2 font-medium text-slate-900">{s.companyName}</td>
-                    <td className="px-3 py-2 text-slate-600 hidden sm:table-cell">{s.category ?? '—'}</td>
-                    <td className="px-3 py-2 text-slate-600 hidden md:table-cell truncate max-w-[120px]">{s.trade ?? '—'}</td>
-                    <td className="px-3 py-2">{p?.contactName ?? '—'}</td>
-                    <td className="px-3 py-2 hidden lg:table-cell">{p?.phone ?? '—'}</td>
-                    <td className="px-3 py-2 hidden lg:table-cell truncate max-w-[140px]">{p?.email ?? '—'}</td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] ${STATUS_CLASS[s.status]}`}>{s.status}</span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Button variant="ghost" size="sm" className="h-7 px-1" onClick={(e) => { e.stopPropagation(); openDrawer(s.id); }}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    <span className="block truncate pr-2">Company</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize company column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(0, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden sm:table-cell select-none"
+                    style={{ width: colWidths[1] }}
+                  >
+                    <span className="block truncate pr-2">Category</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize category column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(1, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden md:table-cell select-none"
+                    style={{ width: colWidths[2] }}
+                  >
+                    <span className="block truncate pr-2">Trade</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize trade column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(2, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
+                    style={{ width: colWidths[3] }}
+                  >
+                    <span className="block truncate pr-2">Contact</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize contact column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(3, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none"
+                    style={{ width: colWidths[4] }}
+                  >
+                    <span className="block truncate pr-2">Phone</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize phone column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(4, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 hidden lg:table-cell select-none"
+                    style={{ width: colWidths[5] }}
+                  >
+                    <span className="block truncate pr-2">Email</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize email column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(5, e)}
+                    />
+                  </th>
+                  <th
+                    className="relative px-2 py-2 font-medium text-slate-700 select-none"
+                    style={{ width: colWidths[6] }}
+                  >
+                    <span className="block truncate pr-2">Status</span>
+                    <span
+                      role="separator"
+                      aria-label="Resize status column"
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400/50"
+                      onMouseDown={(e) => startResize(6, e)}
+                    />
+                  </th>
+                  <th className="px-2 py-2 font-medium text-slate-700 text-right" style={{ width: colWidths[7] }}>
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((s) => {
+                  const p = primary(s);
+                  return (
+                    <tr
+                      key={s.id}
+                      className="border-b border-slate-100 hover:bg-blue-50/40 cursor-pointer"
+                      onClick={() => openDrawer(s.id)}
+                    >
+                      <td className="px-2 py-2 font-medium text-slate-900 truncate" style={{ maxWidth: colWidths[0] }}>
+                        {s.companyName}
+                      </td>
+                      <td className="px-2 py-2 text-slate-600 hidden sm:table-cell truncate">{s.category ?? '—'}</td>
+                      <td className="px-2 py-2 text-slate-600 hidden md:table-cell truncate">{s.trade ?? '—'}</td>
+                      <td className="px-2 py-2 truncate">{p?.contactName ?? '—'}</td>
+                      <td className="px-2 py-2 hidden lg:table-cell truncate">{p?.phone ?? '—'}</td>
+                      <td className="px-2 py-2 hidden lg:table-cell truncate">{p?.email ?? '—'}</td>
+                      <td className="px-2 py-2">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] ${STATUS_CLASS[s.status]}`}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDrawer(s.id);
+                          }}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto p-3 sm:grid-cols-2">
             {rows.map((s) => {
               const p = primary(s);
               return (
@@ -386,7 +563,7 @@ export function SupplierIntelligenceHub() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-between items-center text-xs text-slate-500">
+        <div className="flex shrink-0 justify-between items-center text-xs text-slate-500">
           <span>
             Page {page} of {totalPages}
           </span>

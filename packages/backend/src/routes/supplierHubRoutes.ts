@@ -15,8 +15,10 @@ import {
   archiveSupplier,
   upsertContact,
   deleteContact,
-  importSuppliers,
   findPotentialDuplicates,
+  createImportJob,
+  getImportJob,
+  runImportJob,
 } from '../services/supplierHubService';
 import { normalizeSupplierRows, parseSupplierExcelBuffer, buildExportWorkbook } from '../services/supplierHubExcel';
 import type { SupplierHubSourceType, SupplierHubStatus } from '@prisma/client';
@@ -181,13 +183,41 @@ router.post('/supplier-hub/import/preview', requireAuth, requireQS, upload.singl
   }
 });
 
-/** POST /supplier-hub/import/confirm */
+/** POST /supplier-hub/import/confirm — queues background job, returns jobId (202) */
 router.post('/supplier-hub/import/confirm', requireAuth, requireQS, async (req: Request, res: Response) => {
   try {
     const { suppliers, mode } = req.body as { suppliers: any[]; mode?: 'create' | 'skip_duplicates' };
     if (!Array.isArray(suppliers)) return res.status(400).json({ error: 'suppliers array required' });
-    const result = await importSuppliers(orgId(req), userId(req), suppliers, mode === 'skip_duplicates' ? 'skip_duplicates' : 'create');
-    return res.json(result);
+    const job = await createImportJob(
+      orgId(req),
+      userId(req),
+      suppliers,
+      mode === 'skip_duplicates' ? 'skip_duplicates' : 'create'
+    );
+    setImmediate(() => {
+      runImportJob(job.id).catch((err) => console.error('[supplier-hub] import job', job.id, err));
+    });
+    return res.status(202).json({ jobId: job.id, status: 'pending' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/** GET /supplier-hub/import/jobs/:jobId — poll import job status */
+router.get('/supplier-hub/import/jobs/:jobId', requireAuth, requireQS, async (req: Request, res: Response) => {
+  try {
+    const job = await getImportJob(orgId(req), req.params.jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    return res.json({
+      id: job.id,
+      status: job.status,
+      resultCreated: job.resultCreated,
+      resultSkipped: job.resultSkipped,
+      resultErrors: job.resultErrors,
+      errorMessage: job.errorMessage,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

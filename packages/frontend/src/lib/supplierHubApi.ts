@@ -134,13 +134,29 @@ export async function previewImportSupplierHub(file: File) {
   }
 }
 
+/** Queues server-side import job; poll with {@link getSupplierImportJob}. */
 export async function confirmImportSupplierHub(suppliers: any[], mode: 'create' | 'skip_duplicates') {
-  return apiPost<{ created: number; skipped: number; errors: string[] }>(
+  return apiPost<{ jobId: string; status: string }>(
     `/api/v1/supplier-hub/import/confirm`,
     { suppliers, mode },
     true,
     IMPORT_CONFIRM_TIMEOUT_MS
   );
+}
+
+export type SupplierImportJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export async function getSupplierImportJob(jobId: string) {
+  return apiGet<{
+    id: string;
+    status: SupplierImportJobStatus;
+    resultCreated: number | null;
+    resultSkipped: number | null;
+    resultErrors: string[] | null;
+    errorMessage: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>(`/api/v1/supplier-hub/import/jobs/${jobId}`);
 }
 
 export async function exportSupplierHubBlob(params: ListParams): Promise<Blob> {

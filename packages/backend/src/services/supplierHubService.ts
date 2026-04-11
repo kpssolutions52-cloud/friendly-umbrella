@@ -2,7 +2,7 @@
  * Supplier Intelligence Hub — CRUD, search, duplicates, completeness.
  */
 
-import { Prisma, SupplierHubSourceType, SupplierHubStatus } from '@prisma/client';
+import { Prisma, SupplierHubImportJobStatus, SupplierHubSourceType, SupplierHubStatus } from '@prisma/client';
 import { prisma } from '../utils/prisma';
 import type { ParsedContact, ParsedSupplier } from './supplierHubExcel';
 
@@ -356,6 +356,20 @@ export async function deleteContact(organizationId: string, userId: string | und
   await logSupplierActivity(c.supplierHubEntryId, userId, 'contact_removed', contactId);
 }
 
+/** Same rule as database/41-dedupe-supplier-hub-entries.sql */
+async function hasExactNormalizedCompanyName(organizationId: string, companyName: string): Promise<boolean> {
+  const name = companyName.trim();
+  if (!name) return false;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM supplier_hub_entries
+    WHERE organization_id = ${organizationId}::uuid
+      AND archived_at IS NULL
+      AND lower(trim(company_name)) = lower(trim(${name}))
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
 export async function importSuppliers(
   organizationId: string,
   userId: string | undefined,
@@ -368,6 +382,14 @@ export async function importSuppliers(
     try {
       if (!p.companyName?.trim()) {
         results.errors.push('Skipped row with empty company name');
+        continue;
+      }
+      if (await hasExactNormalizedCompanyName(organizationId, p.companyName)) {
+        if (mode === 'skip_duplicates') {
+          results.skipped += 1;
+          continue;
+        }
+        results.errors.push(`${p.companyName}: already exists (normalized name matches existing row)`);
         continue;
       }
       const dups = await findPotentialDuplicates(organizationId, p.companyName);
@@ -399,4 +421,65 @@ export async function importSuppliers(
   }
 
   return results;
+}
+
+export async function createImportJob(
+  organizationId: string,
+  userId: string | undefined,
+  parsed: ParsedSupplier[],
+  mode: 'create' | 'skip_duplicates'
+) {
+  return prisma.supplierHubImportJob.create({
+    data: {
+      organizationId,
+      userId: userId ?? null,
+      status: SupplierHubImportJobStatus.pending,
+      mode,
+      payload: parsed as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function getImportJob(organizationId: string, jobId: string) {
+  return prisma.supplierHubImportJob.findFirst({
+    where: { id: jobId, organizationId },
+  });
+}
+
+/** Runs after HTTP response; processes payload and updates job row. */
+export async function runImportJob(jobId: string) {
+  const job = await prisma.supplierHubImportJob.findUnique({ where: { id: jobId } });
+  if (!job || job.status !== SupplierHubImportJobStatus.pending) return;
+
+  await prisma.supplierHubImportJob.update({
+    where: { id: jobId },
+    data: { status: SupplierHubImportJobStatus.processing },
+  });
+
+  try {
+    const suppliers = job.payload as unknown as ParsedSupplier[];
+    const result = await importSuppliers(
+      job.organizationId,
+      job.userId ?? undefined,
+      suppliers,
+      job.mode === 'skip_duplicates' ? 'skip_duplicates' : 'create'
+    );
+    await prisma.supplierHubImportJob.update({
+      where: { id: jobId },
+      data: {
+        status: SupplierHubImportJobStatus.completed,
+        resultCreated: result.created,
+        resultSkipped: result.skipped,
+        resultErrors: result.errors,
+      },
+    });
+  } catch (e: any) {
+    await prisma.supplierHubImportJob.update({
+      where: { id: jobId },
+      data: {
+        status: SupplierHubImportJobStatus.failed,
+        errorMessage: e?.message || String(e),
+      },
+    });
+  }
 }
