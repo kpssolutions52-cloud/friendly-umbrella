@@ -172,6 +172,11 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
     return () => clearTimeout(t);
   }, [q]);
 
+  // New search/filters change the result set size; keep page 1 or we request e.g. page 2 when only 1 page exists → empty rows.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, category, trade, statusFilter]);
+
   useEffect(() => {
     // Mobile-first default: cards are easier to scan and tap than a dense table.
     if (window.innerWidth < 768) {
