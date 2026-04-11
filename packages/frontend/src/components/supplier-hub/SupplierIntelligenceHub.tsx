@@ -791,7 +791,11 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
 
       {totalPages > 1 && (
         <nav
-          className="flex shrink-0 items-center justify-center gap-0.5 py-0.5"
+          className={cn(
+            'flex shrink-0 items-center justify-center gap-0.5 py-1 sm:py-0.5',
+            /* Mobile: fixed +/import/filter strip is z-40; keep pager above it and leave space so it isn’t covered */
+            isMobile && 'relative z-50 border-t bg-white mb-10'
+          )}
           aria-label={`Pagination, page ${page} of ${totalPages}`}
         >
           <Button
