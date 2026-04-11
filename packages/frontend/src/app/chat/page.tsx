@@ -723,7 +723,15 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
           </button>
         )}
 
-        <div className={`flex-1 min-w-0 overflow-hidden ${isMd ? 'flex flex-row' : 'flex flex-col'}`}>
+        <div
+          className={cn(
+            'min-w-0 overflow-hidden',
+            isMd && 'flex flex-1 flex-row',
+            /* Mobile: only this wrapper grows when the dashboard is visible; hide it when chat is full-screen so chat gets 100% height. */
+            !isMd && showDashboardPanel && 'flex min-h-0 flex-1 flex-col',
+            !isMd && !showDashboardPanel && 'hidden'
+          )}
+        >
         {/* Right Panel - Dashboard */}
         <div
           className={cn(
