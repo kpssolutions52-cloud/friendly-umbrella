@@ -364,10 +364,19 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
   /** App shell tab row height (must match `MOBILE_QS_TAB_NAV_RESERVE` / chat page). */
   const appNavStack = reserveAppBottomNav ? MOBILE_QS_TAB_NAV_RESERVE : '0px';
   const mobileHubBar = '3rem';
-  const scrollBottomPad =
-    isMobile || reserveAppBottomNav
-      ? `calc(env(safe-area-inset-bottom, 0px) + ${[isMobile ? mobileHubBar : '', reserveAppBottomNav ? appNavStack : ''].filter(Boolean).join(' + ') || '0px'})`
-      : undefined;
+  /**
+   * Bottom inset so scrollable content isn’t hidden under fixed mobile bars.
+   * On QS chat + mobile Hub, the dashboard shell already reserves the tab bar; the
+   * hub action strip is `position: fixed` above it. Extra padding here only created
+   * a blank gap between pagination and the + / import / filter row.
+   */
+  const scrollBottomPad = (() => {
+    if (isMobile && reserveAppBottomNav) return undefined;
+    const safe = 'env(safe-area-inset-bottom, 0px)';
+    if (isMobile) return `calc(${safe} + ${mobileHubBar})`;
+    if (reserveAppBottomNav) return `calc(${safe} + ${appNavStack})`;
+    return undefined;
+  })();
 
   return (
     <div
