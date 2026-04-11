@@ -1,5 +1,8 @@
 import { apiGet, apiPost, apiRequest, API_URL } from './api';
 
+/** Import confirm sends full parsed rows + can insert many suppliers; default api timeout is 10s and is too low. */
+const IMPORT_CONFIRM_TIMEOUT_MS = 180_000;
+
 export type SupplierHubSourceType = 'excel' | 'manual' | 'web' | 'imported';
 export type SupplierHubStatus = 'active' | 'inactive' | 'preferred' | 'blacklisted';
 
@@ -104,37 +107,59 @@ export async function previewImportSupplierHub(file: File) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const fd = new FormData();
   fd.append('file', file);
-  const res = await fetch(`${API_URL}/api/v1/supplier-hub/import/preview`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: fd,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || res.statusText);
-  }
-  return res.json() as Promise<{
+  const controller = new AbortController();
+  const previewTimeout = setTimeout(() => controller.abort(), IMPORT_CONFIRM_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_URL}/api/v1/supplier-hub/import/preview`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(previewTimeout));
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).error || res.statusText);
+    }
+    return res.json() as Promise<{
     preview: any[];
     headers: string[];
     warnings: string[];
     duplicateHints: { companyName: string; matches: { id: string; companyName: string }[] }[];
   }>;
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      throw new Error('Import preview timed out — try a smaller file or check your connection.');
+    }
+    throw e;
+  }
 }
 
 export async function confirmImportSupplierHub(suppliers: any[], mode: 'create' | 'skip_duplicates') {
-  return apiPost<{ created: number; skipped: number; errors: string[] }>(`/api/v1/supplier-hub/import/confirm`, {
-    suppliers,
-    mode,
-  });
+  return apiPost<{ created: number; skipped: number; errors: string[] }>(
+    `/api/v1/supplier-hub/import/confirm`,
+    { suppliers, mode },
+    true,
+    IMPORT_CONFIRM_TIMEOUT_MS
+  );
 }
 
 export async function exportSupplierHubBlob(params: ListParams): Promise<Blob> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  const res = await fetch(`${API_URL}/api/v1/supplier-hub/export${toQuery(params)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error('Export failed');
-  return res.blob();
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), IMPORT_CONFIRM_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${API_URL}/api/v1/supplier-hub/export${toQuery(params)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      signal: controller.signal,
+    }).finally(() => clearTimeout(t));
+    if (!res.ok) throw new Error('Export failed');
+    return res.blob();
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      throw new Error('Export timed out — try filtering to fewer suppliers or retry.');
+    }
+    throw e;
+  }
 }
 
 export async function upsertContactHub(supplierId: string, body: Partial<SupplierHubContact> & { id?: string }) {
