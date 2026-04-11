@@ -28,6 +28,14 @@ import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import Link from 'next/link';
+
+/** OpenAI + Supplier Hub context can exceed the default api client timeout (10s). */
+const QS_CHAT_API_TIMEOUT_MS = 180_000;
+
+function chatErrorText(error: unknown): string {
+  const e = error as { error?: { message?: string }; message?: string };
+  return e?.error?.message || e?.message || 'Failed to get response. Please try again.';
+}
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
@@ -269,16 +277,21 @@ export default function ChatPage() {
         content: msg.content,
       }));
 
-      const response = await apiPost<{ 
-        answer: string; 
+      const response = await apiPost<{
+        answer: string;
         requiresPermission?: boolean;
         hasSystemData?: boolean;
         systemDataSummary?: string;
-      }>('/api/v1/chat', {
-        question: questionText,
-        allowGenericAnswers: false,
-        conversationHistory: conversationHistory,
-      });
+      }>(
+        '/api/v1/chat',
+        {
+          question: questionText,
+          allowGenericAnswers: false,
+          conversationHistory: conversationHistory,
+        },
+        true,
+        QS_CHAT_API_TIMEOUT_MS
+      );
 
       const isProcurement = isProcurementMessage(questionText);
 
@@ -294,10 +307,10 @@ export default function ChatPage() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage: Message = {
         role: 'assistant',
-        content: `Error: ${error?.error?.message || 'Failed to get response. Please try again.'}`,
+        content: `Error: ${chatErrorText(error)}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -569,15 +582,20 @@ export default function ChatPage() {
                             
                             if (lastUserMessage) {
                               try {
-                                const response = await apiPost<{ 
-                                  answer: string; 
+                                const response = await apiPost<{
+                                  answer: string;
                                   requiresPermission?: boolean;
                                   hasSystemData?: boolean;
                                   systemDataSummary?: string;
-                                }>('/api/v1/chat', {
-                                  question: lastUserMessage.content,
-                                  allowGenericAnswers: true,
-                                });
+                                }>(
+                                  '/api/v1/chat',
+                                  {
+                                    question: lastUserMessage.content,
+                                    allowGenericAnswers: true,
+                                  },
+                                  true,
+                                  QS_CHAT_API_TIMEOUT_MS
+                                );
 
                                 const permissionMessage: Message = {
                                   role: 'assistant',
@@ -589,10 +607,10 @@ export default function ChatPage() {
                                 };
 
                                 setMessages((prev) => [...prev, permissionMessage]);
-                              } catch (error: any) {
+                              } catch (error: unknown) {
                                 const errorMessage: Message = {
                                   role: 'assistant',
-                                  content: `Error: ${error?.error?.message || 'Failed to get response. Please try again.'}`,
+                                  content: `Error: ${chatErrorText(error)}`,
                                   timestamp: new Date().toISOString(),
                                 };
                                 setMessages((prev) => [...prev, errorMessage]);
