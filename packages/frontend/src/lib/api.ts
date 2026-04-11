@@ -66,6 +66,20 @@ export async function apiRequest<T>(
 
     // Handle 401 Unauthorized - try to refresh token (only if retryOn401 is true)
     if (response.status === 401 && retryOn401 && typeof window !== 'undefined') {
+      // Never chain refresh on the refresh endpoint itself (would recurse forever).
+      if (endpoint.includes('/auth/refresh')) {
+        const { clearTokens } = await import('./auth');
+        clearTokens();
+        if (window.location.pathname !== '/auth/login') {
+          window.location.href = '/auth/login';
+        }
+        throw {
+          error: {
+            message: 'Session expired',
+            statusCode: 401,
+          },
+        };
+      }
       const { refreshAccessToken, clearTokens } = await import('./auth');
       
       // Try to refresh the token

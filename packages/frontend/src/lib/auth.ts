@@ -105,9 +105,12 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 
   try {
-    const response = await apiPost<{ accessToken: string }>('/api/v1/auth/refresh', {
-      refreshToken,
-    });
+    // Must not use default retryOn401: a 401 here would call refresh again → infinite loop.
+    const response = await apiPost<{ accessToken: string }>(
+      '/api/v1/auth/refresh',
+      { refreshToken },
+      false
+    );
     
     if (response.accessToken) {
       localStorage.setItem('accessToken', response.accessToken);
