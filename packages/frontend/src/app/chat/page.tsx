@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Building2, DollarSign, MessageSquare, Package, Search, Zap, ShoppingCart, X } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Building2, MessageSquare, Package, Search, ShoppingCart, X, Plus, Loader2 as LoaderIcon, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
@@ -13,7 +13,8 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
-import { createProcurementRequest } from '@/lib/procurementApi';
+import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
+import { createProcurementRequest, listProcurementRequests } from '@/lib/procurementApi';
 import type { ProcurementRequest } from '@/lib/procurementApi';
 
 interface Message {
@@ -27,23 +28,8 @@ interface Message {
   procurementPrompt?: string;
 }
 
-interface Project {
-  id: string;
-  name: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Quote {
-  id: string;
-  title: string;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-}
-
 type PanelMode = 'split' | 'chat-full' | 'dashboard-full';
+type RightPanelTab = 'products' | 'rfqs';
 
 export default function ChatPage() {
   const { user, isAuthenticated } = useAuth();
@@ -54,21 +40,28 @@ export default function ChatPage() {
   const [panelMode, setPanelMode] = useState<PanelMode>('split');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Dashboard state
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [loadingDashboard, setLoadingDashboard] = useState(true);
-  const [recentQueries, setRecentQueries] = useState<string[]>([]);
-  
+  // Right panel: Products vs RFQs
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('products');
+
   // Products state
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [currentProductPage, setCurrentProductPage] = useState(1);
   const [totalProductPages, setTotalProductPages] = useState(1);
-  const [showProducts, setShowProducts] = useState(true);
 
-  // Procurement Agent state
+  // Procurement (RFQs tab)
+  const [procurementRequests, setProcurementRequests] = useState<ProcurementRequest[]>([]);
+  const [isLoadingProcurement, setIsLoadingProcurement] = useState(false);
+  const [newRfqPrompt, setNewRfqPrompt] = useState('');
+  const [isCreatingRfq, setIsCreatingRfq] = useState(false);
+  const [lastDiscoveryMeta, setLastDiscoveryMeta] = useState<{
+    webSearchEnabled: boolean;
+    webSearchQuery?: string;
+    internalCount: number;
+    webCount: number;
+  } | null>(null);
+
   const [activeProcurementRequest, setActiveProcurementRequest] = useState<ProcurementRequest | null>(null);
   const [startingRfq, setStartingRfq] = useState<string | null>(null); // tracks which message is starting RFQ
 
@@ -90,12 +83,23 @@ export default function ChatPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  // Load dashboard data
+  const loadProcurementRequests = useCallback(async () => {
+    setIsLoadingProcurement(true);
+    try {
+      const res = await listProcurementRequests();
+      setProcurementRequests(res.requests);
+    } catch (e) {
+      console.error('Failed to load procurement requests:', e);
+    } finally {
+      setIsLoadingProcurement(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && user?.type === 'qs') {
-      loadDashboardData();
+      loadProcurementRequests();
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, loadProcurementRequests]);
 
   const showAvailableActions = () => {
     const actionsMessage: Message = {
@@ -140,32 +144,6 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoadingDashboard(true);
-      // Load projects and quotes (if endpoints exist)
-      // For MVP 1, we'll show placeholder data or handle gracefully
-      try {
-        const [projectsRes, quotesRes] = await Promise.all([
-          apiGet<{ projects: Project[] }>('/api/v1/projects').catch(() => ({ projects: [] })),
-          apiGet<{ quotes: Quote[] }>('/api/v1/quotes').catch(() => ({ quotes: [] })),
-        ]);
-        setProjects(projectsRes.projects || []);
-        setQuotes(quotesRes.quotes || []);
-      } catch (error) {
-        // Endpoints might not exist yet - that's okay for MVP 1
-        setProjects([]);
-        setQuotes([]);
-      }
-    } catch (error: any) {
-      console.error('Failed to load dashboard data:', error);
-      setProjects([]);
-      setQuotes([]);
-    } finally {
-      setLoadingDashboard(false);
-    }
-  };
 
   // Load products
   const loadProducts = useCallback(async (page = 1, search = '') => {
@@ -218,12 +196,31 @@ export default function ChatPage() {
     try {
       const result = await createProcurementRequest(prompt);
       setActiveProcurementRequest(result.request);
-      // Switch to split mode so panel is visible
+      setLastDiscoveryMeta(result.discovery ?? null);
+      setRightPanelTab('rfqs');
+      setProcurementRequests((prev) => [result.request, ...prev]);
       if (panelMode === 'chat-full') setPanelMode('split');
     } catch (err: any) {
       console.error('Failed to start RFQ:', err);
     } finally {
       setStartingRfq(null);
+    }
+  };
+
+  const handleCreateRfqFromPanel = async () => {
+    if (!newRfqPrompt.trim()) return;
+    setIsCreatingRfq(true);
+    try {
+      const result = await createProcurementRequest(newRfqPrompt.trim());
+      setProcurementRequests((prev) => [result.request, ...prev]);
+      setActiveProcurementRequest(result.request);
+      setLastDiscoveryMeta(result.discovery ?? null);
+      setNewRfqPrompt('');
+      if (panelMode === 'chat-full') setPanelMode('split');
+    } catch (err) {
+      console.error('Failed to create RFQ:', err);
+    } finally {
+      setIsCreatingRfq(false);
     }
   };
 
@@ -237,10 +234,7 @@ export default function ChatPage() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    
-    // Add to recent queries
-    setRecentQueries((prev) => [input.trim(), ...prev.slice(0, 4)]);
-    
+
     const questionText = input.trim();
     setInput('');
     setLoading(true);
@@ -277,13 +271,6 @@ export default function ChatPage() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      
-      // Refresh dashboard if needed (e.g., if user asked about projects/quotes)
-      if (questionText.toLowerCase().includes('project') || questionText.toLowerCase().includes('quote')) {
-        setTimeout(() => {
-          loadDashboardData();
-        }, 1000);
-      }
     } catch (error: any) {
       const errorMessage: Message = {
         role: 'assistant',
@@ -703,7 +690,12 @@ export default function ChatPage() {
             <ProcurementPanel
               request={activeProcurementRequest}
               onClose={() => setActiveProcurementRequest(null)}
-              onUpdate={(updated) => setActiveProcurementRequest(updated)}
+              onUpdate={(updated) => {
+                setActiveProcurementRequest(updated);
+                setProcurementRequests((prev) =>
+                  prev.map((r) => (r.id === updated.id ? updated : r))
+                );
+              }}
             />
           </div>
         )}
@@ -732,7 +724,7 @@ export default function ChatPage() {
                   QS Dashboard
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Projects, quotes & insights
+                  Products &amp; RFQs
                 </p>
               </div>
             </div>
@@ -760,247 +752,230 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Dashboard Content */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {loadingDashboard ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-                  <p className="text-sm text-gray-500 mt-2">Loading dashboard...</p>
+          {/* Dashboard Content — Products & RFQs tabs */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0">
+            <div className="flex border-b border-gray-200 mb-4 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('products')}
+                className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                  rightPanelTab === 'products'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Products
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRightPanelTab('rfqs');
+                  loadProcurementRequests();
+                }}
+                className={`px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  rightPanelTab === 'rfqs'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                RFQs
+                {procurementRequests.length > 0 && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      rightPanelTab === 'rfqs' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {procurementRequests.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {rightPanelTab === 'products' && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                  <Package className="h-4 w-4" />
+                  Products
+                </h2>
+                <div className="mb-3">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search products..."
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          loadProducts(1, productSearchQuery);
+                        }
+                      }}
+                      className="pl-8 h-8 text-sm"
+                    />
+                  </div>
                 </div>
+                {loadingProducts ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+                    <p className="text-sm text-gray-500">No products found</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 mb-3 max-h-[min(400px,50vh)] overflow-y-auto flex-1">
+                      {products.slice(0, 12).map((product: any) => (
+                        <div
+                          key={`${product.id}-${product.supplierId || ''}`}
+                          onClick={() => console.log('View product:', product.id)}
+                          className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                        >
+                          <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{product.supplierName}</p>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            <p className="text-sm font-semibold text-gray-900">
+                              {product.defaultPrice
+                                ? `${product.defaultPrice.currency || product.currency || 'USD'} ${Number(product.defaultPrice.price).toFixed(2)}`
+                                : product.price != null
+                                  ? `${product.currency || 'USD'} ${Number(product.price).toFixed(2)}`
+                                  : 'N/A'}
+                            </p>
+                            <p className="text-xs text-gray-500">{product.unit}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {totalProductPages > 1 && (
+                      <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
+                        <span>
+                          Page {currentProductPage} of {totalProductPages}
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => loadProducts(currentProductPage - 1, productSearchQuery)}
+                            disabled={currentProductPage === 1}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => loadProducts(currentProductPage + 1, productSearchQuery)}
+                            disabled={currentProductPage === totalProductPages}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <Link href="/company/dashboard">
+                        <Button variant="outline" size="sm" className="w-full text-xs">
+                          Open full catalog
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Building2 className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Projects</p>
-                        <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <FileText className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Quotes</p>
-                        <p className="text-2xl font-bold text-gray-900">{quotes.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <DollarSign className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Queries</p>
-                        <p className="text-2xl font-bold text-gray-900">{recentQueries.length}</p>
-                      </div>
-                    </div>
-                  </div>
+            )}
+
+            {rightPanelTab === 'rfqs' && (
+              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+                    <ShoppingCart className="w-4 h-4 text-blue-600" />
+                    New RFQ
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Describe what you need. We find suppliers and draft an RFQ you can send by email or WhatsApp.
+                  </p>
+                  <textarea
+                    value={newRfqPrompt}
+                    onChange={(e) => setNewRfqPrompt(e.target.value)}
+                    rows={3}
+                    placeholder='e.g. "Find 5 suppliers in Singapore for ready-mix concrete"'
+                    className="w-full text-sm border border-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  />
+                  <Button
+                    onClick={handleCreateRfqFromPanel}
+                    disabled={isCreatingRfq || !newRfqPrompt.trim()}
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isCreatingRfq ? (
+                      <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4 mr-2" />
+                    )}
+                    {isCreatingRfq ? 'Creating…' : 'Start RFQ'}
+                  </Button>
                 </div>
 
-                {/* Products Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Products
-                    </h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowProducts(!showProducts)}
-                      className="text-xs"
-                    >
-                      {showProducts ? 'Hide' : 'Show'}
-                    </Button>
-                  </div>
-                  
-                  {showProducts && (
-                    <>
-                      {/* Search Bar */}
-                      <div className="mb-3">
-                        <div className="relative">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input
-                            type="text"
-                            placeholder="Search products..."
-                            value={productSearchQuery}
-                            onChange={(e) => setProductSearchQuery(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                loadProducts(1, productSearchQuery);
-                              }
-                            }}
-                            className="pl-8 h-8 text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Products Grid */}
-                      {loadingProducts ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                        </div>
-                      ) : products.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Package className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                          <p className="text-sm text-gray-500">No products found</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="space-y-2 mb-3 max-h-[400px] overflow-y-auto">
-                            {products.slice(0, 6).map((product) => (
-                              <div
-                                key={product.id}
-                                onClick={() => console.log('View product:', product.id)}
-                                className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                              >
-                                <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                  <Package className="w-6 h-6 text-gray-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                                  <p className="text-xs text-gray-500 truncate">{product.supplierName}</p>
-                                </div>
-                                <div className="flex-shrink-0 text-right">
-                                  <p className="text-sm font-semibold text-gray-900">
-                                    {product.price ? `${product.currency || 'USD'} ${product.price.toFixed(2)}` : 'N/A'}
-                                  </p>
-                                  <p className="text-xs text-gray-500">{product.unit}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Pagination */}
-                          {totalProductPages > 1 && (
-                            <div className="flex items-center justify-between text-xs text-gray-600">
-                              <span>
-                                Page {currentProductPage} of {totalProductPages}
-                              </span>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => loadProducts(currentProductPage - 1, productSearchQuery)}
-                                  disabled={currentProductPage === 1}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  Prev
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => loadProducts(currentProductPage + 1, productSearchQuery)}
-                                  disabled={currentProductPage === totalProductPages}
-                                  className="h-6 px-2 text-xs"
-                                >
-                                  Next
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <Link href="/company/products">
-                              <Button variant="outline" size="sm" className="w-full text-xs">
-                                View All Products
-                              </Button>
-                            </Link>
-                          </div>
-                        </>
+                {lastDiscoveryMeta && (
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-xs flex items-start gap-2 ${
+                      lastDiscoveryMeta.webSearchEnabled
+                        ? 'bg-blue-50 border-blue-200 text-blue-800'
+                        : 'bg-amber-50 border-amber-200 text-amber-800'
+                    }`}
+                  >
+                    <span className="mt-0.5">{lastDiscoveryMeta.webSearchEnabled ? '🌐' : '⚠️'}</span>
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {lastDiscoveryMeta.webSearchEnabled
+                          ? `Found ${lastDiscoveryMeta.internalCount} internal + ${lastDiscoveryMeta.webCount} web suppliers`
+                          : `Found ${lastDiscoveryMeta.internalCount} internal suppliers (web search not configured)`}
+                      </p>
+                      {lastDiscoveryMeta.webSearchQuery && (
+                        <p className="opacity-75 mt-0.5">Query: {lastDiscoveryMeta.webSearchQuery}</p>
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLastDiscoveryMeta(null)}
+                      className="text-current opacity-50 hover:opacity-100"
+                      aria-label="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
 
-                {/* Recent Projects */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Recent Projects
-                  </h2>
-                  {projects.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Building2 className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                      <p className="text-sm text-gray-500">No projects yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {projects.slice(0, 5).map((project) => (
-                        <div
-                          key={project.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{project.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {project.status} • {new Date(project.updatedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent Quotes */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Recent Quotes
-                  </h2>
-                  {quotes.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                      <p className="text-sm text-gray-500">No quotes yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {quotes.slice(0, 5).map((quote) => (
-                        <div
-                          key={quote.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{quote.title}</p>
-                            <p className="text-xs text-gray-500">
-                              ${quote.totalAmount.toFixed(2)} • {quote.status} • {new Date(quote.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Recent Queries */}
-                {recentQueries.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Recent Queries
-                    </h2>
-                    <div className="space-y-2">
-                      {recentQueries.map((query, index) => (
-                        <div
-                          key={index}
-                          className="p-2 bg-blue-50 rounded text-xs text-gray-700 border border-blue-100"
-                        >
-                          "{query}"
-                        </div>
-                      ))}
-                    </div>
+                {isLoadingProcurement ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                ) : procurementRequests.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400 text-sm bg-white rounded-lg border border-gray-200">
+                    <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p>No RFQs yet.</p>
+                    <p className="text-xs mt-1">Create one above or use &quot;Start RFQ&quot; in chat.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {procurementRequests.map((req) => (
+                      <ProcurementRequestCard
+                        key={req.id}
+                        request={req}
+                        onClick={() => {
+                          setActiveProcurementRequest(req);
+                          if (panelMode === 'chat-full') setPanelMode('split');
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
