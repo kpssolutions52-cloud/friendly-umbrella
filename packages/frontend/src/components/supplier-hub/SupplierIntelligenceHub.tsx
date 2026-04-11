@@ -220,9 +220,11 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
         );
         if (j.status === 'completed') {
           const errs = Array.isArray(j.resultErrors) ? j.resultErrors : [];
+          const bf = j.resultBackfilled ?? 0;
+          const bfMsg = bf > 0 ? ` Updated category on ${bf} existing row${bf === 1 ? '' : 's'}.` : '';
           toast({
             title: 'Import finished',
-            description: `Created ${j.resultCreated ?? 0}, skipped ${j.resultSkipped ?? 0}.${errs.length ? ` ${errs.slice(0, 3).join('; ')}` : ''}`,
+            description: `Created ${j.resultCreated ?? 0}, skipped ${j.resultSkipped ?? 0}.${bfMsg}${errs.length ? ` ${errs.slice(0, 3).join('; ')}` : ''}`,
           });
           setActiveImportJob(null);
           load();
@@ -320,7 +322,7 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
     }
   };
 
-  const confirmImport = async (mode: 'create' | 'skip_duplicates') => {
+  const confirmImport = async (mode: 'create' | 'skip_duplicates' | 'replace_existing') => {
     if (!importPreview) return;
     setImporting(true);
     try {
@@ -1069,6 +1071,9 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
               {importPreview.slice(0, 15).map((p: any, i: number) => (
                 <div key={i} className="border border-slate-100 rounded p-2">
                   <div className="font-medium">{p.companyName}</div>
+                  <div className="text-slate-600 mt-0.5">
+                    Category: {p.category?.trim() ? p.category : '—'}
+                  </div>
                   <div className="text-slate-500">{p.contacts?.length ?? 0} contacts</div>
                 </div>
               ))}

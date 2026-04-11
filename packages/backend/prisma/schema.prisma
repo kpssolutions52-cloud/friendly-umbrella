@@ -871,9 +871,11 @@ model SupplierHubImportJob {
   status         SupplierHubImportJobStatus @default(pending)
   mode           String                     @db.VarChar(32)
   payload        Json
-  resultCreated  Int?                       @map("result_created")
-  resultSkipped  Int?                       @map("result_skipped")
-  resultErrors   Json?                      @map("result_errors")
+  resultCreated    Int?                       @map("result_created")
+  resultSkipped    Int?                       @map("result_skipped")
+  resultBackfilled Int?                       @map("result_backfilled")
+  resultReplaced   Int?                       @map("result_replaced")
+  resultErrors     Json?                      @map("result_errors")
   errorMessage   String?                    @map("error_message") @db.Text
   createdAt      DateTime                   @default(now()) @map("created_at")
   updatedAt      DateTime                   @updatedAt @map("updated_at")

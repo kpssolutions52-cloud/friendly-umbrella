@@ -27,8 +27,10 @@ export function Logo({
   const [hasError, setHasError] = useState(false);
 
   const handleError = () => {
-    if (imageSrc === SITE_LOGO_PATH || imageSrc.endsWith('stravex-qs-ai-logo.png')) {
-      setImageSrc('/images/logo.jpg');
+    if (imageSrc === SITE_LOGO_PATH || imageSrc.endsWith('constructionguru-wordmark.svg')) {
+      setImageSrc('/images/logo.svg');
+    } else if (imageSrc.endsWith('logo.svg')) {
+      setImageSrc('/images/logo.png');
     } else {
       setHasError(true);
     }

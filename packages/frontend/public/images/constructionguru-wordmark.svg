@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 40" role="img" aria-label="ConstructionGuru">
+  <title>ConstructionGuru</title>
+  <text
+    x="0"
+    y="30"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    font-size="26"
+    font-weight="700"
+    letter-spacing="-0.02em"
+  >
+    <tspan fill="#0b4f9c">Construction</tspan><tspan fill="#ea580c">Guru</tspan>
+  </text>
+</svg>

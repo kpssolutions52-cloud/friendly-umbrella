@@ -358,9 +358,12 @@ export async function deleteContact(organizationId: string, userId: string | und
 }
 
 /** Same rule as database/41-dedupe-supplier-hub-entries.sql */
-async function hasExactNormalizedCompanyName(organizationId: string, companyName: string): Promise<boolean> {
+async function findEntryIdByNormalizedCompanyName(
+  organizationId: string,
+  companyName: string
+): Promise<string | null> {
   const name = companyName.trim();
-  if (!name) return false;
+  if (!name) return null;
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT id FROM supplier_hub_entries
     WHERE organization_id = ${organizationId}::uuid
@@ -368,16 +371,96 @@ async function hasExactNormalizedCompanyName(organizationId: string, companyName
       AND lower(trim(company_name)) = lower(trim(${name}))
     LIMIT 1
   `;
-  return rows.length > 0;
+  return rows[0]?.id ?? null;
+}
+
+/** Replace hub row + contacts from an Excel row (normalized company name match). */
+async function replaceSupplierFromImport(
+  organizationId: string,
+  userId: string | undefined,
+  entryId: string,
+  p: ParsedSupplier
+) {
+  const contacts: ParsedContact[] = p.contacts.length > 0 ? p.contacts : [{ contactName: undefined }];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.supplierHubContact.deleteMany({ where: { supplierHubEntryId: entryId } });
+    await tx.supplierHubEntry.update({
+      where: { id: entryId },
+      data: {
+        companyName: p.companyName.trim(),
+        category: p.category?.trim() ? p.category.trim() : null,
+        address: p.address?.trim() ? p.address.trim() : null,
+        trade: p.trade?.trim() ? p.trade.trim() : null,
+        remark: p.remark?.trim() ? p.remark.trim() : null,
+        sourceType: 'excel',
+        status: 'active',
+        archivedAt: null,
+        contacts: {
+          create: contacts.map((c, i) => ({
+            contactName: c.contactName ?? null,
+            phone: c.phone ?? null,
+            fax: c.fax ?? null,
+            email: c.email ?? null,
+            whatsappNumber: c.whatsappNumber ?? null,
+            designation: c.designation ?? null,
+            notes: c.notes ?? null,
+            isPrimary: c.isPrimary === true || (i === 0 && !contacts.some((x) => x.isPrimary)),
+          })),
+        },
+      },
+    });
+  });
+
+  await logSupplierActivity(entryId, userId, 'import_replaced', JSON.stringify({ companyName: p.companyName }));
+}
+
+/** When import skips a duplicate, still apply category from the file if the row is empty or different. */
+async function backfillCategoryFromImport(
+  organizationId: string,
+  userId: string | undefined,
+  companyName: string,
+  category: string | undefined
+): Promise<number> {
+  const cat = category?.trim();
+  if (!cat) return 0;
+  const rows = await prisma.$queryRaw<{ id: string; category: string | null }[]>`
+    SELECT id, category FROM supplier_hub_entries
+    WHERE organization_id = ${organizationId}::uuid
+      AND archived_at IS NULL
+      AND lower(trim(company_name)) = lower(trim(${companyName.trim()}))
+    LIMIT 1
+  `;
+  const row = rows[0];
+  if (!row) return 0;
+  if ((row.category ?? '').trim() === cat) return 0;
+  await prisma.supplierHubEntry.update({
+    where: { id: row.id },
+    data: { category: cat },
+  });
+  await logSupplierActivity(row.id, userId, 'import_backfill_category', JSON.stringify({ category: cat }));
+  return 1;
 }
 
 export async function importSuppliers(
   organizationId: string,
   userId: string | undefined,
   parsed: ParsedSupplier[],
-  mode: 'create' | 'skip_duplicates'
+  mode: 'create' | 'skip_duplicates' | 'replace_existing'
 ) {
-  const results: { created: number; skipped: number; errors: string[] } = { created: 0, skipped: 0, errors: [] };
+  const results: {
+    created: number;
+    skipped: number;
+    backfilled: number;
+    replaced: number;
+    errors: string[];
+  } = {
+    created: 0,
+    skipped: 0,
+    backfilled: 0,
+    replaced: 0,
+    errors: [],
+  };
 
   for (const p of parsed) {
     try {
@@ -385,18 +468,43 @@ export async function importSuppliers(
         results.errors.push('Skipped row with empty company name');
         continue;
       }
-      if (await hasExactNormalizedCompanyName(organizationId, p.companyName)) {
-        if (mode === 'skip_duplicates') {
-          results.skipped += 1;
-          continue;
-        }
+
+      const exactId = await findEntryIdByNormalizedCompanyName(organizationId, p.companyName);
+
+      if (exactId && mode === 'replace_existing') {
+        await replaceSupplierFromImport(organizationId, userId, exactId, p);
+        results.replaced += 1;
+        continue;
+      }
+
+      if (exactId && mode === 'skip_duplicates') {
+        results.backfilled += await backfillCategoryFromImport(
+          organizationId,
+          userId,
+          p.companyName,
+          p.category
+        );
+        results.skipped += 1;
+        continue;
+      }
+
+      if (exactId && mode === 'create') {
         results.errors.push(`${p.companyName}: already exists (normalized name matches existing row)`);
         continue;
       }
-      const dups = await findPotentialDuplicates(organizationId, p.companyName);
-      if (dups.length && mode === 'skip_duplicates') {
-        results.skipped += 1;
-        continue;
+
+      if (mode === 'skip_duplicates') {
+        const dups = await findPotentialDuplicates(organizationId, p.companyName);
+        if (dups.length) {
+          results.backfilled += await backfillCategoryFromImport(
+            organizationId,
+            userId,
+            p.companyName,
+            p.category
+          );
+          results.skipped += 1;
+          continue;
+        }
       }
 
       const contacts: ParsedContact[] =
@@ -428,7 +536,7 @@ export async function createImportJob(
   organizationId: string,
   userId: string | undefined,
   parsed: ParsedSupplier[],
-  mode: 'create' | 'skip_duplicates'
+  mode: 'create' | 'skip_duplicates' | 'replace_existing'
 ) {
   return prisma.supplierHubImportJob.create({
     data: {
@@ -459,11 +567,17 @@ export async function runImportJob(jobId: string) {
 
   try {
     const suppliers = job.payload as unknown as ParsedSupplier[];
+    const importMode: 'create' | 'skip_duplicates' | 'replace_existing' =
+      job.mode === 'skip_duplicates'
+        ? 'skip_duplicates'
+        : job.mode === 'replace_existing'
+          ? 'replace_existing'
+          : 'create';
     const result = await importSuppliers(
       job.organizationId,
       job.userId ?? undefined,
       suppliers,
-      job.mode === 'skip_duplicates' ? 'skip_duplicates' : 'create'
+      importMode
     );
     await prisma.supplierHubImportJob.update({
       where: { id: jobId },
@@ -471,6 +585,8 @@ export async function runImportJob(jobId: string) {
         status: SupplierHubImportJobStatus.completed,
         resultCreated: result.created,
         resultSkipped: result.skipped,
+        resultBackfilled: result.backfilled,
+        resultReplaced: result.replaced,
         resultErrors: result.errors,
       },
     });

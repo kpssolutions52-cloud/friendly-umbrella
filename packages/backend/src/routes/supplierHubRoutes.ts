@@ -186,14 +186,18 @@ router.post('/supplier-hub/import/preview', requireAuth, requireQS, upload.singl
 /** POST /supplier-hub/import/confirm — queues background job, returns jobId (202) */
 router.post('/supplier-hub/import/confirm', requireAuth, requireQS, async (req: Request, res: Response) => {
   try {
-    const { suppliers, mode } = req.body as { suppliers: any[]; mode?: 'create' | 'skip_duplicates' };
+    const { suppliers, mode } = req.body as {
+      suppliers: any[];
+      mode?: 'create' | 'skip_duplicates' | 'replace_existing';
+    };
     if (!Array.isArray(suppliers)) return res.status(400).json({ error: 'suppliers array required' });
-    const job = await createImportJob(
-      orgId(req),
-      userId(req),
-      suppliers,
-      mode === 'skip_duplicates' ? 'skip_duplicates' : 'create'
-    );
+    const importMode: 'create' | 'skip_duplicates' | 'replace_existing' =
+      mode === 'skip_duplicates'
+        ? 'skip_duplicates'
+        : mode === 'replace_existing'
+          ? 'replace_existing'
+          : 'create';
+    const job = await createImportJob(orgId(req), userId(req), suppliers, importMode);
     setImmediate(() => {
       runImportJob(job.id).catch((err) => console.error('[supplier-hub] import job', job.id, err));
     });
@@ -211,8 +215,11 @@ router.get('/supplier-hub/import/jobs/:jobId', requireAuth, requireQS, async (re
     return res.json({
       id: job.id,
       status: job.status,
+      mode: job.mode,
       resultCreated: job.resultCreated,
       resultSkipped: job.resultSkipped,
+      resultBackfilled: job.resultBackfilled,
+      resultReplaced: job.resultReplaced,
       resultErrors: job.resultErrors,
       errorMessage: job.errorMessage,
       createdAt: job.createdAt,

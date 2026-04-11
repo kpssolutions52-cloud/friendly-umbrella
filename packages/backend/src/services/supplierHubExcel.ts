@@ -36,8 +36,12 @@ function detectColumnMap(headers: string[]): Record<string, keyof ParsedSupplier
   for (const h of headers) {
     const key = h.trim().toLowerCase().replace(/\s+/g, ' ');
     if (!key) continue;
-    if (/^(category|supplier group|group|type)/i.test(key)) map[h] = 'category';
-    else if (/company|organisation|organization|supplier name|vendor/i.test(key)) map[h] = 'company';
+    if (
+      /^(category|supplier group|group|division|sector|class|section|type|discipline)/i.test(key) ||
+      /\bcategory\b/i.test(key)
+    ) {
+      map[h] = 'category';
+    } else if (/company|organisation|organization|supplier(?:\s+name)?|^supplier$|vendor/i.test(key)) map[h] = 'company';
     else if (/^contact|person|name(?!\s*\()|attn/i.test(key)) map[h] = 'contactName';
     else if (/phone|mobile|tel|hp/i.test(key) && !/fax/i.test(key)) map[h] = 'phone';
     else if (/fax/i.test(key)) map[h] = 'fax';
@@ -192,13 +196,19 @@ export function parseSupplierExcelBuffer(buffer: Buffer): {
    * (e.g. "Structural Steel & Metal Steel" only on the first row of a block; A is empty for
    * following rows). `rowToObject` skips unlabeled columns, so we map column 0 → category
    * when there is no Category header but Company is in a later column.
+   *
+   * Also: column A is often "S/No" with category in B (blank header) and company in C.
    */
   let implicitCategoryColIndex: number | undefined;
   if (!Object.values(colMap).includes('category')) {
     const companyHeader = Object.keys(colMap).find((h) => colMap[h] === 'company');
     const companyIdx = companyHeader ? headerCells.indexOf(companyHeader) : -1;
-    if (companyIdx > 0 && !cellStr(headerCells[0])) {
+    const h0 = cellStr(headerCells[0]);
+    const serialHeader = /^(no\.?|s\/?n|s\/?no\.?|#|seq|index|item)$/i.test(h0);
+    if (companyIdx > 0 && !h0) {
       implicitCategoryColIndex = 0;
+    } else if (companyIdx > 1 && serialHeader && !cellStr(headerCells[companyIdx - 1])) {
+      implicitCategoryColIndex = companyIdx - 1;
     }
   }
 

@@ -135,7 +135,10 @@ export async function previewImportSupplierHub(file: File) {
 }
 
 /** Queues server-side import job; poll with {@link getSupplierImportJob}. */
-export async function confirmImportSupplierHub(suppliers: any[], mode: 'create' | 'skip_duplicates') {
+export async function confirmImportSupplierHub(
+  suppliers: any[],
+  mode: 'create' | 'skip_duplicates' | 'replace_existing'
+) {
   return apiPost<{ jobId: string; status: string }>(
     `/api/v1/supplier-hub/import/confirm`,
     { suppliers, mode },
@@ -150,8 +153,11 @@ export async function getSupplierImportJob(jobId: string) {
   return apiGet<{
     id: string;
     status: SupplierImportJobStatus;
+    mode?: string;
     resultCreated: number | null;
     resultSkipped: number | null;
+    resultBackfilled: number | null;
+    resultReplaced: number | null;
     resultErrors: string[] | null;
     errorMessage: string | null;
     createdAt: string;

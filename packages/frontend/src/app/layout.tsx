@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/toaster';
-import { SITE_BRAND_NAME, SITE_LOGO_PATH } from '@/lib/siteBrand';
+import { SITE_BRAND_NAME, SITE_ICON_PATH, SITE_LOGO_PATH } from '@/lib/siteBrand';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
   description:
     'AI assistant for quantity surveyors — supplier intelligence hub, Excel directory, and construction insights.',
   icons: {
-    icon: [{ url: SITE_LOGO_PATH, type: 'image/png' }],
-    apple: SITE_LOGO_PATH,
-    shortcut: SITE_LOGO_PATH,
+    icon: [{ url: SITE_ICON_PATH, type: 'image/svg+xml' }],
+    apple: SITE_ICON_PATH,
+    shortcut: SITE_ICON_PATH,
   },
   openGraph: {
     type: 'website',
@@ -51,9 +51,9 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href={SITE_LOGO_PATH} type="image/png" />
-        <link rel="shortcut icon" href={SITE_LOGO_PATH} type="image/png" />
-        <link rel="apple-touch-icon" href={SITE_LOGO_PATH} />
+        <link rel="icon" href={SITE_ICON_PATH} type="image/svg+xml" />
+        <link rel="shortcut icon" href={SITE_ICON_PATH} type="image/svg+xml" />
+        <link rel="apple-touch-icon" href={SITE_ICON_PATH} />
         <meta name="theme-color" content="#2563eb" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

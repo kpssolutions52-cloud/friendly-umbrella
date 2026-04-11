@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ConstructionGuru">
+  <title>ConstructionGuru</title>
+  <rect width="64" height="64" rx="14" fill="#0b4f9c"/>
+  <path
+    d="M18 44V22h6l8 14 8-14h6v22h-5V30l-7 12h-4L23 30v14h-5z"
+    fill="#ffffff"
+  />
+  <path d="M46 18c3 0 5.5 2.2 5.5 5s-2.5 5-5.5 5" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round"/>
+</svg>

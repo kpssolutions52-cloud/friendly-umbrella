@@ -1,6 +1,6 @@
 {
-  "name": "Stravex QS AI Assistant",
-  "short_name": "Stravex QS",
+  "name": "ConstructionGuru",
+  "short_name": "ConstructionGuru",
   "description": "AI assistant for quantity surveyors — supplier intelligence hub and construction insights.",
   "start_url": "/",
   "display": "standalone",
@@ -9,16 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/images/stravex-qs-ai-logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/images/constructionguru-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/images/stravex-qs-ai-logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "src": "/images/constructionguru-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "categories": ["business", "productivity"],
@@ -29,7 +29,7 @@
       "short_name": "Dashboard",
       "description": "Go to dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/images/stravex-qs-ai-logo.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "/images/constructionguru-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

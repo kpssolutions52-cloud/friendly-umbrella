@@ -1,5 +1,16 @@
 # Quick Start Guide - QS AI Agent
 
+## 🎮 Quick Demo Access
+
+**Want to test immediately? Use demo credentials:**
+
+- **Demo Supplier**: See [DEMO_CREDENTIALS.md](../../DEMO_CREDENTIALS.md) for supplier with most products
+- **Password**: `Demo123!` (for Singapore suppliers) or `password123` (for seed accounts)
+- **Demo Company**: `company@example.com` / `password123`
+- **Super Admin**: `admin@system.com` / `admin123`
+
+> 💡 **Tip**: Run the SQL query in `database/31-update-demo-supplier-credentials.sql` to find the supplier with the most products for testing.
+
 ## 🚀 Get Started in 3 Steps
 
 ### For QS Professionals
