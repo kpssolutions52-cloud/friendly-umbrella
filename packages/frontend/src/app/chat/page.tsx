@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost } from '@/lib/api';
@@ -55,8 +55,17 @@ export default function ChatPage() {
   const splitContainerRef = useRef<HTMLDivElement>(null);
   const { chatSplitPercent, setChatSplitPercent } = useChatSplitPercent('cg-qs-chat-split-pct');
   const isMd = useMinMd();
-  
+
   const isMobile = !isMd;
+
+  /** `useMinMd` is false until after mount; never map desktop `split` → `chat-full` in state (that stuck full-width chat). */
+  const effectivePanelMode: PanelMode = useMemo(() => {
+    if (!isMd) {
+      if (panelMode === 'dashboard-full') return 'dashboard-full';
+      return 'chat-full';
+    }
+    return panelMode;
+  }, [isMd, panelMode]);
 
   // Redirect if not authenticated or not QS
   useEffect(() => {
@@ -102,14 +111,6 @@ export default function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-
-  useEffect(() => {
-    // Split mode is desktop-only. Keep mobile in a single-pane mode.
-    if (!isMd && panelMode === 'split') {
-      setPanelMode('chat-full');
-    }
-  }, [isMd, panelMode]);
 
 
   const sendMessage = async () => {
@@ -186,7 +187,7 @@ export default function ChatPage() {
   const onResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (panelMode !== 'split' || !isMd) return;
+      if (effectivePanelMode !== 'split' || !isMd) return;
       const startX = e.clientX;
       const container = splitContainerRef.current;
       if (!container) return;
@@ -210,15 +211,15 @@ export default function ChatPage() {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [panelMode, isMd, chatSplitPercent, setChatSplitPercent]
+    [effectivePanelMode, isMd, chatSplitPercent, setChatSplitPercent]
   );
 
   if (!isAuthenticated || user?.type !== 'qs') {
     return null; // Will redirect
   }
 
-  const showChatPanel = panelMode !== 'dashboard-full';
-  const showDashboardPanel = panelMode !== 'chat-full';
+  const showChatPanel = effectivePanelMode !== 'dashboard-full';
+  const showDashboardPanel = effectivePanelMode !== 'chat-full';
 
   return (
     <div className="flex h-[100dvh] flex-col bg-gradient-to-b from-slate-50 to-white">
@@ -264,13 +265,13 @@ export default function ChatPage() {
             showChatPanel ? 'flex' : 'hidden'
           } ${
             isMd
-              ? panelMode === 'chat-full'
+              ? effectivePanelMode === 'chat-full'
                 ? 'w-full'
                 : 'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
               : 'w-full flex-1'
           }`}
           style={
-            panelMode === 'split' && isMd
+            effectivePanelMode === 'split' && isMd
               ? { width: `${chatSplitPercent}%`, flexShrink: 0 as const }
               : undefined
           }
@@ -288,7 +289,7 @@ export default function ChatPage() {
               </p>
             </div>
             <div className="flex items-center gap-1">
-              {panelMode === 'split' && isMd && (
+              {effectivePanelMode === 'split' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -298,7 +299,7 @@ export default function ChatPage() {
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               )}
-              {panelMode === 'chat-full' && (
+              {effectivePanelMode === 'chat-full' && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -660,7 +661,7 @@ export default function ChatPage() {
           {/* Dashboard Header */}
           <div className="bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {panelMode === 'dashboard-full' && isMd && (
+              {effectivePanelMode === 'dashboard-full' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -679,7 +680,7 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {panelMode === 'split' && isMd && (
+              {effectivePanelMode === 'split' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -689,7 +690,7 @@ export default function ChatPage() {
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               )}
-              {panelMode === 'dashboard-full' && isMd && (
+              {effectivePanelMode === 'dashboard-full' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
