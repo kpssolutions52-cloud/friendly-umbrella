@@ -19,6 +19,7 @@ import {
   Globe,
   Phone,
   FileSpreadsheet,
+  Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +48,7 @@ interface Message {
   requiresPermission?: boolean;
   hasSystemData?: boolean;
   systemDataSummary?: string;
+  usedWebSearch?: boolean;
 }
 
 type PanelMode = 'split' | 'chat-full' | 'dashboard-full';
@@ -95,23 +97,25 @@ export default function ChatPage() {
   const showAvailableActions = () => {
     const actionsMessage: Message = {
       role: 'assistant',
-      content: `## Supplier Intelligence Hub (Excel directory)
+      content: `## Supplier Intelligence Hub (Excel → database)
 
-Use natural language against **your imported supplier sheet** and manual hub entries.
+Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Supplier List 2022027.xlsx\`) are stored in the **database** after Excel upload. The assistant reads that hub first.
 
-- **Snapshot / list** — Overview of directory rows  
+- **Snapshot / list** — Rows from your hub  
   *Example: "Give me a snapshot of suppliers in my Supplier Hub"*
 
-- **By trade or category** — Filter the directory  
+- **By trade or category**  
   *Example: "Which suppliers are in category M&E?"*
 
-- **Contacts** — Phone, email, WhatsApp, primary contact  
+- **Contacts** — From hub columns (phone, email, WhatsApp)  
   *Example: "Who is the primary contact for [company name]?"*
 
-- **Remarks / notes** — Text imported from Excel remarks columns  
+- **Remarks** — Text from your Excel remark columns  
   *Example: "List suppliers whose remarks mention waterproofing"*
 
-- **General QS topics** — Broader questions use general knowledge when not in your hub  
+- **Beyond the sheet** — If you ask for something **not** in the database (website, certifications, news, product lines), the backend can run **Google web search** (when \`GOOGLE_SEARCH_API_KEY\` + \`GOOGLE_SEARCH_CX\` are set) and summarize results clearly as web-sourced.
+
+- **General QS** — Pure QS/construction questions use model knowledge.  
   *Example: "What is a provisional sum in SMM?"*`,
       timestamp: new Date().toISOString(),
     };
@@ -151,11 +155,13 @@ Use natural language against **your imported supplier sheet** and manual hub ent
         requiresPermission?: boolean;
         hasSystemData?: boolean;
         systemDataSummary?: string;
+        usedWebSearch?: boolean;
       }>(
         '/api/v1/chat',
         {
           question: questionText,
           allowGenericAnswers: true,
+          allowWebSearch: true,
           conversationHistory: conversationHistory,
         },
         true,
@@ -169,6 +175,7 @@ Use natural language against **your imported supplier sheet** and manual hub ent
         requiresPermission: response.requiresPermission,
         hasSystemData: response.hasSystemData,
         systemDataSummary: response.systemDataSummary,
+        usedWebSearch: response.usedWebSearch,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -267,7 +274,7 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                 QS AI Assistant
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
-                Supplier Hub (Excel directory) first — general QS answers when needed
+                Hub data (Excel → database) first; web search fills gaps when configured
                 <span className="hidden md:inline"> · Drag the divider to resize, or ◀ to hide chat</span>
               </p>
             </div>
@@ -326,6 +333,9 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                   </div>
                   <div className="bg-blue-50 p-2 rounded text-xs text-gray-700">
                     &quot;Which hub suppliers are active in category structural steel?&quot;
+                  </div>
+                  <div className="bg-sky-50 p-2 rounded text-xs text-gray-700 border border-sky-200">
+                    <span className="text-sky-800">Web (if not in DB): </span>&quot;For [company from my hub], find their official website and summarize what they supply&quot;
                   </div>
                   <div className="bg-slate-100 p-2 rounded text-xs text-gray-600 border border-slate-200">
                     <span className="text-slate-500">General: </span>&quot;Explain daywork sheets vs provisional sums&quot;
@@ -473,11 +483,13 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                                   requiresPermission?: boolean;
                                   hasSystemData?: boolean;
                                   systemDataSummary?: string;
+                                  usedWebSearch?: boolean;
                                 }>(
                                   '/api/v1/chat',
                                   {
                                     question: lastUserMessage.content,
                                     allowGenericAnswers: true,
+                                    allowWebSearch: true,
                                     conversationHistory: permissionHistory,
                                   },
                                   true,
@@ -491,6 +503,7 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                                   requiresPermission: false,
                                   hasSystemData: response.hasSystemData,
                                   systemDataSummary: response.systemDataSummary,
+                                  usedWebSearch: response.usedWebSearch,
                                 };
 
                                 setMessages((prev) => [...prev, permissionMessage]);
@@ -536,6 +549,12 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                       {message.hasSystemData
                         ? '✓ Answering with Supplier Hub directory rows'
                         : '⚠ No matching Supplier Hub rows — answer may use general knowledge'}
+                    </div>
+                  )}
+
+                  {message.usedWebSearch && (
+                    <div className="text-xs mt-1 text-sky-700">
+                      🌐 Web search results included (Google) — verify before relying on contacts or claims
                     </div>
                   )}
 
@@ -634,6 +653,20 @@ Use natural language against **your imported supplier sheet** and manual hub ent
                 >
                   <FileSpreadsheet className="h-3 w-3 mr-1" />
                   Excel remarks
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInput(
+                      'Using web search if needed: for the supplier in my hub named [paste company name], what is their official website and what construction products or services do they emphasize?'
+                    )
+                  }
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-900"
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  Web + hub
                 </Button>
                 <Button
                   variant="outline"

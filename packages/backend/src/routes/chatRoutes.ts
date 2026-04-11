@@ -20,7 +20,7 @@ router.post(
   requireQS,
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { question, allowGenericAnswers, conversationHistory } = req.body;
+      const { question, allowGenericAnswers, allowWebSearch, conversationHistory } = req.body;
 
       if (!question || typeof question !== 'string' || question.trim().length === 0) {
         return res.status(400).json({
@@ -44,14 +44,19 @@ router.post(
         }
       }
 
-      // Supplier Intelligence Hub (Excel directory) first; general knowledge unless client sets allowGenericAnswers: false
+      // Hub = Excel → DB; optional Google Custom Search when hub data is insufficient
       const genericAllowed =
         allowGenericAnswers !== false && allowGenericAnswers !== 'false';
+      const webAllowed =
+        genericAllowed &&
+        allowWebSearch !== false &&
+        allowWebSearch !== 'false';
       const response = await processQSQuestion(
         question.trim(),
         genericAllowed,
         history,
-        req.organizationId ?? null
+        req.organizationId ?? null,
+        webAllowed
       );
 
       res.json({
@@ -59,6 +64,7 @@ router.post(
         requiresPermission: response.requiresPermission || false,
         hasSystemData: response.hasSystemData || false,
         systemDataSummary: response.systemDataSummary,
+        usedWebSearch: response.usedWebSearch || false,
         question: question.trim(),
         timestamp: new Date().toISOString(),
       });
