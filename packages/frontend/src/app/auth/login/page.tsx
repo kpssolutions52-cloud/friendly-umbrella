@@ -12,6 +12,9 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 
+const DEMO_QS_EMAIL = 'demo.qs@constructionguru.com';
+const DEMO_QS_PASSWORD = 'DemoQS123!';
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,6 +37,11 @@ function LoginForm() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      // Temporary: auto-fill demo QS account for easier testing.
+      email: DEMO_QS_EMAIL,
+      password: DEMO_QS_PASSWORD,
+    },
   });
 
   const onSubmit = async (data: LoginInput) => {
