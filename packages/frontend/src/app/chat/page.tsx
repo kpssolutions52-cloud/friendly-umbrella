@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { apiPost, apiGet } from '@/lib/api';
+import { apiPost } from '@/lib/api';
 import {
   Send,
   Loader2,
@@ -12,22 +12,14 @@ import {
   Maximize2,
   Minimize2,
   Building2,
+  LayoutDashboard,
   MessageSquare,
-  Package,
-  Search,
-  ShoppingCart,
-  X,
-  Plus,
-  Loader2 as LoaderIcon,
   Zap,
-  Sparkles,
   GripVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
-import { ProductCard } from '@/components/ProductCard';
-import Link from 'next/link';
 
 /** OpenAI + Supplier Hub context can exceed the default api client timeout (10s). */
 const QS_CHAT_API_TIMEOUT_MS = 180_000;
@@ -38,11 +30,7 @@ function chatErrorText(error: unknown): string {
 }
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
-import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
 import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
-import { createProcurementRequest, listProcurementRequests } from '@/lib/procurementApi';
-import type { ProcurementRequest } from '@/lib/procurementApi';
 import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
 
 interface Message {
@@ -52,12 +40,9 @@ interface Message {
   requiresPermission?: boolean;
   hasSystemData?: boolean;
   systemDataSummary?: string;
-  isProcurementIntent?: boolean;
-  procurementPrompt?: string;
 }
 
 type PanelMode = 'split' | 'chat-full' | 'dashboard-full';
-type RightPanelTab = 'products' | 'rfqs' | 'hub';
 
 export default function ChatPage() {
   const { user, isAuthenticated } = useAuth();
@@ -71,30 +56,7 @@ export default function ChatPage() {
   const { chatSplitPercent, setChatSplitPercent } = useChatSplitPercent('cg-qs-chat-split-pct');
   const isMd = useMinMd();
   
-  // Right panel: Products vs RFQs
-  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('products');
-
-  // Products state
-  const [products, setProducts] = useState<any[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [productSearchQuery, setProductSearchQuery] = useState('');
-  const [currentProductPage, setCurrentProductPage] = useState(1);
-  const [totalProductPages, setTotalProductPages] = useState(1);
-
-  // Procurement (RFQs tab)
-  const [procurementRequests, setProcurementRequests] = useState<ProcurementRequest[]>([]);
-  const [isLoadingProcurement, setIsLoadingProcurement] = useState(false);
-  const [newRfqPrompt, setNewRfqPrompt] = useState('');
-  const [isCreatingRfq, setIsCreatingRfq] = useState(false);
-  const [lastDiscoveryMeta, setLastDiscoveryMeta] = useState<{
-    webSearchEnabled: boolean;
-    webSearchQuery?: string;
-    internalCount: number;
-    webCount: number;
-  } | null>(null);
-
-  const [activeProcurementRequest, setActiveProcurementRequest] = useState<ProcurementRequest | null>(null);
-  const [startingRfq, setStartingRfq] = useState<string | null>(null); // tracks which message is starting RFQ
+  const isMobile = !isMd;
 
   // Redirect if not authenticated or not QS
   useEffect(() => {
@@ -114,58 +76,23 @@ export default function ChatPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  const loadProcurementRequests = useCallback(async () => {
-    setIsLoadingProcurement(true);
-    try {
-      const res = await listProcurementRequests();
-      setProcurementRequests(res.requests);
-    } catch (e) {
-      console.error('Failed to load procurement requests:', e);
-    } finally {
-      setIsLoadingProcurement(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated && user?.type === 'qs') {
-      loadProcurementRequests();
-    }
-  }, [isAuthenticated, user, loadProcurementRequests]);
-
   const showAvailableActions = () => {
     const actionsMessage: Message = {
       role: 'assistant',
       content: `## Available Actions
 
-### Product & Pricing:
-- **Get Product Price** - Retrieve price details for a specific product
-  *Example: "What is the price of cement?"*
+### Supplier Hub:
+- **List suppliers** - Show all suppliers from your organization hub
+  *Example: "List all suppliers in my supplier hub"*
 
-- **Calculate Total Price** - Calculate the total cost for a specific quantity
-  *Example: "Calculate total for 10 bags of cement"*
+- **Find by trade/category** - Search suppliers by specialty
+  *Example: "Find suppliers with trade glass"*
 
-- **List Products** - List all products in the inventory
-  *Example: "Show me all available products"*
+- **Get contact details** - Retrieve phone/email/contact names
+  *Example: "Show contact details for Peck Tiong"*
 
-- **Calculate Multi Product Total** - Calculate total price for multiple products with different quantities
-  *Example: "Calculate total for 10 bags cement and 5 gallons paint"*
-
-### Project Management:
-- **Create Project** - Create a new construction project
-  *Example: "Create a project called Office Building"*
-
-- **Request Quote** - Request quotes for project materials
-  *Example: "Request quotes for Office Building project"*
-
-- **View Projects** - View all your projects
-  *Example: "Show me all my projects"*
-
-### General:
-- **Search Suppliers** - Find suppliers for specific products or services
-  *Example: "Find suppliers for concrete"*
-
-- **Compare Prices** - Compare prices from different suppliers
-  *Example: "Compare cement prices from all suppliers"*`,
+- **Search by remarks** - Match remarks imported from Excel
+  *Example: "Show suppliers where remarks mention preferred"*`,
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, actionsMessage]);
@@ -176,84 +103,14 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load products
-  const loadProducts = useCallback(async (page = 1, search = '') => {
-    setLoadingProducts(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) {
-        params.append('q', search);
-      }
-      params.append('page', page.toString());
-      params.append('limit', '12'); // Show 12 products in dashboard
 
-      const response = await apiGet<{ 
-        products: any[]; 
-        pagination: { page: number; totalPages: number; total: number } 
-      }>(`/api/v1/products/search?${params.toString()}`);
-      
-      console.log('[Products] Loaded products:', response.products?.length || 0, 'products');
-      setProducts(response.products || []);
-      setCurrentProductPage(response.pagination.page);
-      setTotalProductPages(response.pagination.totalPages);
-    } catch (error: any) {
-      console.error('Failed to load products:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
-      setProducts([]);
-    } finally {
-      setLoadingProducts(false);
-    }
-  }, []);
-
-  // Load products on mount
   useEffect(() => {
-    if (isAuthenticated && user?.type === 'qs') {
-      loadProducts(1, '');
+    // Split mode is desktop-only. Keep mobile in a single-pane mode.
+    if (!isMd && panelMode === 'split') {
+      setPanelMode('chat-full');
     }
-  }, [isAuthenticated, user, loadProducts]);
+  }, [isMd, panelMode]);
 
-  // Detect if a message looks like a procurement/sourcing request
-  const isProcurementMessage = (text: string): boolean => {
-    const lower = text.toLowerCase();
-    return /\b(find\s+(me\s+)?\d*\s*suppliers?|source|rfq|request\s+for\s+quotation|get\s+quotes?|procure|vendors?\s+for|suppliers?\s+for|ready.mix|concrete\s+supplier|steel\s+supplier|find.*supplier|looking\s+for\s+supplier)\b/.test(lower);
-  };
-
-  const handleStartRfq = async (prompt: string, messageIndex: number) => {
-    setStartingRfq(`${messageIndex}`);
-    try {
-      const result = await createProcurementRequest(prompt);
-      setActiveProcurementRequest(result.request);
-      setLastDiscoveryMeta(result.discovery ?? null);
-      setRightPanelTab('rfqs');
-      setProcurementRequests((prev) => [result.request, ...prev]);
-      if (panelMode === 'chat-full') setPanelMode('split');
-    } catch (err: any) {
-      console.error('Failed to start RFQ:', err);
-    } finally {
-      setStartingRfq(null);
-    }
-  };
-
-  const handleCreateRfqFromPanel = async () => {
-    if (!newRfqPrompt.trim()) return;
-    setIsCreatingRfq(true);
-    try {
-      const result = await createProcurementRequest(newRfqPrompt.trim());
-      setProcurementRequests((prev) => [result.request, ...prev]);
-      setActiveProcurementRequest(result.request);
-      setLastDiscoveryMeta(result.discovery ?? null);
-      setNewRfqPrompt('');
-      if (panelMode === 'chat-full') setPanelMode('split');
-    } catch (err) {
-      console.error('Failed to create RFQ:', err);
-    } finally {
-      setIsCreatingRfq(false);
-    }
-  };
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -293,8 +150,6 @@ export default function ChatPage() {
         QS_CHAT_API_TIMEOUT_MS
       );
 
-      const isProcurement = isProcurementMessage(questionText);
-
       const assistantMessage: Message = {
         role: 'assistant',
         content: response.answer,
@@ -302,8 +157,6 @@ export default function ChatPage() {
         requiresPermission: response.requiresPermission,
         hasSystemData: response.hasSystemData,
         systemDataSummary: response.systemDataSummary,
-        isProcurementIntent: isProcurement,
-        procurementPrompt: isProcurement ? questionText : undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -364,18 +217,57 @@ export default function ChatPage() {
     return null; // Will redirect
   }
 
+  const showChatPanel = panelMode !== 'dashboard-full';
+  const showDashboardPanel = panelMode !== 'chat-full';
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex h-[100dvh] flex-col bg-gradient-to-b from-slate-50 to-white">
       <Header />
-      
+
+      {isMobile && (
+        <div className="border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur">
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => togglePanelMode('chat-full')}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                panelMode !== 'dashboard-full'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-600'
+              }`}
+            >
+              AI Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePanelMode('dashboard-full')}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                panelMode === 'dashboard-full'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-gray-600'
+              }`}
+            >
+              QS Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Split Layout — chat width adjustable on desktop (drag handle); hide chat = dashboard-only */}
-      <div ref={splitContainerRef} className="flex-1 flex flex-row min-h-0 overflow-hidden">
+      <div
+        ref={splitContainerRef}
+        className={`flex-1 min-h-0 overflow-hidden ${isMd ? 'flex flex-row' : 'flex flex-col'}`}
+      >
         {/* Left Panel - Chat */}
         <div
-          className={`bg-white border-r border-gray-200 flex flex-col transition-[width] duration-300 min-h-0 ${
-            panelMode === 'dashboard-full' ? 'w-0 hidden' : 
-            panelMode === 'chat-full' ? 'w-full' : 
-            'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
+          className={`bg-white border-r border-gray-200 flex-col transition-[width] duration-300 min-h-0 ${
+            showChatPanel ? 'flex' : 'hidden'
+          } ${
+            isMd
+              ? panelMode === 'chat-full'
+                ? 'w-full'
+                : 'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
+              : 'w-full flex-1'
           }`}
           style={
             panelMode === 'split' && isMd
@@ -384,7 +276,7 @@ export default function ChatPage() {
           }
         >
           {/* Chat Header */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
@@ -396,7 +288,7 @@ export default function ChatPage() {
               </p>
             </div>
             <div className="flex items-center gap-1">
-              {panelMode === 'split' && (
+              {panelMode === 'split' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -412,23 +304,35 @@ export default function ChatPage() {
                   size="sm"
                   onClick={() => togglePanelMode('split')}
                   title="Split view"
+                  className={isMd ? '' : 'hidden'}
                 >
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => togglePanelMode('dashboard-full')}
-                title="Focus on dashboard (hide chat)"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
+              {isMd ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('dashboard-full')}
+                  title="Focus on dashboard (hide chat)"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('dashboard-full')}
+                  title="Open dashboard"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 space-y-3">
             {messages.length === 0 && (
               <div className="text-center py-8">
                 <div className="text-gray-400 text-2xl mb-3">👋</div>
@@ -627,7 +531,7 @@ export default function ChatPage() {
                           onClick={() => {
                             const infoMessage: Message = {
                               role: 'assistant',
-                              content: 'Understood. I\'ll only provide information from the system database. Please ask about suppliers or products that are in the system.',
+                              content: 'Understood. I\'ll only provide information from the system database. Please ask about suppliers that are in the system.',
                               timestamp: new Date().toISOString(),
                             };
                             setMessages((prev) => [...prev, infoMessage]);
@@ -646,34 +550,6 @@ export default function ChatPage() {
                       message.hasSystemData ? 'text-green-600' : 'text-amber-600'
                     }`}>
                       {message.hasSystemData ? '✓ Using system database data' : '⚠ No system data found'}
-                    </div>
-                  )}
-
-                  {/* Procurement intent action card */}
-                  {message.isProcurementIntent && message.procurementPrompt && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
-                          <ShoppingCart className="w-3 h-3" />
-                          Procurement Agent Available
-                        </p>
-                        <p className="text-xs text-blue-700 mb-2">
-                          I can automate this RFQ — find suppliers, generate a quote request, and send it via email or WhatsApp.
-                        </p>
-                        <Button
-                          size="sm"
-                          onClick={() => handleStartRfq(message.procurementPrompt!, index)}
-                          disabled={startingRfq === `${index}`}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
-                        >
-                          {startingRfq === `${index}` ? (
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          ) : (
-                            <ShoppingCart className="w-3 h-3 mr-1" />
-                          )}
-                          {startingRfq === `${index}` ? 'Starting RFQ...' : 'Start RFQ Process'}
-                        </Button>
-                      </div>
                     </div>
                   )}
 
@@ -705,7 +581,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="bg-white border-t border-gray-200">
+          <div className="bg-white border-t border-gray-200 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
             {/* Action Tags */}
             <div className="px-3 pt-2 pb-2 border-b border-gray-100">
               <div className="flex flex-wrap gap-2">
@@ -722,12 +598,12 @@ export default function ChatPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setInput('Find me 5 suppliers in Singapore for ')}
+                  onClick={() => setInput('List all suppliers in my supplier hub')}
                   disabled={loading}
                   className="text-xs h-7 px-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
                 >
-                  <ShoppingCart className="h-3 w-3 mr-1" />
-                  Start RFQ
+                  <Building2 className="h-3 w-3 mr-1" />
+                  Supplier Hub
                 </Button>
               </div>
             </div>
@@ -772,33 +648,19 @@ export default function ChatPage() {
           </button>
         )}
 
-        <div className="flex-1 flex flex-row min-w-0 overflow-hidden">
-        {/* Procurement Panel - slides in from right when active */}
-        {activeProcurementRequest && (
-          <div className="w-full md:w-[380px] flex-shrink-0 flex flex-col overflow-hidden border-l border-gray-200">
-            <ProcurementPanel
-              request={activeProcurementRequest}
-              onClose={() => setActiveProcurementRequest(null)}
-              onUpdate={(updated) => {
-                setActiveProcurementRequest(updated);
-                setProcurementRequests((prev) =>
-                  prev.map((r) => (r.id === updated.id ? updated : r))
-                );
-              }}
-            />
-          </div>
-        )}
-
+        <div className={`flex-1 min-w-0 overflow-hidden ${isMd ? 'flex flex-row' : 'flex flex-col'}`}>
         {/* Right Panel - Dashboard */}
         <div
-          className={`flex-1 flex flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0 ${
-            panelMode === 'chat-full' ? 'w-0 hidden' : activeProcurementRequest ? 'hidden md:flex' : 'flex'
+          className={`flex-1 flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0 ${
+            showDashboardPanel ? 'flex' : 'hidden'
+          } ${
+            !isMd ? 'w-full' : ''
           }`}
         >
           {/* Dashboard Header */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {panelMode === 'dashboard-full' && (
+              {panelMode === 'dashboard-full' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -813,13 +675,11 @@ export default function ChatPage() {
                   <Building2 className="h-5 w-5" />
                   QS Dashboard
                 </h1>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Products, RFQs &amp; supplier intelligence
-                </p>
+                <p className="text-xs text-gray-500 mt-0.5">Supplier intelligence</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {panelMode === 'split' && (
+              {panelMode === 'split' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -829,7 +689,7 @@ export default function ChatPage() {
                   <Maximize2 className="h-4 w-4" />
                 </Button>
               )}
-              {panelMode === 'dashboard-full' && (
+              {panelMode === 'dashboard-full' && isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -839,260 +699,34 @@ export default function ChatPage() {
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               )}
+              {!isMd && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => togglePanelMode('chat-full')}
+                  title="Back to chat"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Dashboard Content — Products, RFQs & Supplier Hub */}
-          <div
-            className={`flex-1 p-4 flex flex-col min-h-0 ${
-              rightPanelTab === 'hub' ? 'overflow-hidden' : 'overflow-y-auto'
-            }`}
-          >
-            <div className="flex border-b border-gray-200 mb-4 flex-shrink-0 overflow-x-auto gap-0.5">
+          {/* Dashboard Content — Supplier Hub */}
+          <div className="flex-1 p-2 sm:p-4 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex border-b border-gray-200 mb-3 sm:mb-4 flex-shrink-0 overflow-x-auto gap-0.5">
               <button
                 type="button"
-                onClick={() => setRightPanelTab('products')}
-                className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-                  rightPanelTab === 'products'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Products
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setRightPanelTab('rfqs');
-                  loadProcurementRequests();
-                }}
-                className={`px-4 py-2.5 text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                  rightPanelTab === 'rfqs'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <ShoppingCart className="h-4 w-4" />
-                RFQs
-                {procurementRequests.length > 0 && (
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full ${
-                      rightPanelTab === 'rfqs' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {procurementRequests.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setRightPanelTab('hub')}
-                className={`px-3 py-2.5 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                  rightPanelTab === 'hub'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className="px-3 py-2.5 text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap border-b-2 border-blue-600 text-blue-600"
                 title="Supplier Intelligence Hub — directory, Excel import & export"
               >
-                <Sparkles className="h-4 w-4 shrink-0" />
+                <Building2 className="h-4 w-4 shrink-0" />
                 Suppliers
               </button>
             </div>
-
-            {rightPanelTab === 'products' && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex-1 min-h-0 flex flex-col">
-                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3">
-                  <Package className="h-4 w-4" />
-                  Products
-                </h2>
-                <div className="mb-3">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Search products..."
-                      value={productSearchQuery}
-                      onChange={(e) => setProductSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          loadProducts(1, productSearchQuery);
-                        }
-                      }}
-                      className="pl-8 h-8 text-sm"
-                    />
-                  </div>
-                </div>
-                {loadingProducts ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  </div>
-                ) : products.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                    <p className="text-sm text-gray-500">No products found</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-2 mb-3 max-h-[min(400px,50vh)] overflow-y-auto flex-1">
-                      {products.slice(0, 12).map((product: any) => (
-                        <div
-                          key={`${product.id}-${product.supplierId || ''}`}
-                          onClick={() => console.log('View product:', product.id)}
-                          className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                        >
-                          <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                            <Package className="w-6 h-6 text-gray-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{product.supplierName}</p>
-                          </div>
-                          <div className="flex-shrink-0 text-right">
-                            <p className="text-sm font-semibold text-gray-900">
-                              {product.defaultPrice
-                                ? `${product.defaultPrice.currency || product.currency || 'USD'} ${Number(product.defaultPrice.price).toFixed(2)}`
-                                : product.price != null
-                                  ? `${product.currency || 'USD'} ${Number(product.price).toFixed(2)}`
-                                  : 'N/A'}
-                            </p>
-                            <p className="text-xs text-gray-500">{product.unit}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {totalProductPages > 1 && (
-                      <div className="flex items-center justify-between text-xs text-gray-600 pt-2 border-t border-gray-100">
-                        <span>
-                          Page {currentProductPage} of {totalProductPages}
-                        </span>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => loadProducts(currentProductPage - 1, productSearchQuery)}
-                            disabled={currentProductPage === 1}
-                            className="h-6 px-2 text-xs"
-                          >
-                            Prev
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => loadProducts(currentProductPage + 1, productSearchQuery)}
-                            disabled={currentProductPage === totalProductPages}
-                            className="h-6 px-2 text-xs"
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <Link href="/company/dashboard">
-                        <Button variant="outline" size="sm" className="w-full text-xs">
-                          Open full catalog
-                        </Button>
-                      </Link>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {rightPanelTab === 'rfqs' && (
-              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
-                    <ShoppingCart className="w-4 h-4 text-blue-600" />
-                    New RFQ
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Describe what you need. We find suppliers and draft an RFQ you can send by email or WhatsApp.
-                  </p>
-                  <textarea
-                    value={newRfqPrompt}
-                    onChange={(e) => setNewRfqPrompt(e.target.value)}
-                    rows={3}
-                    placeholder='e.g. "Find 5 suppliers in Singapore for ready-mix concrete"'
-                    className="w-full text-sm border border-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                  />
-                  <Button
-                    onClick={handleCreateRfqFromPanel}
-                    disabled={isCreatingRfq || !newRfqPrompt.trim()}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {isCreatingRfq ? (
-                      <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Plus className="w-4 h-4 mr-2" />
-                    )}
-                    {isCreatingRfq ? 'Creating…' : 'Start RFQ'}
-                  </Button>
-                </div>
-
-                {lastDiscoveryMeta && (
-                  <div
-                    className={`rounded-lg border px-3 py-2 text-xs flex items-start gap-2 ${
-                      lastDiscoveryMeta.webSearchEnabled
-                        ? 'bg-blue-50 border-blue-200 text-blue-800'
-                        : 'bg-amber-50 border-amber-200 text-amber-800'
-                    }`}
-                  >
-                    <span className="mt-0.5">{lastDiscoveryMeta.webSearchEnabled ? '🌐' : '⚠️'}</span>
-                    <div className="flex-1">
-                      <p className="font-medium">
-                        {lastDiscoveryMeta.webSearchEnabled
-                          ? `Found ${lastDiscoveryMeta.internalCount} internal + ${lastDiscoveryMeta.webCount} web suppliers`
-                          : `Found ${lastDiscoveryMeta.internalCount} internal suppliers (web search not configured)`}
-                      </p>
-                      {lastDiscoveryMeta.webSearchQuery && (
-                        <p className="opacity-75 mt-0.5">Query: {lastDiscoveryMeta.webSearchQuery}</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLastDiscoveryMeta(null)}
-                      className="text-current opacity-50 hover:opacity-100"
-                      aria-label="Dismiss"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-
-                {isLoadingProcurement ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                  </div>
-                ) : procurementRequests.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400 text-sm bg-white rounded-lg border border-gray-200">
-                    <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p>No RFQs yet.</p>
-                    <p className="text-xs mt-1">Create one above or use &quot;Start RFQ&quot; in chat.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {procurementRequests.map((req) => (
-                      <ProcurementRequestCard
-                        key={req.id}
-                        request={req}
-                        onClick={() => {
-                          setActiveProcurementRequest(req);
-                          if (panelMode === 'chat-full') setPanelMode('split');
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {rightPanelTab === 'hub' && (
-              <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-                <SupplierIntelligenceHub />
-              </div>
-            )}
+            <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+              <SupplierIntelligenceHub />
+            </div>
           </div>
         </div>
         </div>

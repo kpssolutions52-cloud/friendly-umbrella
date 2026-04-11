@@ -28,12 +28,8 @@ import catalogRoutes from './catalogRoutes';
 // Routes needed for QS professionals to browse products
 import { publicCategoryRoutes } from './publicCategoryRoutes';
 import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
-import qsProductRoutes from './qsProductRoutes';
 import publicRoutes from './publicRoutes';
 
-// AI Procurement Agent routes
-import procurementRoutes from './procurementRoutes';
-import webhookRoutes from './webhookRoutes';
 import supplierHubRoutes from './supplierHubRoutes';
 
 export function setupRoutes(app: Express) {
@@ -52,12 +48,9 @@ export function setupRoutes(app: Express) {
   app.use('/api/v1', publicCategoryRoutes);
   app.use('/api/v1', publicServiceCategoryRoutes);
   
-  // Supplier profile routes - register before qsProductRoutes to avoid route conflicts
+  // Supplier profile routes
   app.use('/api/v1', supplierProfileRoutes);
   console.log('✅ Supplier profile routes registered at /api/v1/supplier/profile');
-  
-  // Routes for QS professionals to browse products and suppliers (requires authentication)
-  app.use('/api/v1', qsProductRoutes);
   
   // Price routes (for private prices and companies list)
   app.use('/api/v1', priceRoutes);
@@ -65,11 +58,7 @@ export function setupRoutes(app: Express) {
   // Catalog routes (for standardized categories and items)
   app.use('/api/v1', catalogRoutes);
 
-  // AI Procurement Agent routes
-  app.use('/api/v1', procurementRoutes);
-  app.use('/api/v1', webhookRoutes);
   app.use('/api/v1', supplierHubRoutes);
-  console.log('✅ Procurement Agent routes registered at /api/v1/procurement');
   console.log('✅ Supplier Intelligence Hub routes registered at /api/v1/supplier-hub');
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
