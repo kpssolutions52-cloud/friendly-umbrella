@@ -348,17 +348,17 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-0 sm:p-4">
+      <div className="bg-white shadow-xl w-full h-[100dvh] sm:h-[90vh] sm:max-w-4xl sm:rounded-lg flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white sm:rounded-t-lg">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 rounded-lg">
               <Zap className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">AI Quote Assistant</h2>
-              <p className="text-sm text-blue-100">Tell me what you need, I'll find it for you</p>
+              <h2 className="text-base sm:text-lg font-semibold">AI Quote Assistant</h2>
+              <p className="text-xs sm:text-sm text-blue-100">Tell me what you need, I&apos;ll find it for you</p>
             </div>
           </div>
           <Button
@@ -372,14 +372,14 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-gray-50">
           {messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-lg p-4 ${
+                className={`max-w-[92%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-white border border-gray-200 shadow-sm'
@@ -525,7 +525,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                         Found {message.products.length} {message.products.length === 1 ? 'match' : 'matches'}
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[55vh] sm:max-h-96 overflow-y-auto">
                       {message.products.map((product) => (
                         <div key={product.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                           <div className="flex items-start justify-between mb-2">
@@ -619,9 +619,9 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
 
         {/* Special Price Form Modal */}
         {showSpecialPriceForm && selectedProduct && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
+            <div className="absolute inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Set Special Price</h2>
@@ -704,7 +704,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
 
                   {/* Question 3: Price or Discount Value */}
                   {specialPriceFormData.priceType === 'price' ? (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="special-price" className="text-base font-semibold">
                           3. What is the special price? *
@@ -798,7 +798,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                     />
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-gray-200">
                     <Button
                       type="button"
                       variant="outline"
@@ -837,9 +837,9 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
 
         {/* Confirmation Dialog */}
         {showConfirmation && selectedProduct && (
-          <div className="absolute inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="p-6">
+          <div className="absolute inset-0 bg-black/70 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl w-full sm:max-w-md">
+              <div className="p-4 sm:p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-blue-100 rounded-full">
                     <AlertCircle className="h-6 w-6 text-blue-600" />
@@ -881,7 +881,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
                   Are you sure you want to set this special price? This action will create a custom price for the selected company.
                 </p>
 
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -915,7 +915,7 @@ export function AIQuoteChat({ onClose }: AIQuoteChatProps) {
         )}
 
         {/* Input */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 bg-white">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-gray-200 bg-white pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="flex gap-2">
             <Input
               ref={inputRef}

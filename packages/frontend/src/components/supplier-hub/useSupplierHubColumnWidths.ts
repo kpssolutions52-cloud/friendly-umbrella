@@ -4,14 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'supplier-hub-table-col-widths';
 
-/** Default widths (px): company, category, trade, contact, phone, email, remarks, status, actions */
-export const SUPPLIER_HUB_DEFAULT_COL_WIDTHS = [200, 120, 120, 120, 100, 180, 160, 88, 52];
+/** Default widths (px): company, category, trade, contact, phone, fax, email, remarks, status, actions */
+export const SUPPLIER_HUB_DEFAULT_COL_WIDTHS = [200, 120, 120, 120, 100, 100, 180, 160, 88, 52];
 
 function normalizeStoredWidths(p: number[]): number[] {
   let w = [...p];
-  // Migrate older 8-column saves (no remarks) → insert remarks width at index 6
+  // Legacy layout (8 cols): no fax + no remarks.
   if (w.length === 8) {
-    w = [...w.slice(0, 6), SUPPLIER_HUB_DEFAULT_COL_WIDTHS[6]!, ...w.slice(6)];
+    // Insert fax after phone (idx 5)
+    w = [...w.slice(0, 5), SUPPLIER_HUB_DEFAULT_COL_WIDTHS[5]!, ...w.slice(5)];
+    // Insert remarks after email (idx 7 after fax insertion)
+    w = [...w.slice(0, 7), SUPPLIER_HUB_DEFAULT_COL_WIDTHS[7]!, ...w.slice(7)];
+  } else if (w.length === 9) {
+    // Previous layout (9 cols): had remarks but no fax. Insert fax after phone.
+    w = [...w.slice(0, 5), SUPPLIER_HUB_DEFAULT_COL_WIDTHS[5]!, ...w.slice(5)];
   }
   if (w.length !== SUPPLIER_HUB_DEFAULT_COL_WIDTHS.length) return [...SUPPLIER_HUB_DEFAULT_COL_WIDTHS];
   return w.map((x, i) => {

@@ -108,6 +108,7 @@ export async function listSuppliers(organizationId: string, filters: ListFilters
               { contactName: { contains: q, mode: 'insensitive' } },
               { email: { contains: q, mode: 'insensitive' } },
               { phone: { contains: q, mode: 'insensitive' } },
+              { fax: { contains: q, mode: 'insensitive' } },
               { whatsappNumber: { contains: q, mode: 'insensitive' } },
             ],
           },
