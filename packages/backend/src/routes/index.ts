@@ -34,6 +34,7 @@ import publicRoutes from './publicRoutes';
 // AI Procurement Agent routes
 import procurementRoutes from './procurementRoutes';
 import webhookRoutes from './webhookRoutes';
+import supplierHubRoutes from './supplierHubRoutes';
 
 export function setupRoutes(app: Express) {
   // MVP 1: Simplified auth routes (2-step registration)
@@ -67,7 +68,9 @@ export function setupRoutes(app: Express) {
   // AI Procurement Agent routes
   app.use('/api/v1', procurementRoutes);
   app.use('/api/v1', webhookRoutes);
+  app.use('/api/v1', supplierHubRoutes);
   console.log('✅ Procurement Agent routes registered at /api/v1/procurement');
+  console.log('✅ Supplier Intelligence Hub routes registered at /api/v1/supplier-hub');
   
   // OLD ROUTES - Temporarily disabled (will be migrated to new schema later)
   // app.use('/api/v1', authRoutes);

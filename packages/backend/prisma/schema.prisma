@@ -31,6 +31,7 @@ model Organization {
   orders               Order[]                @relation("SupplierOrders")
   procurementRequests  ProcurementRequest[]   @relation("OrgProcurementRequests")
   supplierCandidates   RfqSupplierCandidate[] @relation("OrgSupplierCandidates")
+  supplierHubEntries   SupplierHubEntry[]     @relation("OrgSupplierHubEntries")
 
   @@index([type])
   @@map("organizations")
@@ -75,6 +76,7 @@ model User {
   priceAuditLogs        PriceAuditLog[]      @relation("PriceAuditLogUser")
   priceViews            PriceView[]          @relation("PriceViewUser")
   procurementRequests   ProcurementRequest[] @relation("UserProcurementRequests")
+  supplierHubActivities SupplierHubActivity[]  @relation("UserSupplierHubActivities")
 
   @@index([organizationId])
   @@index([email])
@@ -773,6 +775,87 @@ model QuotationResponse {
 }
 
 // ─── End AI Procurement Agent Models ─────────────────────────────────────────
+
+// ─── Supplier Intelligence Hub (QS master supplier directory) ───────────────
+
+enum SupplierHubSourceType {
+  excel
+  manual
+  web
+  imported
+}
+
+enum SupplierHubStatus {
+  active
+  inactive
+  preferred
+  blacklisted
+}
+
+model SupplierHubEntry {
+  id             String               @id @default(uuid())
+  organizationId String               @map("organization_id")
+  category       String?              @db.VarChar(255)
+  companyName    String               @map("company_name") @db.VarChar(500)
+  address        String?              @db.Text
+  trade          String?              @db.VarChar(500)
+  remark         String?              @db.Text
+  sourceType     SupplierHubSourceType  @default(manual) @map("source_type")
+  status         SupplierHubStatus    @default(active)
+  isPreferred    Boolean              @default(false) @map("is_preferred")
+  isFavorite     Boolean              @default(false) @map("is_favorite")
+  archivedAt     DateTime?            @map("archived_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  organization Organization         @relation("OrgSupplierHubEntries", fields: [organizationId], references: [id], onDelete: Cascade)
+  contacts     SupplierHubContact[]
+  activities   SupplierHubActivity[]
+
+  @@index([organizationId])
+  @@index([companyName])
+  @@index([status])
+  @@map("supplier_hub_entries")
+}
+
+model SupplierHubContact {
+  id               String   @id @default(uuid())
+  supplierHubEntryId String @map("supplier_hub_entry_id")
+  contactName      String?  @map("contact_name") @db.VarChar(255)
+  phone            String?  @db.VarChar(100)
+  fax              String?  @db.VarChar(100)
+  email            String?  @db.VarChar(255)
+  whatsappNumber   String?  @map("whatsapp_number") @db.VarChar(100)
+  designation      String?  @db.VarChar(255)
+  isPrimary        Boolean  @default(false) @map("is_primary")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  supplier SupplierHubEntry @relation(fields: [supplierHubEntryId], references: [id], onDelete: Cascade)
+
+  @@index([supplierHubEntryId])
+  @@index([email])
+  @@map("supplier_hub_contacts")
+}
+
+model SupplierHubActivity {
+  id                 String   @id @default(uuid())
+  supplierHubEntryId String   @map("supplier_hub_entry_id")
+  userId             String?  @map("user_id")
+  action             String   @db.VarChar(100)
+  details            String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  supplier SupplierHubEntry @relation(fields: [supplierHubEntryId], references: [id], onDelete: Cascade)
+  user     User?            @relation("UserSupplierHubActivities", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([supplierHubEntryId])
+  @@index([createdAt])
+  @@map("supplier_hub_activities")
+}
+
+// ─── End Supplier Intelligence Hub ───────────────────────────────────────────
 
 // Price Views (Track price views for analytics)
 model PriceView {

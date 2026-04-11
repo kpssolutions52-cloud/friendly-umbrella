@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { apiPost, apiGet } from '@/lib/api';
-import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Building2, MessageSquare, Package, Search, ShoppingCart, X, Plus, Loader2 as LoaderIcon, Zap } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Building2, MessageSquare, Package, Search, ShoppingCart, X, Plus, Loader2 as LoaderIcon, Zap, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ProcurementPanel } from '@/components/procurement/ProcurementPanel';
 import { ProcurementRequestCard } from '@/components/procurement/ProcurementRequestCard';
+import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
 import { createProcurementRequest, listProcurementRequests } from '@/lib/procurementApi';
 import type { ProcurementRequest } from '@/lib/procurementApi';
 
@@ -29,7 +30,7 @@ interface Message {
 }
 
 type PanelMode = 'split' | 'chat-full' | 'dashboard-full';
-type RightPanelTab = 'products' | 'rfqs';
+type RightPanelTab = 'products' | 'rfqs' | 'hub';
 
 export default function ChatPage() {
   const { user, isAuthenticated } = useAuth();
@@ -724,7 +725,7 @@ export default function ChatPage() {
                   QS Dashboard
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Products &amp; RFQs
+                  Products, RFQs &amp; supplier intelligence
                 </p>
               </div>
             </div>
@@ -753,7 +754,11 @@ export default function ChatPage() {
           </div>
 
           {/* Dashboard Content — Products & RFQs tabs */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col min-h-0">
+          <div
+            className={`flex-1 p-4 flex flex-col min-h-0 ${
+              rightPanelTab === 'hub' ? 'overflow-hidden' : 'overflow-y-auto'
+            }`}
+          >
             <div className="flex border-b border-gray-200 mb-4 flex-shrink-0">
               <button
                 type="button"
@@ -978,6 +983,12 @@ export default function ChatPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {rightPanelTab === 'hub' && (
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+                <SupplierIntelligenceHub />
               </div>
             )}
           </div>
