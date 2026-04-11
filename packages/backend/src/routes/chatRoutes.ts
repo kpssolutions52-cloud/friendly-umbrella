@@ -44,10 +44,12 @@ router.post(
         }
       }
 
-      // Process question with AI, product pricing DB, and Supplier Intelligence Hub (Excel directory)
+      // Supplier Intelligence Hub (Excel directory) first; general knowledge unless client sets allowGenericAnswers: false
+      const genericAllowed =
+        allowGenericAnswers !== false && allowGenericAnswers !== 'false';
       const response = await processQSQuestion(
         question.trim(),
-        allowGenericAnswers === true || allowGenericAnswers === 'true',
+        genericAllowed,
         history,
         req.organizationId ?? null
       );

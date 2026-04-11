@@ -111,7 +111,12 @@ function RemarkCell({
   );
 }
 
-export function SupplierIntelligenceHub() {
+type SupplierIntelligenceHubProps = {
+  /** When true, leave room for the app-level mobile tab bar (chat page) above this panel’s controls. */
+  reserveAppBottomNav?: boolean;
+};
+
+export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: SupplierIntelligenceHubProps) {
   const { toast } = useToast();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -355,8 +360,19 @@ export function SupplierIntelligenceHub() {
   const primary = (s: SupplierHubEntry) => s.primaryContact ?? s.contacts?.[0];
   const activeFilterCount = Number(Boolean(category)) + Number(Boolean(trade)) + Number(Boolean(statusFilter));
 
+  /** App shell tab row height (must match chat page MOBILE_APP_TAB_H). */
+  const appNavStack = reserveAppBottomNav ? '3.5rem' : '0px';
+  const mobileHubBar = '3rem';
+  const scrollBottomPad =
+    isMobile || reserveAppBottomNav
+      ? `calc(env(safe-area-inset-bottom, 0px) + ${[isMobile ? mobileHubBar : '', reserveAppBottomNav ? appNavStack : ''].filter(Boolean).join(' + ') || '0px'})`
+      : undefined;
+
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-1.5 sm:gap-4 pb-[calc(env(safe-area-inset-bottom)+3rem)] sm:pb-0">
+    <div
+      className="flex h-full min-h-0 flex-1 flex-col gap-1.5 sm:gap-4 sm:pb-0"
+      style={scrollBottomPad ? { paddingBottom: scrollBottomPad } : undefined}
+    >
       {/* Compact toolbar — single short block so the grid gets vertical space */}
       <div
         className="shrink-0 rounded-xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm sm:px-4 sm:py-2.5"
@@ -795,7 +811,13 @@ export function SupplierIntelligenceHub() {
       )}
 
       {isMobile && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-1 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div
+          className={`fixed inset-x-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-1 backdrop-blur ${
+            reserveAppBottomNav
+              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+3.5rem)]'
+              : 'bottom-0 supports-[padding:max(0px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
+          }`}
+        >
           <div className="mx-auto grid max-w-xl grid-cols-3 gap-1">
             <Button
               size="icon"

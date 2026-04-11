@@ -16,6 +16,9 @@ import {
   MessageSquare,
   Zap,
   GripVertical,
+  Globe,
+  Phone,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +35,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
 import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
+import { cn } from '@/lib/utils';
+
+/** Main tab row height (nav adds env(safe-area-inset-bottom) separately; must match hub stack offset). */
+const MOBILE_APP_TAB_H = '3.5rem';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -88,20 +95,24 @@ export default function ChatPage() {
   const showAvailableActions = () => {
     const actionsMessage: Message = {
       role: 'assistant',
-      content: `## Available Actions
+      content: `## Supplier Intelligence Hub (Excel directory)
 
-### Supplier Hub:
-- **List suppliers** - Show all suppliers from your organization hub
-  *Example: "List all suppliers in my supplier hub"*
+Use natural language against **your imported supplier sheet** and manual hub entries.
 
-- **Find by trade/category** - Search suppliers by specialty
-  *Example: "Find suppliers with trade glass"*
+- **Snapshot / list** — Overview of directory rows  
+  *Example: "Give me a snapshot of suppliers in my Supplier Hub"*
 
-- **Get contact details** - Retrieve phone/email/contact names
-  *Example: "Show contact details for Peck Tiong"*
+- **By trade or category** — Filter the directory  
+  *Example: "Which suppliers are in category M&E?"*
 
-- **Search by remarks** - Match remarks imported from Excel
-  *Example: "Show suppliers where remarks mention preferred"*`,
+- **Contacts** — Phone, email, WhatsApp, primary contact  
+  *Example: "Who is the primary contact for [company name]?"*
+
+- **Remarks / notes** — Text imported from Excel remarks columns  
+  *Example: "List suppliers whose remarks mention waterproofing"*
+
+- **General QS topics** — Broader questions use general knowledge when not in your hub  
+  *Example: "What is a provisional sum in SMM?"*`,
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, actionsMessage]);
@@ -144,7 +155,7 @@ export default function ChatPage() {
         '/api/v1/chat',
         {
           question: questionText,
-          allowGenericAnswers: false,
+          allowGenericAnswers: true,
           conversationHistory: conversationHistory,
         },
         true,
@@ -225,35 +236,6 @@ export default function ChatPage() {
     <div className="flex h-[100dvh] flex-col bg-gradient-to-b from-slate-50 to-white">
       <Header />
 
-      {isMobile && (
-        <div className="border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur">
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
-            <button
-              type="button"
-              onClick={() => togglePanelMode('chat-full')}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                panelMode !== 'dashboard-full'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-gray-600'
-              }`}
-            >
-              AI Chat
-            </button>
-            <button
-              type="button"
-              onClick={() => togglePanelMode('dashboard-full')}
-              className={`rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-                panelMode === 'dashboard-full'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-gray-600'
-              }`}
-            >
-              QS Dashboard
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Split Layout — chat width adjustable on desktop (drag handle); hide chat = dashboard-only */}
       <div
         ref={splitContainerRef}
@@ -261,15 +243,16 @@ export default function ChatPage() {
       >
         {/* Left Panel - Chat */}
         <div
-          className={`bg-white border-r border-gray-200 flex-col transition-[width] duration-300 min-h-0 ${
-            showChatPanel ? 'flex' : 'hidden'
-          } ${
+          className={cn(
+            'bg-white border-r border-gray-200 flex-col transition-[width] duration-300 min-h-0',
+            showChatPanel ? 'flex' : 'hidden',
             isMd
               ? effectivePanelMode === 'chat-full'
                 ? 'w-full'
                 : 'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
-              : 'w-full flex-1'
-          }`}
+              : 'w-full flex-1',
+            isMobile && `pb-[calc(${MOBILE_APP_TAB_H}+env(safe-area-inset-bottom,0px))]`
+          )}
           style={
             effectivePanelMode === 'split' && isMd
               ? { width: `${chatSplitPercent}%`, flexShrink: 0 as const }
@@ -284,7 +267,7 @@ export default function ChatPage() {
                 QS AI Assistant
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
-                Ask about pricing and materials
+                Supplier Hub (Excel directory) first — general QS answers when needed
                 <span className="hidden md:inline"> · Drag the divider to resize, or ◀ to hide chat</span>
               </p>
             </div>
@@ -310,7 +293,7 @@ export default function ChatPage() {
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               )}
-              {isMd ? (
+              {isMd && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -318,15 +301,6 @@ export default function ChatPage() {
                   title="Focus on dashboard (hide chat)"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => togglePanelMode('dashboard-full')}
-                  title="Open dashboard"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
                 </Button>
               )}
             </div>
@@ -341,17 +315,20 @@ export default function ChatPage() {
                   Welcome to QS AI Assistant
                 </h2>
                 <p className="text-sm text-gray-500 mb-4">
-                  Try asking:
+                  Ask about your <strong className="font-medium text-gray-600">Supplier Hub</strong> (Excel import), or any general QS topic:
                 </p>
-                <div className="space-y-2 text-left max-w-xs mx-auto">
+                <div className="space-y-2 text-left max-w-md mx-auto">
                   <div className="bg-blue-50 p-2 rounded text-xs text-gray-700">
-                    "What's the price of cement?"
+                    &quot;List suppliers in my Supplier Hub with trade glazing&quot;
                   </div>
                   <div className="bg-blue-50 p-2 rounded text-xs text-gray-700">
-                    "Show me prices for cement, steel, and sand"
+                    &quot;Show phone and email for suppliers whose remarks mention delivery&quot;
                   </div>
                   <div className="bg-blue-50 p-2 rounded text-xs text-gray-700">
-                    "How much does 100 bags of cement cost?"
+                    &quot;Which hub suppliers are active in category structural steel?&quot;
+                  </div>
+                  <div className="bg-slate-100 p-2 rounded text-xs text-gray-600 border border-slate-200">
+                    <span className="text-slate-500">General: </span>&quot;Explain daywork sheets vs provisional sums&quot;
                   </div>
                 </div>
               </div>
@@ -487,6 +464,10 @@ export default function ChatPage() {
                             
                             if (lastUserMessage) {
                               try {
+                                const permissionHistory = messages.slice(-10).map((m) => ({
+                                  role: m.role,
+                                  content: m.content,
+                                }));
                                 const response = await apiPost<{
                                   answer: string;
                                   requiresPermission?: boolean;
@@ -497,6 +478,7 @@ export default function ChatPage() {
                                   {
                                     question: lastUserMessage.content,
                                     allowGenericAnswers: true,
+                                    conversationHistory: permissionHistory,
                                   },
                                   true,
                                   QS_CHAT_API_TIMEOUT_MS
@@ -532,7 +514,8 @@ export default function ChatPage() {
                           onClick={() => {
                             const infoMessage: Message = {
                               role: 'assistant',
-                              content: 'Understood. I\'ll only provide information from the system database. Please ask about suppliers that are in the system.',
+                              content:
+                                'Understood. Ask again with strict hub-only mode if your client supports it, or rephrase so we can match Supplier Hub directory rows.',
                               timestamp: new Date().toISOString(),
                             };
                             setMessages((prev) => [...prev, infoMessage]);
@@ -550,7 +533,9 @@ export default function ChatPage() {
                     <div className={`text-xs mt-2 ${
                       message.hasSystemData ? 'text-green-600' : 'text-amber-600'
                     }`}>
-                      {message.hasSystemData ? '✓ Using system database data' : '⚠ No system data found'}
+                      {message.hasSystemData
+                        ? '✓ Answering with Supplier Hub directory rows'
+                        : '⚠ No matching Supplier Hub rows — answer may use general knowledge'}
                     </div>
                   )}
 
@@ -594,17 +579,73 @@ export default function ChatPage() {
                   className="text-xs h-7 px-2 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700"
                 >
                   <Zap className="h-3 w-3 mr-1" />
-                  Actions
+                  Hub tips
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setInput('List all suppliers in my supplier hub')}
+                  onClick={() =>
+                    setInput('Give me a snapshot of all suppliers in my Supplier Intelligence Hub')
+                  }
                   disabled={loading}
                   className="text-xs h-7 px-2 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
                 >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Hub snapshot
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInput(
+                      'List suppliers in my Supplier Hub whose trade or category mentions waterproofing'
+                    )
+                  }
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800"
+                >
                   <Building2 className="h-3 w-3 mr-1" />
-                  Supplier Hub
+                  By trade
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInput(
+                      'For each supplier in my Supplier Hub, show primary contact name, phone, email, and WhatsApp if available'
+                    )
+                  }
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-900"
+                >
+                  <Phone className="h-3 w-3 mr-1" />
+                  Contacts
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInput(
+                      'Which suppliers in my Supplier Hub have remarks (from Excel) that mention urgent or ASAP?'
+                    )
+                  }
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-900"
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel remarks
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInput('What is the difference between a prime cost sum and a provisional sum?')
+                  }
+                  disabled={loading}
+                  className="text-xs h-7 px-2 bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                >
+                  <Globe className="h-3 w-3 mr-1" />
+                  General QS
                 </Button>
               </div>
             </div>
@@ -616,7 +657,7 @@ export default function ChatPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask a question..."
+                  placeholder="Supplier Hub search, Excel remarks, contacts, or any QS question…"
                   disabled={loading}
                   className="flex-1 text-sm"
                 />
@@ -652,11 +693,12 @@ export default function ChatPage() {
         <div className={`flex-1 min-w-0 overflow-hidden ${isMd ? 'flex flex-row' : 'flex flex-col'}`}>
         {/* Right Panel - Dashboard */}
         <div
-          className={`flex-1 flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0 ${
-            showDashboardPanel ? 'flex' : 'hidden'
-          } ${
-            !isMd ? 'w-full' : ''
-          }`}
+          className={cn(
+            'flex-1 flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0',
+            showDashboardPanel ? 'flex' : 'hidden',
+            !isMd && 'w-full',
+            isMobile && `pb-[calc(${MOBILE_APP_TAB_H}+env(safe-area-inset-bottom,0px))]`
+          )}
         >
           {/* Dashboard Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -700,16 +742,6 @@ export default function ChatPage() {
                   <Minimize2 className="h-4 w-4" />
                 </Button>
               )}
-              {!isMd && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => togglePanelMode('chat-full')}
-                  title="Back to chat"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           </div>
 
@@ -727,12 +759,54 @@ export default function ChatPage() {
               </button>
             </div>
             <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-              <SupplierIntelligenceHub />
+              <SupplierIntelligenceHub reserveAppBottomNav={isMobile} />
             </div>
           </div>
         </div>
         </div>
       </div>
+
+      {isMobile && (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/90 bg-white/80 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-6px_24px_rgba(15,23,42,0.07)] backdrop-blur-xl"
+          aria-label="Primary"
+        >
+          <div className="mx-auto grid h-14 max-w-lg grid-cols-2 items-center px-3">
+            <button
+              type="button"
+              onClick={() => togglePanelMode('chat-full')}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors',
+                panelMode !== 'dashboard-full'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 active:text-slate-700'
+              )}
+            >
+              <MessageSquare
+                className="h-6 w-6"
+                strokeWidth={panelMode !== 'dashboard-full' ? 2.25 : 1.75}
+              />
+              <span className="text-[10px] font-semibold leading-none tracking-tight">Chat</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePanelMode('dashboard-full')}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors',
+                panelMode === 'dashboard-full'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 active:text-slate-700'
+              )}
+            >
+              <LayoutDashboard
+                className="h-6 w-6"
+                strokeWidth={panelMode === 'dashboard-full' ? 2.25 : 1.75}
+              />
+              <span className="text-[10px] font-semibold leading-none tracking-tight">Hub</span>
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

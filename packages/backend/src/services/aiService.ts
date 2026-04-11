@@ -43,7 +43,7 @@ function formatSupplierHubDirectoryContext(
   if (entries.length === 0) return '';
 
   let s =
-    '### Supplier Intelligence Hub (organization directory — includes Excel-imported supplier rows)\n';
+    '### Supplier Intelligence Hub (your organization directory — includes rows imported from Excel)\n';
   entries.forEach((e, i) => {
     const primary = e.contacts.find((c) => c.isPrimary) ?? e.contacts[0];
     s += `${i + 1}. **${e.companyName}**`;
@@ -69,24 +69,40 @@ function formatSupplierHubDirectoryContext(
 async function askQSQuestion(
   question: string,
   context: string,
-  conversationHistory?: ConversationMessage[]
+  options: {
+    hasSystemData: boolean;
+    allowGenericAnswers: boolean;
+    conversationHistory?: ConversationMessage[];
+  }
 ): Promise<string> {
-  let systemPrompt = `You are an intelligent Quantity Surveyor assistant.
+  const { hasSystemData, allowGenericAnswers, conversationHistory } = options;
 
-You answer strictly using system data provided in context, especially:
-- Supplier company details
-- Trades/categories
-- Contact names, phone, email, WhatsApp
-- Remarks imported from Excel
+  let systemPrompt = `You are a Quantity Surveyor (QS) AI assistant.
 
-Rules:
-- Do not invent suppliers or contact data.
-- If data is missing, clearly say it is not found in the system database.
-- Use conversation history to resolve follow-up references ("that supplier", "their contact", etc.).
-- Be concise and actionable.`;
+**Primary focus — Supplier Intelligence Hub (Excel-backed directory)**  
+Your organization maintains supplier records in the Supplier Intelligence Hub: companies, category, trade, contact names, phone, email, WhatsApp, address, remarks (often from Excel imports), and status.
+
+**How to answer**
+1. **When directory rows are provided in context below** — They are authoritative for that organization. Summarize or list them accurately. Never invent companies, phone numbers, emails, addresses, or remarks that are not in those rows.
+2. **When the user asks something broader** (QS methods, materials, standards, definitions, etc.) — You may use general knowledge. Clearly separate what comes from the supplied directory rows versus general information.
+3. **When no directory rows matched** — State that no matching Supplier Hub entries were included for this question. Then, if helpful, answer from general knowledge and label it as such. Never claim specific suppliers or contacts exist in their hub unless they appeared in context.
+
+Use conversation history for follow-ups ("that company", "their email", etc.). Be concise and actionable.`;
+
+  if (!allowGenericAnswers) {
+    systemPrompt += `
+
+**Strict mode (no general knowledge)**  
+If the question is not answerable from the directory data in context, say you cannot answer outside the Supplier Hub and ask the user to rephrase or import/update their directory.`;
+  } else if (hasSystemData) {
+    systemPrompt += `
+
+**General knowledge**  
+You may add brief general context when it helps the QS, as long as you do not contradict or fabricate hub/contact facts.`;
+  }
 
   if (context.trim()) {
-    systemPrompt += `\n\n${context}`;
+    systemPrompt += `\n\n---\n${context}`;
   }
 
   const model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
@@ -127,11 +143,11 @@ Rules:
  */
 export async function processQSQuestion(
   question: string,
-  allowGenericAnswers: boolean = false,
+  allowGenericAnswers: boolean = true,
   conversationHistory?: ConversationMessage[],
   organizationId?: string | null
 ): Promise<QSQuestionResponse> {
-  const cacheScopeKey = `hub::${organizationId ?? ''}::${question.trim()}`;
+  const cacheScopeKey = `hub::${organizationId ?? ''}::gen:${allowGenericAnswers ? '1' : '0'}::${question.trim()}`;
 
   // Skip cache for contextual conversation turns.
   if (!conversationHistory || conversationHistory.length === 0) {
@@ -152,12 +168,12 @@ export async function processQSQuestion(
   const hasSystemData = hubResult.entries.length > 0;
   const systemDataSummary = hasSystemData
     ? `Supplier Intelligence Hub: ${hubResult.entries.length} entr${hubResult.entries.length === 1 ? 'y' : 'ies'} (${hubResult.mode === 'wide' ? 'directory snapshot' : 'matching keywords'}).`
-    : 'No data found in system database.';
+    : 'No matching Supplier Hub (Excel directory) rows for this question.';
 
   if (!hasSystemData && !allowGenericAnswers) {
     return {
       answer:
-        '❌ No data found in system database for this question.\n\nI can only answer from your system data. Would you like general information instead?\n\nReply with "yes" to proceed with general information.',
+        '❌ No matching Supplier Hub directory entries for this question.\n\nStrict mode is on: I only answer from your Supplier Intelligence Hub (Excel-backed) data. Would you like general information instead?\n\nReply with "yes" or use **Yes, provide general information** below.',
       requiresPermission: true,
       hasSystemData: false,
       systemDataSummary,
@@ -168,10 +184,14 @@ export async function processQSQuestion(
     ? formatSupplierHubDirectoryContext(hubResult.entries)
     : '';
   const context = directoryContext
-    ? `${directoryContext}\nUse the supplier directory data above to answer the question.`
-    : 'No supplier records matched this question.';
+    ? `${directoryContext}\nAnswer using the Supplier Hub directory rows above where relevant.`
+    : 'Context: No Supplier Intelligence Hub rows were retrieved for this query (try broader keywords or confirm your Excel import in the hub). You may still help with general QS or construction knowledge if allowed.';
 
-  const answer = await askQSQuestion(question, context, conversationHistory);
+  const answer = await askQSQuestion(question, context, {
+    hasSystemData,
+    allowGenericAnswers,
+    conversationHistory,
+  });
 
   const response: QSQuestionResponse = {
     answer,
