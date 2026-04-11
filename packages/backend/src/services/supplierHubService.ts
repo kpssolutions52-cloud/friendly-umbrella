@@ -483,3 +483,123 @@ export async function runImportJob(jobId: string) {
     });
   }
 }
+
+/** Stop words for QS chat → hub keyword search (keep list tight to avoid empty matches). */
+const HUB_AI_STOP = new Set([
+  'the', 'a', 'an', 'and', 'or', 'for', 'with', 'from', 'that', 'this', 'what', 'which', 'who', 'how', 'are', 'is',
+  'do', 'does', 'did', 'have', 'has', 'had', 'my', 'our', 'me', 'we', 'you', 'your', 'their', 'there', 'here',
+  'list', 'show', 'find', 'tell', 'give', 'get', 'please', 'can', 'could', 'would', 'should', 'will', 'just',
+  'into', 'than', 'then', 'them', 'when', 'where', 'why', 'also', 'only', 'even', 'very', 'being', 'were', 'been',
+  'some', 'such', 'same', 'both', 'each', 'other', 'another', 'any', 'all', 'much', 'many', 'more', 'most', 'few',
+  'about', 'using', 'use', 'used', 'based', 'data', 'sheet', 'excel', 'file', 'import', 'imported',
+]);
+
+/**
+ * Tokens from a natural-language question for OR-style hub search (company, trade, remarks, contacts…).
+ */
+export function extractSupplierHubSearchTokens(question: string): string[] {
+  const raw = question
+    .toLowerCase()
+    .replace(/[^\w\s@.+()-]/g, ' ')
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^a-z0-9@.+()-]+|[^a-z0-9@.+()-]+$/gi, ''))
+    .filter(Boolean);
+
+  const out: string[] = [];
+  for (const t of raw) {
+    if (t.length < 2) continue;
+    if (HUB_AI_STOP.has(t)) continue;
+    // Skip bare tiny integers (avoid matching everything)
+    if (/^\d+$/.test(t) && t.length < 4) continue;
+    out.push(t);
+  }
+  return [...new Set(out)].slice(0, 14);
+}
+
+function hubTokenOrClause(tokens: string[]): Prisma.SupplierHubEntryWhereInput[] {
+  const clauses: Prisma.SupplierHubEntryWhereInput[] = [];
+  for (const tok of tokens) {
+    clauses.push(
+      { companyName: { contains: tok, mode: 'insensitive' } },
+      { category: { contains: tok, mode: 'insensitive' } },
+      { trade: { contains: tok, mode: 'insensitive' } },
+      { remark: { contains: tok, mode: 'insensitive' } },
+      { address: { contains: tok, mode: 'insensitive' } },
+      {
+        contacts: {
+          some: {
+            OR: [
+              { contactName: { contains: tok, mode: 'insensitive' } },
+              { email: { contains: tok, mode: 'insensitive' } },
+              { phone: { contains: tok, mode: 'insensitive' } },
+              { whatsappNumber: { contains: tok, mode: 'insensitive' } },
+            ],
+          },
+        },
+      }
+    );
+  }
+  return clauses;
+}
+
+/** Broad “show my directory / hub” style questions → return more rows without strict keyword match. */
+export function wantsSupplierHubWideList(question: string): boolean {
+  const q = question.toLowerCase();
+  return (
+    /\b(list|show|display|give)\s+(me\s+)?(all|every|entire|full|whole|complete)\b/.test(q) ||
+    /\b(all|every)\s+(supplier|suppliers|entry|entries|contact|contacts|row|rows)\b/.test(q) ||
+    /\b(supplier\s+hub|intelligence\s+hub|hub\s+supplier|supplier\s+directory|my\s+directory)\b/.test(q) ||
+    /\b(from|in)\s+(my\s+)?(excel|import|sheet|spreadsheet)\b/.test(q) ||
+    /\bhow many\b[\s\S]{0,80}\b(supplier|suppliers|contacts?|entries|rows)\b/.test(q) ||
+    /\b(count|total|number)\s+(of\s+)?(supplier|suppliers|contacts?|entries)\b/.test(q)
+  );
+}
+
+export type SupplierHubEntryForAi = Awaited<ReturnType<typeof listSuppliers>>['suppliers'][number];
+
+/**
+ * Rows from Supplier Intelligence Hub (Excel/manual directory) to inject into QS assistant context.
+ */
+export async function fetchSupplierHubForAiContext(
+  organizationId: string,
+  question: string,
+  opts?: { maxRows?: number }
+): Promise<{ entries: SupplierHubEntryForAi[]; mode: 'wide' | 'search' | 'empty' }> {
+  const maxRows = Math.min(100, Math.max(1, opts?.maxRows ?? 50));
+
+  if (wantsSupplierHubWideList(question)) {
+    const res = await listSuppliers(organizationId, {
+      page: 1,
+      limit: maxRows,
+      sort: 'companyName',
+      order: 'asc',
+    });
+    return { entries: res.suppliers, mode: 'wide' };
+  }
+
+  const tokens = extractSupplierHubSearchTokens(question);
+  if (tokens.length === 0) {
+    return { entries: [], mode: 'empty' };
+  }
+
+  const rows = await prisma.supplierHubEntry.findMany({
+    where: {
+      organizationId,
+      archivedAt: null,
+      OR: hubTokenOrClause(tokens),
+    },
+    include: {
+      contacts: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: maxRows,
+  });
+
+  const suppliers = rows.map((e) => ({
+    ...e,
+    completenessScore: completenessScore(e),
+    primaryContact: e.contacts.find((c) => c.isPrimary) ?? e.contacts[0] ?? null,
+  }));
+
+  return { entries: suppliers, mode: 'search' };
+}

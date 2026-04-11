@@ -15,6 +15,7 @@ import {
   SupplierPriceData,
 } from './dataRetrievalService';
 import { prisma } from '../utils/prisma';
+import { fetchSupplierHubForAiContext } from './supplierHubService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -363,6 +364,12 @@ When users ask complex questions (e.g., "Compare prices and find the cheapest su
 - "I found 3 suppliers for tiles. Here's a comparison: [detailed comparison with prices and contacts]"
 
 `;
+
+  if (additionalContext?.includes('Supplier Intelligence Hub')) {
+    systemPrompt += `
+**SUPPLIER INTELLIGENCE HUB (IMPORTED DIRECTORY):**
+The context may include "### Supplier Intelligence Hub" — your organization's supplier directory (often loaded from Excel). It is authoritative for company names, trades, categories, remarks, addresses, and contact details listed there. Use it to answer questions about those suppliers, even when they differ from the product pricing catalog. Combine hub contacts with pricing data when both appear.`;
+  }
 
   if (supplierData && supplierData.length > 0) {
     systemPrompt += `Current supplier prices from the database:
@@ -871,6 +878,50 @@ function formatSupplierContactInfo(suppliers: Array<{
   }).join('\n\n');
 }
 
+/** Format Supplier Intelligence Hub rows for the QS assistant (Excel / manual directory). */
+function formatSupplierHubDirectoryContext(
+  entries: Array<{
+    companyName: string;
+    category: string | null;
+    trade: string | null;
+    remark: string | null;
+    address: string | null;
+    status: string;
+    contacts: Array<{
+      contactName: string | null;
+      phone: string | null;
+      email: string | null;
+      whatsappNumber: string | null;
+      isPrimary: boolean;
+    }>;
+  }>
+): string {
+  if (entries.length === 0) return '';
+
+  let s =
+    '### Supplier Intelligence Hub (organization directory — includes Excel-imported supplier rows)\n';
+  entries.forEach((e, i) => {
+    const primary = e.contacts.find((c) => c.isPrimary) ?? e.contacts[0];
+    s += `${i + 1}. **${e.companyName}**`;
+    if (e.category) s += ` · Category: ${e.category}`;
+    if (e.trade) s += ` · Trade: ${e.trade}`;
+    s += ` · Status: ${e.status}\n`;
+    if (e.address) s += `   Address: ${e.address}\n`;
+    if (e.remark) s += `   Remarks: ${e.remark}\n`;
+    if (primary) {
+      const parts = [
+        primary.contactName ? `Name: ${primary.contactName}` : null,
+        primary.phone ? `Phone: ${primary.phone}` : null,
+        primary.email ? `Email: ${primary.email}` : null,
+        primary.whatsappNumber ? `WhatsApp: ${primary.whatsappNumber}` : null,
+      ].filter(Boolean);
+      if (parts.length) s += `   ${parts.join(' | ')}\n`;
+    }
+    s += '\n';
+  });
+  return s;
+}
+
 /**
  * Response type for processQSQuestion
  */
@@ -887,12 +938,15 @@ export interface QSQuestionResponse {
 export async function processQSQuestion(
   question: string,
   allowGenericAnswers: boolean = false,
-  conversationHistory?: ConversationMessage[]
+  conversationHistory?: ConversationMessage[],
+  organizationId?: string | null
 ): Promise<QSQuestionResponse> {
+  const cacheScopeKey = `${organizationId ?? ''}::${question}`;
+
   // Check cache first (but only if no conversation history, as context matters)
   // For questions with conversation history, skip cache to ensure context is used
   if (!conversationHistory || conversationHistory.length === 0) {
-    const cached = await getCachedResponse(question);
+    const cached = await getCachedResponse(cacheScopeKey);
     if (cached) {
       // Parse cached response - it's stored as JSON string
       try {
@@ -928,6 +982,16 @@ export async function processQSQuestion(
   // Track if we found any system data
   let hasSystemData = false;
   let systemDataSummary = '';
+
+  let supplierHubDirectoryContext = '';
+  if (organizationId) {
+    const hubRes = await fetchSupplierHubForAiContext(organizationId, question, { maxRows: 60 });
+    if (hubRes.entries.length > 0) {
+      hasSystemData = true;
+      supplierHubDirectoryContext = formatSupplierHubDirectoryContext(hubRes.entries);
+      systemDataSummary += `Supplier Intelligence Hub: ${hubRes.entries.length} entr${hubRes.entries.length === 1 ? 'y' : 'ies'} (${hubRes.mode === 'wide' ? 'directory snapshot' : 'matching keywords'}).\n`;
+    }
+  }
 
   // Handle supplier queries (e.g., "list cement suppliers", "show supplier contact", etc.)
   if (isSupplierQuery(question)) {
@@ -1221,7 +1285,11 @@ export async function processQSQuestion(
 
   // Build enhanced context with query analysis
   let context = '';
-  
+
+  if (supplierHubDirectoryContext) {
+    context += supplierHubDirectoryContext + '\n';
+  }
+
   // Add query analysis context for complex queries
   if (queryAnalysis.complexity === 'complex' || queryAnalysis.complexity === 'multi-step') {
     context += `**Query Analysis:**\n`;
@@ -1282,8 +1350,8 @@ export async function processQSQuestion(
   // Get AI response with enhanced context and conversation history
   const answer = await askQSQuestion(question, supplierData, context + additionalPromptContext, conversationHistory);
 
-  // Cache the response
-  await setCachedResponse(question, answer, 60); // 1 minute cache
+  // Cache the response (scoped per organization — hub data differs by org)
+  await setCachedResponse(cacheScopeKey, answer, 60); // 1 minute cache
 
   return {
     answer,

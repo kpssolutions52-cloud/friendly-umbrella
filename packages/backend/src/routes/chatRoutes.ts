@@ -2,9 +2,9 @@
  * Chat Routes for AI QS Assistant
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { processQSQuestion } from '../services/aiService';
-import { requireAuth } from '../middleware/authMiddleware';
+import { requireAuth, type AuthRequest } from '../middleware/authMiddleware';
 import { requireQS } from '../middleware/permissionsMiddleware';
 
 const router = Router();
@@ -18,7 +18,7 @@ router.post(
   '/chat',
   requireAuth,
   requireQS,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { question, allowGenericAnswers, conversationHistory } = req.body;
 
@@ -44,11 +44,12 @@ router.post(
         }
       }
 
-      // Process question with AI and supplier data, including conversation history
+      // Process question with AI, product pricing DB, and Supplier Intelligence Hub (Excel directory)
       const response = await processQSQuestion(
         question.trim(),
         allowGenericAnswers === true || allowGenericAnswers === 'true',
-        history
+        history,
+        req.organizationId ?? null
       );
 
       res.json({
