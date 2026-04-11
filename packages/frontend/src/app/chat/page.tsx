@@ -37,9 +37,7 @@ import remarkGfm from 'remark-gfm';
 import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
 import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
 import { cn } from '@/lib/utils';
-
-/** Main tab row height (nav adds env(safe-area-inset-bottom) separately; must match hub stack offset). */
-const MOBILE_APP_TAB_H = '3.5rem';
+import { MOBILE_QS_TAB_NAV_RESERVE } from '@/lib/mobileQsShell';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -62,10 +60,21 @@ export default function ChatPage() {
   const [panelMode, setPanelMode] = useState<PanelMode>('split');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const splitContainerRef = useRef<HTMLDivElement>(null);
+  const mobileDefaultPanelApplied = useRef(false);
   const { chatSplitPercent, setChatSplitPercent } = useChatSplitPercent('cg-qs-chat-split-pct');
   const isMd = useMinMd();
 
   const isMobile = !isMd;
+
+  /** Mobile: open Supplier Hub first; desktop keeps split. Runs once on mount (viewport check). */
+  useEffect(() => {
+    if (mobileDefaultPanelApplied.current) return;
+    mobileDefaultPanelApplied.current = true;
+    if (typeof window === 'undefined') return;
+    if (!window.matchMedia('(min-width: 768px)').matches) {
+      setPanelMode('dashboard-full');
+    }
+  }, []);
 
   /** `useMinMd` is false until after mount; never map desktop `split` → `chat-full` in state (that stuck full-width chat). */
   const effectivePanelMode: PanelMode = useMemo(() => {
@@ -113,7 +122,7 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
 - **Remarks** — Text from your Excel remark columns  
   *Example: "List suppliers whose remarks mention waterproofing"*
 
-- **Beyond the sheet** — If you ask for something **not** in the database (website, certifications, news, product lines), the backend can run **Google web search** (when \`GOOGLE_SEARCH_API_KEY\` + \`GOOGLE_SEARCH_CX\` are set) and summarize results clearly as web-sourced.
+- **Beyond the sheet** — For facts **not** in the database (website, certifications, news, product lines), the backend can run **open-web search** when configured: **Tavily** (\`TAVILY_API_KEY\`, recommended) and/or **Google Custom Search** (\`GOOGLE_SEARCH_API_KEY\` + \`GOOGLE_SEARCH_CX\`). Results are labeled as web-sourced.
 
 - **General QS** — Pure QS/construction questions use model knowledge.  
   *Example: "What is a provisional sum in SMM?"*`,
@@ -257,17 +266,21 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
               ? effectivePanelMode === 'chat-full'
                 ? 'w-full'
                 : 'w-full min-w-0 md:min-w-[240px] md:max-w-[80%]'
-              : 'w-full flex-1',
-            isMobile && `pb-[calc(${MOBILE_APP_TAB_H}+env(safe-area-inset-bottom,0px))]`
+              : 'w-full flex-1'
           )}
-          style={
-            effectivePanelMode === 'split' && isMd
+          style={{
+            ...(effectivePanelMode === 'split' && isMd
               ? { width: `${chatSplitPercent}%`, flexShrink: 0 as const }
-              : undefined
-          }
+              : {}),
+            ...(isMobile
+              ? {
+                  paddingBottom: `calc(${MOBILE_QS_TAB_NAV_RESERVE} + env(safe-area-inset-bottom, 0px))`,
+                }
+              : {}),
+          }}
         >
           {/* Chat Header */}
-          <div className="bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
+          <div className="shrink-0 bg-white border-b border-gray-200 px-3 py-3 sm:px-4 flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
@@ -313,8 +326,8 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 space-y-3">
+          {/* Messages — min-h-0 required or flex child won’t shrink and the input bar is pushed off-screen */}
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 space-y-3">
             {messages.length === 0 && (
               <div className="text-center py-8">
                 <div className="text-gray-400 text-2xl mb-3">👋</div>
@@ -554,7 +567,7 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
 
                   {message.usedWebSearch && (
                     <div className="text-xs mt-1 text-sky-700">
-                      🌐 Web search results included (Google) — verify before relying on contacts or claims
+                      🌐 Web search results included — verify before relying on contacts or claims
                     </div>
                   )}
 
@@ -585,8 +598,8 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="bg-white border-t border-gray-200 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+          {/* Input — shrink-0 keeps composer visible above mobile bottom nav */}
+          <div className="shrink-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] pb-[max(0.25rem,env(safe-area-inset-bottom))]">
             {/* Action Tags */}
             <div className="px-3 pt-2 pb-2 border-b border-gray-100">
               <div className="flex flex-wrap gap-2">
@@ -737,9 +750,15 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
           className={cn(
             'flex-1 flex-col overflow-hidden bg-gray-50 transition-all duration-300 min-w-0',
             showDashboardPanel ? 'flex' : 'hidden',
-            !isMd && 'w-full',
-            isMobile && `pb-[calc(${MOBILE_APP_TAB_H}+env(safe-area-inset-bottom,0px))]`
+            !isMd && 'w-full'
           )}
+          style={
+            isMobile
+              ? {
+                  paddingBottom: `calc(${MOBILE_QS_TAB_NAV_RESERVE} + env(safe-area-inset-bottom, 0px))`,
+                }
+              : undefined
+          }
         >
           {/* Dashboard Header */}
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">

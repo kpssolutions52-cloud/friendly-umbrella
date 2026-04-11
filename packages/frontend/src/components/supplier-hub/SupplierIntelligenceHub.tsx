@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { MOBILE_QS_TAB_NAV_RESERVE } from '@/lib/mobileQsShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -360,8 +361,8 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
   const primary = (s: SupplierHubEntry) => s.primaryContact ?? s.contacts?.[0];
   const activeFilterCount = Number(Boolean(category)) + Number(Boolean(trade)) + Number(Boolean(statusFilter));
 
-  /** App shell tab row height (must match chat page MOBILE_APP_TAB_H). */
-  const appNavStack = reserveAppBottomNav ? '3.5rem' : '0px';
+  /** App shell tab row height (must match `MOBILE_QS_TAB_NAV_RESERVE` / chat page). */
+  const appNavStack = reserveAppBottomNav ? MOBILE_QS_TAB_NAV_RESERVE : '0px';
   const mobileHubBar = '3rem';
   const scrollBottomPad =
     isMobile || reserveAppBottomNav
@@ -814,9 +815,16 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
         <div
           className={`fixed inset-x-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-1 backdrop-blur ${
             reserveAppBottomNav
-              ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+3.5rem)]'
+              ? ''
               : 'bottom-0 supports-[padding:max(0px)]:pb-[max(0.25rem,env(safe-area-inset-bottom))]'
           }`}
+          style={
+            reserveAppBottomNav
+              ? {
+                  bottom: `calc(env(safe-area-inset-bottom, 0px) + ${MOBILE_QS_TAB_NAV_RESERVE})`,
+                }
+              : undefined
+          }
         >
           <div className="mx-auto grid max-w-xl grid-cols-3 gap-1">
             <Button

@@ -12,10 +12,11 @@ import {
 } from './supplierHubService';
 import {
   formatWebSearchHitsForPrompt,
-  isGoogleWebSearchConfigured,
+  getActiveWebSearchProvider,
+  isWebSearchConfigured,
   searchWeb,
   type WebSearchHit,
-} from './googleWebSearchService';
+} from './webSearchService';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -31,7 +32,7 @@ export interface QSQuestionResponse {
   requiresPermission?: boolean;
   hasSystemData?: boolean;
   systemDataSummary?: string;
-  /** True when Google Custom Search snippets were added (hub/Excel DB did not suffice). */
+  /** True when live web search snippets were added (Tavily or Google; hub/Excel DB did not suffice). */
   usedWebSearch?: boolean;
 }
 
@@ -128,7 +129,7 @@ function parsePlannerJson(content: string): { needsWebSearch: boolean; queries: 
 }
 
 /**
- * Decide if we should call Google Custom Search to supplement Excel-backed hub data.
+ * Decide if we should call web search (Tavily or Google) to supplement Excel-backed hub data.
  */
 async function planSupplierWebEnrichment(
   question: string,
@@ -176,7 +177,7 @@ async function maybeFetchWebEnrichment(
   entries: SupplierHubEntryForAi[],
   mode: 'wide' | 'search' | 'empty'
 ): Promise<{ contextBlock: string; hits: WebSearchHit[] }> {
-  if (!isGoogleWebSearchConfigured()) {
+  if (!isWebSearchConfigured()) {
     return { contextBlock: '', hits: [] };
   }
 
@@ -234,7 +235,7 @@ Your organization stores supplier records in the **Supplier Intelligence Hub dat
 
 **How to answer**
 1. **When hub directory rows appear in context** — They are authoritative for that organization. Report them accurately. Never invent phone numbers, emails, or addresses that are not in those rows.
-2. **When web search snippets appear in context** — They are **public web** results (Google), **not** from the Excel import. Use them to answer gaps (e.g. website, products, certifications) and **clearly label** them as web-sourced. Prefer hub contacts for outreach; treat web snippets as unverified until the user confirms.
+2. **When web search snippets appear in context** — They are **public web** results (from a web search API such as Tavily or Google Custom Search), **not** from the Excel import. Use them to answer gaps (e.g. website, products, certifications) and **clearly label** them as web-sourced. Prefer hub contacts for outreach; treat web snippets as unverified until the user confirms.
 3. **General QS/construction knowledge** — You may use it when appropriate; separate it from hub data and from web snippets.
 4. **When no hub rows matched** — Say so. Then use web snippets (if any) and/or general knowledge as appropriate.
 
@@ -301,7 +302,7 @@ export async function processQSQuestion(
 ): Promise<QSQuestionResponse> {
   const cacheScopeKey = `hub::${organizationId ?? ''}::gen:${allowGenericAnswers ? '1' : '0'}::web:${
     allowWebSearch ? '1' : '0'
-  }::${question.trim()}`;
+  }::wsp:${getActiveWebSearchProvider()}::${question.trim()}`;
 
   // Skip cache for contextual conversation turns.
   if (!conversationHistory || conversationHistory.length === 0) {

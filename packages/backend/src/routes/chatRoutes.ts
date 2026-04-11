@@ -44,7 +44,7 @@ router.post(
         }
       }
 
-      // Hub = Excel → DB; optional Google Custom Search when hub data is insufficient
+      // Hub = Excel → DB; optional web search (Tavily or Google) when hub data is insufficient
       const genericAllowed =
         allowGenericAnswers !== false && allowGenericAnswers !== 'false';
       const webAllowed =
