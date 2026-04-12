@@ -1,66 +1,58 @@
-// @ts-nocheck
 /**
- * Cache Service for AI responses and supplier data
- * Uses Redis for fast caching
+ * Cache Service for AI responses.
+ * Uses Redis when available; silently degrades to no-op without it.
  */
 
 import crypto from 'crypto';
 
-// Redis client type - optional
-type RedisClient = any;
+/** Minimal interface covering only the Redis operations this module uses. */
+interface RedisClient {
+  get(key: string): Promise<string | null>;
+  setEx(key: string, ttl: number, value: string): Promise<unknown>;
+  on(event: string, listener: (err: Error) => void): void;
+  connect(): Promise<void>;
+}
 
 let redisClient: RedisClient | null = null;
 
 /**
- * Initialize Redis client
- * Optional - continues without Redis if not available
+ * Initialize Redis client.
+ * Optional — continues without Redis if connection fails.
  */
 export async function initRedis(): Promise<void> {
-  if (redisClient) {
-    return;
-  }
+  if (redisClient) return;
 
   try {
-    // Try to import redis dynamically
-    const redis = await import('redis');
-    const { createClient } = redis;
-
-    redisClient = createClient({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { createClient } = (await import('redis' as any)) as { createClient: (opts: { url: string }) => RedisClient };
+    const client = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
     });
 
-    redisClient.on('error', (err: any) => {
+    client.on('error', (err: Error) => {
       console.error('Redis Client Error:', err);
     });
 
-    await redisClient.connect();
+    await client.connect();
+    redisClient = client;
     console.log('Redis connected successfully');
   } catch (error) {
     console.warn('Redis not available, continuing without cache:', error);
-    // Continue without Redis if connection fails
     redisClient = null;
   }
 }
 
-/**
- * Hash question for cache key
- */
-function hashQuestion(question: string): string {
-  return crypto.createHash('md5').update(question.toLowerCase().trim()).digest('hex');
+function hashCacheKey(key: string): string {
+  return crypto.createHash('md5').update(key.toLowerCase().trim()).digest('hex');
 }
 
 /**
- * Get cached AI response
+ * Get cached AI response.
  */
-export async function getCachedResponse(question: string): Promise<string | null> {
-  if (!redisClient) {
-    return null;
-  }
-
+export async function getCachedResponse(key: string): Promise<string | null> {
+  if (!redisClient) return null;
   try {
-    const key = `ai:response:${hashQuestion(question)}`;
-    const cached = await redisClient.get(key);
-    return cached;
+    return await redisClient.get(`ai:response:${hashCacheKey(key)}`);
   } catch (error) {
     console.error('Redis get error:', error);
     return null;
@@ -68,93 +60,18 @@ export async function getCachedResponse(question: string): Promise<string | null
 }
 
 /**
- * Set cached AI response
+ * Set cached AI response.
+ * @param ttl Time-to-live in seconds (default 300 = 5 minutes).
  */
 export async function setCachedResponse(
-  question: string,
+  key: string,
   response: string,
-  ttl: number = 60 // 1 minute default
+  ttl: number = 300
 ): Promise<void> {
-  if (!redisClient) {
-    return;
-  }
-
+  if (!redisClient) return;
   try {
-    const key = `ai:response:${hashQuestion(question)}`;
-    await redisClient.setEx(key, ttl, response);
+    await redisClient.setEx(`ai:response:${hashCacheKey(key)}`, ttl, response);
   } catch (error) {
     console.error('Redis set error:', error);
-  }
-}
-
-/**
- * Get cached supplier data
- */
-export async function getCachedSupplierData(productName: string): Promise<any[] | null> {
-  if (!redisClient) {
-    return null;
-  }
-
-  try {
-    const key = `supplier:data:${productName.toLowerCase()}`;
-    const cached = await redisClient.get(key);
-    return cached ? JSON.parse(cached) : null;
-  } catch (error) {
-    console.error('Redis get error:', error);
-    return null;
-  }
-}
-
-/**
- * Set cached supplier data
- */
-export async function setCachedSupplierData(
-  productName: string,
-  data: any[],
-  ttl: number = 30 // 30 seconds for price data
-): Promise<void> {
-  if (!redisClient) {
-    return;
-  }
-
-  try {
-    const key = `supplier:data:${productName.toLowerCase()}`;
-    await redisClient.setEx(key, ttl, JSON.stringify(data));
-  } catch (error) {
-    console.error('Redis set error:', error);
-  }
-}
-
-/**
- * Invalidate cache for a product (when price updates)
- */
-export async function invalidateProductCache(productName: string): Promise<void> {
-  if (!redisClient) {
-    return;
-  }
-
-  try {
-    const key = `supplier:data:${productName.toLowerCase()}`;
-    await redisClient.del(key);
-  } catch (error) {
-    console.error('Redis delete error:', error);
-  }
-}
-
-/**
- * Clear all AI response cache
- */
-export async function clearAICache(): Promise<void> {
-  if (!redisClient) {
-    return;
-  }
-
-  try {
-    const keys = await redisClient.keys('ai:response:*');
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
-  } catch (error) {
-    console.error('Redis clear error:', error);
   }
 }

@@ -32,9 +32,77 @@ function chatErrorText(error: unknown): string {
   const e = error as { error?: { message?: string }; message?: string };
   return e?.error?.message || e?.message || 'Failed to get response. Please try again.';
 }
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SupplierIntelligenceHub } from '@/components/supplier-hub/SupplierIntelligenceHub';
+
+function buildMarkdownComponents(role: 'user' | 'assistant'): Components {
+  const isUser = role === 'user';
+  return {
+    p: ({ children }) => (
+      <p className={`mb-2 last:mb-0 ${isUser ? 'text-white' : 'text-gray-800'}`}>{children}</p>
+    ),
+    strong: ({ children }) => (
+      <strong className={`font-semibold ${isUser ? 'text-white' : 'text-gray-900'}`}>{children}</strong>
+    ),
+    em: ({ children }) => (
+      <em className={`italic ${isUser ? 'text-white' : 'text-gray-800'}`}>{children}</em>
+    ),
+    a: ({ href, children }) => (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={isUser ? 'text-blue-200 hover:text-blue-100 underline' : 'text-blue-600 hover:text-blue-800 underline'}
+      >
+        {children}
+      </a>
+    ),
+    code: ({ children, className }) => {
+      const isInline = !className;
+      if (isInline) {
+        return (
+          <code className={`px-1 py-0.5 rounded text-xs font-mono ${isUser ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'}`}>
+            {children}
+          </code>
+        );
+      }
+      return (
+        <code className={className}>
+          <pre className={`p-3 rounded-lg overflow-x-auto mb-2 text-xs ${isUser ? 'bg-white/10 text-white' : 'bg-gray-900 text-gray-100'}`}>
+            {children}
+          </pre>
+        </code>
+      );
+    },
+    ul: ({ children }) => (
+      <ul className={`list-disc ml-4 mb-2 ${isUser ? 'text-white' : 'text-gray-800'}`}>{children}</ul>
+    ),
+    ol: ({ children }) => (
+      <ol className={`list-decimal ml-4 mb-2 ${isUser ? 'text-white' : 'text-gray-800'}`}>{children}</ol>
+    ),
+    li: ({ children }) => (
+      <li className={`mb-1 ${isUser ? 'text-white' : 'text-gray-800'}`}>{children}</li>
+    ),
+    h1: ({ children }) => (
+      <h1 className={`text-lg font-bold mb-2 ${isUser ? 'text-white' : 'text-gray-900'}`}>{children}</h1>
+    ),
+    h2: ({ children }) => (
+      <h2 className={`text-base font-semibold mb-2 ${isUser ? 'text-white' : 'text-gray-900'}`}>{children}</h2>
+    ),
+    h3: ({ children }) => (
+      <h3 className={`text-sm font-semibold mb-2 ${isUser ? 'text-white' : 'text-gray-900'}`}>{children}</h3>
+    ),
+    blockquote: ({ children }) => (
+      <blockquote className={`border-l-4 pl-3 italic my-2 ${isUser ? 'border-white/30 text-white/90' : 'border-gray-300 text-gray-700'}`}>
+        {children}
+      </blockquote>
+    ),
+  };
+}
+
+const userMarkdownComponents = buildMarkdownComponents('user');
+const assistantMarkdownComponents = buildMarkdownComponents('assistant');
 import { useChatSplitPercent, useMinMd } from '@/hooks/useChatSplitPercent';
 import { cn } from '@/lib/utils';
 import { MOBILE_QS_TAB_NAV_RESERVE } from '@/lib/mobileQsShell';
@@ -374,100 +442,7 @@ Your supplier rows (e.g. lists imported from spreadsheets such as \`resources/Su
                   <div className="break-words">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => (
-                          <p className={`mb-2 last:mb-0 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                            {children}
-                          </p>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className={`font-semibold ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
-                            {children}
-                          </strong>
-                        ),
-                        em: ({ children }) => (
-                          <em className={`italic ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                            {children}
-                          </em>
-                        ),
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={message.role === 'user' 
-                              ? 'text-blue-200 hover:text-blue-100 underline' 
-                              : 'text-blue-600 hover:text-blue-800 underline'
-                            }
-                          >
-                            {children}
-                          </a>
-                        ),
-                        code: ({ children, className }) => {
-                          const isInline = !className;
-                          if (isInline) {
-                            return (
-                              <code className={`px-1 py-0.5 rounded text-xs font-mono ${
-                                message.role === 'user' 
-                                  ? 'bg-white/20 text-white' 
-                                  : 'bg-gray-200 text-gray-800'
-                              }`}>
-                                {children}
-                              </code>
-                            );
-                          }
-                          return (
-                            <code className={className}>
-                              <pre className={`p-3 rounded-lg overflow-x-auto mb-2 text-xs ${
-                                message.role === 'user'
-                                  ? 'bg-white/10 text-white'
-                                  : 'bg-gray-900 text-gray-100'
-                              }`}>
-                                {children}
-                              </pre>
-                            </code>
-                          );
-                        },
-                        ul: ({ children }) => (
-                          <ul className={`list-disc ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className={`list-decimal ml-4 mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li className={`mb-1 ${message.role === 'user' ? 'text-white' : 'text-gray-800'}`}>
-                            {children}
-                          </li>
-                        ),
-                        h1: ({ children }) => (
-                          <h1 className={`text-lg font-bold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className={`text-base font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className={`text-sm font-semibold mb-2 ${message.role === 'user' ? 'text-white' : 'text-gray-900'}`}>
-                            {children}
-                          </h3>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className={`border-l-4 pl-3 italic my-2 ${
-                            message.role === 'user' 
-                              ? 'border-white/30 text-white/90' 
-                              : 'border-gray-300 text-gray-700'
-                          }`}>
-                            {children}
-                          </blockquote>
-                        ),
-                      }}
+                      components={message.role === 'user' ? userMarkdownComponents : assistantMarkdownComponents}
                     >
                       {message.content}
                     </ReactMarkdown>

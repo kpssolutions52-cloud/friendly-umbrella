@@ -257,7 +257,7 @@ You may add brief general context when it helps the QS, as long as you do not co
     systemPrompt += `\n\n---\n${context}`;
   }
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: systemPrompt },
   ];
@@ -383,7 +383,7 @@ export async function processQSQuestion(
 
   if (!conversationHistory || conversationHistory.length === 0) {
     if (!usedWebSearch) {
-      await setCachedResponse(cacheScopeKey, JSON.stringify(response), 60);
+      await setCachedResponse(cacheScopeKey, JSON.stringify(response), 300); // 5 minutes
     }
   }
   return response;

@@ -204,36 +204,26 @@ export async function processSupplierCommand(
       });
 
       if (company && company.type === 'company') {
-        // For MVP 1, create new company price entry (simplified - no upsert with complex unique constraint)
-        // In production, you'd want to handle effective dates properly
-        await prisma.companyPrice.create({
-          data: {
-            productId: product.id,
-            companyId: intent.companyId,
-            price: priceToUse,
-            effectiveFrom: new Date(),
-          },
-        }).catch(async (error) => {
-          // If unique constraint violation, update existing
-          if (error.code === 'P2002') {
-            // Find existing and update
-            const existing = await prisma.companyPrice.findFirst({
-              where: {
-                productId: product.id,
-                companyId: intent.companyId,
-              },
-              orderBy: { effectiveFrom: 'desc' },
-            });
-            if (existing) {
-              await prisma.companyPrice.update({
-                where: { id: existing.id },
-                data: { price: priceToUse },
-              });
-            }
-          } else {
-            throw error;
-          }
+        const existing = await prisma.companyPrice.findFirst({
+          where: { productId: product.id, companyId: intent.companyId },
+          orderBy: { effectiveFrom: 'desc' },
+          select: { id: true },
         });
+        if (existing) {
+          await prisma.companyPrice.update({
+            where: { id: existing.id },
+            data: { price: priceToUse },
+          });
+        } else {
+          await prisma.companyPrice.create({
+            data: {
+              productId: product.id,
+              companyId: intent.companyId!,
+              price: priceToUse,
+              effectiveFrom: new Date(),
+            },
+          });
+        }
 
         const expiryMsg = intent.expiryDuration 
           ? ` with expiry in ${intent.expiryDuration.value} ${intent.expiryDuration.unit}`
@@ -278,135 +268,33 @@ export async function processSupplierCommand(
   } else if (intent.intent === 'add_product' && intent.productName && intent.price !== undefined) {
     // Add new product - NEW SCHEMA ONLY
     // First, verify the supplier organization exists and is of type 'supplier'
-    console.log('[supplierAIService] Adding product with supplierId:', supplierId);
-    
-    const supplierOrg = await prisma.organization.findUnique({
-      where: { id: supplierId },
-      select: { id: true, type: true, name: true },
-    });
-
-    console.log('[supplierAIService] Supplier organization lookup result:', supplierOrg);
-
-    if (!supplierOrg) {
-      console.error('[supplierAIService] Organization not found:', supplierId);
-      return {
-        answer: `❌ Error: Your supplier organization (ID: ${supplierId}) was not found in the database. Please contact support.`,
-      };
-    }
-
-    if (supplierOrg.type !== 'supplier') {
-      console.error('[supplierAIService] Organization type mismatch:', supplierOrg.type);
-      return {
-        answer: `❌ Error: Your organization "${supplierOrg.name}" is of type "${supplierOrg.type}", but products can only be created for supplier organizations. Please contact support.`,
-      };
-    }
-
-    // Generate SKU automatically: first 3 letters of product name (uppercase) + timestamp
     const productNamePrefix = intent.productName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRD';
     const sku = `${productNamePrefix}-${Date.now().toString().slice(-6)}`;
-    
-    // Verify the organization one more time right before creating
-    const finalCheck = await prisma.organization.findUnique({
-      where: { id: supplierOrg.id },
-      select: { id: true, type: true, name: true },
-    });
 
-    if (!finalCheck) {
-      return {
-        answer: `❌ Error: Organization was deleted between validation and creation. Please try again.`,
-      };
-    }
-
-    if (finalCheck.type !== 'supplier') {
-      return {
-        answer: `❌ Error: Organization type changed to "${finalCheck.type}". Please contact support.`,
-      };
-    }
-
-    console.log('[supplierAIService] Creating product with data:', {
-      supplierId: supplierOrg.id,
-      supplierIdType: typeof supplierOrg.id,
-      supplierIdLength: supplierOrg.id?.length,
-      organizationName: finalCheck.name,
-      organizationType: finalCheck.type,
-      name: intent.productName,
-      sku,
-      price: intent.price,
-      unit: intent.unit || 'unit',
-    });
-    
     let newProduct;
     try {
       newProduct = await prisma.product.create({
         data: {
-          supplierId: finalCheck.id, // Use the re-verified organization ID
+          supplierId,
           name: intent.productName,
           sku,
           price: intent.price,
           unit: intent.unit || 'unit',
         },
       });
-      
-      console.log('[supplierAIService] Product created successfully:', newProduct.id);
 
       return {
         answer: `✅ Added new product: ${newProduct.name} at $${Number(newProduct.price).toFixed(2)}/${newProduct.unit}`,
         action: {
           type: 'product_added',
-          data: {
-            product: newProduct,
-          },
+          data: { product: newProduct },
         },
       };
     } catch (error: any) {
-      console.error('Error creating product:', error);
-      console.error('Error details:', {
-        supplierId,
-        productName: intent.productName,
-        price: intent.price,
-        unit: intent.unit,
-        errorCode: error.code,
-        errorMessage: error.message,
-      });
-
-      // Handle foreign key constraint violation
-      if (error.code === 'P2003') {
-        console.error('[supplierAIService] Foreign key constraint violation details:', {
-          errorCode: error.code,
-          errorMessage: error.message,
-          meta: error.meta,
-          supplierId: supplierOrg.id,
-          supplierIdFromParam: supplierId,
-        });
-
-        // Double-check the organization still exists
-        const recheckOrg = await prisma.organization.findUnique({
-          where: { id: supplierOrg.id },
-          select: { id: true, type: true, name: true },
-        });
-        
-        if (!recheckOrg) {
-          return {
-            answer: `❌ Error: Your supplier organization (ID: ${supplierOrg.id}) was not found. This may indicate a data inconsistency. Please contact support.`,
-          };
-        }
-
-        // Check if the constraint is about supplierId
-        const constraintInfo = error.meta?.field_name || error.meta?.target || 'unknown';
-        
-        return {
-          answer: `❌ Error: Database constraint violation (${constraintInfo}). Your organization "${recheckOrg.name}" (ID: ${recheckOrg.id}) exists. This may be a database schema issue. Please contact support.`,
-        };
-      }
-
-      // Handle other Prisma errors
-      if (error.code && error.code.startsWith('P')) {
-        return {
-          answer: `❌ Error creating product: ${error.message}. Please try again or contact support.`,
-        };
-      }
-
-      throw error; // Re-throw unexpected errors
+      console.error('Error creating product:', { productName: intent.productName, errorCode: error.code });
+      return {
+        answer: `❌ Error creating product. Please try again or contact support.`,
+      };
     }
   } else if (intent.intent === 'view_products') {
     // List all products - NEW SCHEMA ONLY

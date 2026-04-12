@@ -26,6 +26,7 @@
     "db:migrate-categories": "tsx migrate-product-categories.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1029.0",
     "@prisma/client": "^5.8.1",
     "@supabase/supabase-js": "^2.86.2",
     "@types/multer": "^2.0.0",
