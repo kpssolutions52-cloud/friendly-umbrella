@@ -27,6 +27,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function detectMobile(): boolean {
+  return typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // CRITICAL: Force loading to false if it's been true for too long (safety net)
   useEffect(() => {
     if (loading) {
-      const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isMobile = detectMobile();
       const maxLoadingTime = isMobile ? 10000 : 20000; // 10s mobile, 20s desktop
       
       const forceStopTimeout = setTimeout(() => {
@@ -57,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       // Detect mobile and use shorter timeout
-      const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isMobile = detectMobile();
       const timeout = isMobile ? 3000 : 8000; // 3s for mobile, 8s for desktop
       
       // Add timeout to prevent hanging - much shorter for mobile
@@ -80,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Detect mobile and use shorter timeout
-    const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobile = detectMobile();
     const hardTimeout = isMobile ? 5000 : 12000; // 5s for mobile, 12s for desktop
     
     // Check if API URL is localhost on mobile - this won't work, clear tokens immediately
@@ -226,19 +230,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     router.push('/auth/login');
   };
-
-  function getDashboardPath(tenantType: string): string {
-    if (tenantType === 'system') {
-      return '/admin/dashboard';
-    }
-    if (tenantType === 'supplier') {
-      return '/supplier/dashboard';
-    }
-    if (tenantType === 'service_provider') {
-      return '/service-provider/dashboard';
-    }
-    return '/company/dashboard';
-  }
 
   // Calculate isAuthenticated based on user and tokens
   const isAuthenticatedValue = !!user && checkIsAuthenticated();

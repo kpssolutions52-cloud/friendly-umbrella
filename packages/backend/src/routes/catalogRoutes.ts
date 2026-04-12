@@ -1,9 +1,8 @@
 import { Router, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
 import { AuthRequest, authenticate } from '../middleware/auth';
+import { prisma } from '../utils/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/v1/catalog/categories - Get all catalog categories with hierarchy
 router.get(

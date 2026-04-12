@@ -26,11 +26,6 @@ export interface TenantStatistics {
   };
 }
 
-// Get pending users
-export async function getPendingUsers(): Promise<{ users: TenantUser[] }> {
-  return apiGet<{ users: TenantUser[] }>(`${BASE_PATH}/users/pending`);
-}
-
 // Get all users in tenant
 export async function getTenantUsers(
   status?: 'pending' | 'active' | 'rejected',
@@ -67,21 +62,7 @@ export async function assignRolePermissions(
   });
 }
 
-// Update user permissions
-export async function updateUserPermissions(
-  userId: string,
-  permissions: Record<string, any>
-): Promise<{ message: string; user: TenantUser }> {
-  return apiPut<{ message: string; user: TenantUser }>(`${BASE_PATH}/users/${userId}/permissions`, {
-    permissions,
-  });
-}
-
 // Get tenant statistics
 export async function getTenantStatistics(): Promise<TenantStatistics> {
   return apiGet<TenantStatistics>(`${BASE_PATH}/statistics`);
 }
-
-
-
-

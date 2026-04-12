@@ -74,9 +74,11 @@ function toQuery(p: ListParams): string {
   return s ? `?${s}` : '';
 }
 
-export async function listSupplierHub(p: ListParams) {
+export async function listSupplierHub(p: ListParams & { signal?: AbortSignal }) {
+  const { signal, ...params } = p;
   return apiGet<{ suppliers: SupplierHubEntry[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-    `/api/v1/supplier-hub/suppliers${toQuery(p)}`
+    `/api/v1/supplier-hub/suppliers${toQuery(params)}`,
+    signal
   );
 }
 

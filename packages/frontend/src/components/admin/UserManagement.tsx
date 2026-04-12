@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { getPendingUsers, getTenantUsers, approveUser, assignRolePermissions, TenantUser } from '@/lib/tenantAdminApi';
+import { getTenantUsers, approveUser, assignRolePermissions, TenantUser } from '@/lib/tenantAdminApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

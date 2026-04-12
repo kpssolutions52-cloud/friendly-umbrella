@@ -76,9 +76,7 @@ router.post(
         });
       }
 
-      console.log('[AuthRoutes] Registering user:', { email: input.email, userType: input.userType });
       const result = await simplifiedAuthService.register(input);
-      console.log('[AuthRoutes] Registration successful for:', input.email);
       res.status(201).json(result);
     } catch (error: any) {
       console.error('[AuthRoutes] Error in /auth/register:', error);
@@ -105,9 +103,7 @@ router.post(
       }
 
       const input = loginSchema.parse(req.body);
-      console.log('[AuthRoutes] Login attempt for:', input.email);
       const result = await simplifiedAuthService.login(input);
-      console.log('[AuthRoutes] Login successful for:', input.email);
       
       res.json({
         message: result.message,
@@ -119,10 +115,8 @@ router.post(
       });
     } catch (error: any) {
       console.error('[AuthRoutes] Login error:', {
-        email: req.body?.email,
         error: error.message,
         status: error.status || error.statusCode,
-        stack: error.stack,
       });
       
       if (error instanceof z.ZodError) {

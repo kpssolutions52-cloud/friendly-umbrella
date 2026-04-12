@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Search,
   Plus,
@@ -81,7 +81,7 @@ function RemarkCell({
   toast,
 }: {
   entry: SupplierHubEntry;
-  onSaved: () => void;
+  onSaved: (newRemark: string | null) => void;
   toast: ReturnType<typeof useToast>['toast'];
 }) {
   const [v, setV] = useState(entry.remark ?? '');
@@ -95,7 +95,7 @@ function RemarkCell({
     if (next === prev) return;
     try {
       await updateSupplierHub(entry.id, { remark: next });
-      onSaved();
+      onSaved(next);
     } catch (e: any) {
       toast({ title: 'Could not save remarks', description: e.message, variant: 'destructive' });
     }
@@ -154,6 +154,7 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
   } | null>(null);
 
   const { widths: colWidths, startResize } = useSupplierHubColumnWidths();
+  const loadAbortRef = useRef<AbortController | null>(null);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newCo, setNewCo] = useState({ companyName: '', category: '', trade: '', email: '', phone: '' });
@@ -216,6 +217,11 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
   }, []);
 
   const load = useCallback(async () => {
+    // Cancel any in-flight request before starting a new one
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+
     setLoading(true);
     try {
       const res = await listSupplierHub({
@@ -227,11 +233,13 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
         limit: 20,
         sort: 'updatedAt',
         order: 'desc',
+        signal: controller.signal,
       });
       setRows(res.suppliers);
       setTotalPages(res.pagination.totalPages);
       setTotal(res.pagination.total);
     } catch (e: any) {
+      if (e.name === 'AbortError' || e instanceof DOMException) return; // Cancelled — ignore
       toast({ title: 'Failed to load suppliers', description: e.message, variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -314,8 +322,9 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
         isFavorite: selected.isFavorite,
       });
       setSelected(res.supplier);
+      // Patch the local row instead of triggering a full grid reload
+      setRows((prev) => prev.map((r) => (r.id === res.supplier.id ? { ...r, ...res.supplier } : r)));
       toast({ title: 'Saved' });
-      load();
     } catch (e: any) {
       toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     } finally {
@@ -740,7 +749,13 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                         onClick={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
                       >
-                        <RemarkCell entry={s} onSaved={load} toast={toast} />
+                        <RemarkCell
+                          entry={s}
+                          onSaved={(newRemark) =>
+                            setRows((prev) => prev.map((r) => (r.id === s.id ? { ...r, remark: newRemark } : r)))
+                          }
+                          toast={toast}
+                        />
                       </td>
                       <td className="px-2 py-2 align-top" style={{ width: colWidths[8], minWidth: colWidths[8] }}>
                         <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] ${STATUS_CLASS[s.status]}`}>

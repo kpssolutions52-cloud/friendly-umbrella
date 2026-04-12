@@ -24,12 +24,21 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
   retryOn401 = true,
-  customTimeout?: number
+  customTimeout?: number,
+  externalSignal?: AbortSignal
 ): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
   // Add timeout to prevent hanging requests - much shorter timeout for mobile
   const controller = new AbortController();
+
+  // Forward external abort signal (e.g. from request cancellation on rapid typing)
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
   // Use custom timeout if provided, otherwise use default (much shorter timeout for mobile)
   // Mobile networks are often slower and localhost won't work, so fail fast
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -153,8 +162,8 @@ export async function apiRequest<T>(
   }
 }
 
-export async function apiGet<T>(endpoint: string): Promise<T> {
-  return apiRequest<T>(endpoint, { method: 'GET' });
+export async function apiGet<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
+  return apiRequest<T>(endpoint, { method: 'GET' }, true, undefined, signal);
 }
 
 export async function apiPost<T>(endpoint: string, data?: any, retryOn401 = true, customTimeout?: number): Promise<T> {

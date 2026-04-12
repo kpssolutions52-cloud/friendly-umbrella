@@ -198,8 +198,8 @@ async function maybeFetchWebEnrichment(
   }
 
   const byLink = new Map<string, WebSearchHit>();
-  for (const q of plan.queries) {
-    const batch = await searchWeb(q, 5);
+  const batches = await Promise.all(plan.queries.map((q) => searchWeb(q, 5)));
+  for (const batch of batches) {
     for (const h of batch) {
       if (h.link && !byLink.has(h.link)) byLink.set(h.link, h);
     }

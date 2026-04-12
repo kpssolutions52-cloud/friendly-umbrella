@@ -148,7 +148,8 @@ export async function listSuppliers(organizationId: string, filters: ListFilters
     prisma.supplierHubEntry.count({ where }),
     prisma.supplierHubEntry.findMany({
       where,
-      include: { contacts: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] } },
+      // Fetch only the primary contact for list view to avoid over-fetching
+      include: { contacts: { where: { isPrimary: true }, take: 1 } },
       orderBy: { [sortField]: order },
       skip,
       take: limit,
@@ -159,7 +160,7 @@ export async function listSuppliers(organizationId: string, filters: ListFilters
     suppliers: rows.map((e) => ({
       ...e,
       completenessScore: completenessScore(e),
-      primaryContact: e.contacts.find((c) => c.isPrimary) ?? e.contacts[0] ?? null,
+      primaryContact: e.contacts[0] ?? null,
     })),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
   };
@@ -183,14 +184,17 @@ export async function getSupplier(organizationId: string, id: string) {
 export async function findPotentialDuplicates(organizationId: string, companyName: string, excludeId?: string) {
   const key = normalizeCompanyKey(companyName);
   if (key.length < 3) return [];
+  // Use a DB-level prefix filter so we don't scan the full table in application code
+  const prefix = companyName.slice(0, 8);
   const rows = await prisma.supplierHubEntry.findMany({
     where: {
       organizationId,
       archivedAt: null,
       id: excludeId ? { not: excludeId } : undefined,
+      companyName: { contains: prefix, mode: 'insensitive' },
     },
     select: { id: true, companyName: true, category: true },
-    take: 50,
+    take: 10,
   });
   return rows.filter((r) => normalizeCompanyKey(r.companyName) === key || r.companyName.toLowerCase().includes(companyName.toLowerCase().slice(0, 8)));
 }
@@ -705,9 +709,8 @@ export async function fetchSupplierHubForAiContext(
       archivedAt: null,
       OR: hubTokenOrClause(tokens),
     },
-    include: {
-      contacts: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] },
-    },
+    // Only primary contact needed for AI context formatting
+    include: { contacts: { where: { isPrimary: true }, take: 1 } },
     orderBy: { updatedAt: 'desc' },
     take: maxRows,
   });

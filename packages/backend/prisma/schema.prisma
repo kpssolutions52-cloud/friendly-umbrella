@@ -819,6 +819,11 @@ model SupplierHubEntry {
   @@index([organizationId])
   @@index([companyName])
   @@index([status])
+  @@index([organizationId, archivedAt])
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@index([category])
+  @@index([trade])
   @@map("supplier_hub_entries")
 }
 
@@ -840,6 +845,7 @@ model SupplierHubContact {
 
   @@index([supplierHubEntryId])
   @@index([email])
+  @@index([supplierHubEntryId, isPrimary])
   @@map("supplier_hub_contacts")
 }
 
