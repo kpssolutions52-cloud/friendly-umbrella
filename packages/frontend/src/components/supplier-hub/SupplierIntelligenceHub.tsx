@@ -22,11 +22,14 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Send,
 } from 'lucide-react';
 import { MOBILE_QS_TAB_NAV_RESERVE } from '@/lib/mobileQsShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   listSupplierHub,
@@ -118,6 +121,7 @@ type SupplierIntelligenceHubProps = {
 };
 
 export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: SupplierIntelligenceHubProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isMobile, setIsMobile] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -153,6 +157,33 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newCo, setNewCo] = useState({ companyName: '', category: '', trade: '', email: '', phone: '' });
+
+  const [composeOpen, setComposeOpen] = useState<{ to: string; companyName: string } | null>(null);
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeBody, setComposeBody] = useState('');
+
+  const openComposeEmail = useCallback((to: string, companyName: string) => {
+    setComposeOpen({ to, companyName });
+    setComposeSubject('');
+    setComposeBody(
+      companyName.trim()
+        ? `Dear ${companyName.trim()},\n\n\n`
+        : '\n'
+    );
+  }, []);
+
+  const openMailto = useCallback(() => {
+    if (!composeOpen) return;
+    const qsEmail = user?.email?.trim() || '';
+    const footer =
+      qsEmail !== ''
+        ? `\n\n--\n${qsEmail}`
+        : '';
+    const body = composeBody + footer;
+    const href = `mailto:${encodeURIComponent(composeOpen.to)}?subject=${encodeURIComponent(composeSubject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = href;
+    setComposeOpen(null);
+  }, [composeOpen, composeSubject, composeBody, user?.email]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -676,10 +707,32 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                         {p?.fax ?? '—'}
                       </td>
                       <td
-                        className="px-2 py-2 hidden lg:table-cell align-top truncate"
+                        className="px-2 py-2 hidden lg:table-cell align-top"
                         style={{ width: colWidths[6], minWidth: colWidths[6], maxWidth: colWidths[6] }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
                       >
-                        {p?.email ?? '—'}
+                        <div className="flex items-start gap-0.5 min-w-0">
+                          <span className="truncate min-w-0 flex-1" title={p?.email ?? undefined}>
+                            {p?.email ?? '—'}
+                          </span>
+                          {p?.email ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 shrink-0 p-0"
+                              title="Compose email"
+                              aria-label={`Compose email to ${p.email}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openComposeEmail(p.email!, s.companyName);
+                              }}
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
                       </td>
                       <td
                         className="px-1 py-1 align-top"
@@ -718,11 +771,18 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
             {rows.map((s) => {
               const p = primary(s);
               return (
-                <button
+                <div
                   key={s.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => openDrawer(s.id)}
-                  className="text-left rounded-xl border border-slate-200 p-2.5 hover:border-blue-300 hover:shadow-md transition-all bg-white sm:p-3.5"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openDrawer(s.id);
+                    }
+                  }}
+                  className="text-left rounded-xl border border-slate-200 p-2.5 hover:border-blue-300 hover:shadow-md transition-all bg-white sm:p-3.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2"
                 >
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
                     <div className="min-w-0">
@@ -752,7 +812,23 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                         {p?.email && (
                           <>
                             <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500 self-start mt-0.5" aria-hidden />
-                            <span className="min-w-0 break-all">{p.email}</span>
+                            <span className="min-w-0 break-all flex flex-wrap items-center gap-1">
+                              {p.email}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 shrink-0 p-0"
+                                title="Compose email"
+                                aria-label={`Compose email to ${p.email}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openComposeEmail(p.email!, s.companyName);
+                                }}
+                              >
+                                <Send className="w-3 h-3" />
+                              </Button>
+                            </span>
                           </>
                         )}
                       </div>
@@ -771,7 +847,22 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                       )}
                       {p?.email && (
                         <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
-                          <Mail className="w-3 h-3 shrink-0" /> <span className="line-clamp-1">{p.email}</span>
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="line-clamp-1 min-w-0">{p.email}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 shrink-0 p-0"
+                            title="Compose email"
+                            aria-label={`Compose email to ${p.email}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openComposeEmail(p.email!, s.companyName);
+                            }}
+                          >
+                            <Send className="w-3 h-3" />
+                          </Button>
                         </span>
                       )}
                     </div>
@@ -782,7 +873,7 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                       <div className="h-full bg-blue-500 rounded-full" style={{ width: `${s.completenessScore}%` }} />
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -1033,6 +1124,69 @@ export function SupplierIntelligenceHub({ reserveAppBottomNav = false }: Supplie
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compose email (mailto — your mail app sets the real From address) */}
+      {composeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setComposeOpen(null)}
+            aria-hidden
+          />
+          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-4 space-y-3 text-xs max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm">Compose email</h3>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0" onClick={() => setComposeOpen(null)} aria-label="Close">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-snug">
+              Your email app will open next. The visible &quot;From&quot; address is chosen by that app, not this page. Your account email is shown below so you can match it in your signature or settings.
+            </p>
+            <div>
+              <Label className="text-slate-600">To</Label>
+              <Input readOnly value={composeOpen.to} className="mt-1 bg-slate-50 text-xs" />
+            </div>
+            <div>
+              <Label className="text-slate-600">Your account email</Label>
+              <Input readOnly value={user?.email ?? '—'} className="mt-1 bg-slate-50 text-xs" />
+            </div>
+            <div>
+              <Label htmlFor="hub-compose-subject" className="text-slate-600">
+                Subject
+              </Label>
+              <Input
+                id="hub-compose-subject"
+                value={composeSubject}
+                onChange={(e) => setComposeSubject(e.target.value)}
+                className="mt-1 text-xs"
+                placeholder="Subject"
+              />
+            </div>
+            <div>
+              <Label htmlFor="hub-compose-body" className="text-slate-600">
+                Message
+              </Label>
+              <textarea
+                id="hub-compose-body"
+                value={composeBody}
+                onChange={(e) => setComposeBody(e.target.value)}
+                rows={8}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Your message…"
+              />
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" size="sm" onClick={() => setComposeOpen(null)}>
+                Cancel
+              </Button>
+              <Button type="button" size="sm" onClick={openMailto}>
+                Open in email app
+              </Button>
             </div>
           </div>
         </div>

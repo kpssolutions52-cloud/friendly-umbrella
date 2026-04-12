@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { SITE_BRAND_NAME } from '@/lib/siteBrand';
-import { MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, LogOut, Settings } from 'lucide-react';
 
 interface HeaderProps {
   showAuthButtons?: boolean;
@@ -44,17 +44,30 @@ export function Header({ showAuthButtons = true, className = '' }: HeaderProps) 
                   
                   {/* MVP 1: Show navigation links based on user type */}
                   {user.type === 'qs' && (
-                    <Link href="/chat" className="flex-shrink-0">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
-                      >
-                        <MessageSquare className="h-4 w-4 sm:mr-1.5" />
-                        <span className="hidden sm:inline">AI Chat</span>
-                        <span className="sm:hidden">Chat</span>
-                      </Button>
-                    </Link>
+                    <>
+                      <Link href="/chat" className="flex-shrink-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
+                        >
+                          <MessageSquare className="h-4 w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">AI Chat</span>
+                          <span className="sm:hidden">Chat</span>
+                        </Button>
+                      </Link>
+                      <Link href="/chat/settings" className="flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs sm:text-sm touch-target px-2 sm:px-3 whitespace-nowrap"
+                          title="Profile & settings"
+                        >
+                          <Settings className="h-4 w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Settings</span>
+                        </Button>
+                      </Link>
+                    </>
                   )}
                   
                   

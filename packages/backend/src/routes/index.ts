@@ -31,10 +31,12 @@ import { publicServiceCategoryRoutes } from './publicServiceCategoryRoutes';
 import publicRoutes from './publicRoutes';
 
 import supplierHubRoutes from './supplierHubRoutes';
+import qsProfileRoutes from './qsProfileRoutes';
 
 export function setupRoutes(app: Express) {
   // MVP 1: Simplified auth routes (2-step registration)
   app.use('/api/v1', simplifiedAuthRoutes);
+  app.use('/api/v1', qsProfileRoutes);
   
   // MVP 1: AI Chat routes (QS and Supplier)
   app.use('/api/v1', chatRoutes); // QS chat

@@ -196,6 +196,8 @@ router.get(
       res.json({
         id: user.id,
         email: user.email,
+        phone: user.phone ?? null,
+        whatsapp: user.whatsapp ?? null,
         name: userName,
         firstName: nameParts[0] || null,
         lastName: nameParts.slice(1).join(' ') || null,

@@ -30,6 +30,10 @@ export interface Tenant {
 export interface User {
   id: string;
   email: string;
+  /** Mobile number (QS contact / outreach) */
+  phone?: string | null;
+  /** WhatsApp number or handle (QS contact) */
+  whatsapp?: string | null;
   firstName?: string;
   lastName?: string;
   name?: string; // Full name (for new schema)
